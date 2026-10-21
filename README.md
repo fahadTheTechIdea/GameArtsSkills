@@ -1,5 +1,8 @@
 # Game Arts Skills
 
+[![Godot Runtime Smoke Test](https://github.com/fahadTheTechIdea/GameArtsSkills/actions/workflows/godot-runtime-tests.yml/badge.svg)](https://github.com/fahadTheTechIdea/GameArtsSkills/actions/workflows/godot-runtime-tests.yml)
+
+
 **Universal AI-assisted 2D game graphics production skills for Claude Code and OpenAI Codex, with Godot 4 integration.**
 
 This repository is the canonical source for Game Arts skills, specifications, schemas and validation tools.
@@ -60,6 +63,12 @@ The [modular component bundle builder](scripts/build_component_bundle.py) accept
 The repository now includes a [reusable native Godot 4 component scene](godot/addons/gamearts/game_arts_component.tscn), [direction-aware runtime script](godot/addons/gamearts/game_arts_component.gd), [runtime pink-mask shader](godot/addons/gamearts/chroma_key.gdshader), and [scene generator](scripts/generate_godot_scene.py). They load the generated component bundle and display individually moving nested components, updating all applicable directions together at one normalized animation phase.
 
 The [integration guide](docs/GODOT_COMPONENT_RUNTIME.md) describes setup and limitations. **Godot headless/editor execution is not yet verified.** The component builder still requires artist-verified anchors and approved source frames; native collision, occlusion and light updates are not automatic.
+
+## Godot runtime smoke test (CI)
+
+The repository now includes a synthetic modular-art generator and a **real Godot 4 headless smoke test** that imports a generated scene, verifies directional artwork and nested mounts, checks parent/child motion, and ensures the chroma-key ShaderMaterial is loaded. This runs in [GitHub Actions](https://github.com/fahadTheTechIdea/GameArtsSkills/actions/workflows/godot-runtime-tests.yml) when relevant files change. Test source: [Godot runner](tests/godot/test_runtime.gd) and [fixture generator](tests/create_godot_fixture.py).
+
+**Do not infer successful engine testing from committed files alone.** Check the Actions result. Headless structural tests do not certify actual composited pixels, collision/navigation, lighting or artist-approved alignment. Those still require visual/engine tests.
 
 ## Capabilities
 
