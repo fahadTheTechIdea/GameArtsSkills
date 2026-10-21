@@ -1,6 +1,6 @@
 # Game Arts — Codex Project Instructions
 
-Whenever the user requests 2D game artwork, a mockup, sprite, asset, character, scene, world, UI, effect, animation, tileset, or atlas, **use the game-arts orchestrator skill** in `.agents/skills/game-arts/SKILL.md` and the canonical `GAME_ARTS_MASTER_STANDARD_v7.6.md`. Apply automatically without asking the user to name the skill.
+Whenever the user requests 2D game artwork, a mockup, sprite, asset, character, scene, world, UI, effect, animation, tileset, or atlas, **use the game-arts orchestrator skill** in `.agents/skills/game-arts/SKILL.md` and the canonical `GAME_ARTS_MASTER_STANDARD_v7.7.md`. Apply automatically without asking the user to name the skill.
 
 Always follow the mockup-first approval gate for new visual designs; do not interpret approvals from silence. After approval, extract every meaningful detail and animation candidate. Preserve explicit art/asset profiles, orthogonal square terrain grid, exact opaque RGB #FF00FF with alpha 255 on all Game Arts PNG exports, direction-aware nested animated attachments, measured atlas JSON per sprite sheet, Godot validation and individual outputs (no ZIP).
 
@@ -48,3 +48,7 @@ When approved source frames exist and a sprite sheet is requested, invoke the `s
 ## Executable modular moving component implementation (v7.6)
 
 When approved artwork includes separately moving or state-changing parts, do **not** stop at generic atlas metadata. Use `scripts/build_component_bundle.py` internally with the actual approved frame PNGs and **artist-verified parent anchors/pivots** to build individual directional sheets and measured JSON atlases, plus a `.bundle.json` containing the nested component hierarchy and sampled direction/time-dependent mount transforms. See `docs/COMPONENT_ANIMATION.md`. Do not hardcode component types or frame counts. Ensure all required directions and parent mounts exist, validate the generated bundle, and keep it in `assets/generated` pending final approval. The tool cannot infer artwork anchor geometry, create missing animation images, or certify Godot rendering, so never claim those capabilities without separate actual tests.
+
+## Godot runtime component support (v7.7)
+
+For approved nested moving-part bundles, use the reusable `godot/addons/gamearts/game_arts_component.gd`, `.tscn` and `chroma_key.gdshader` in the target game's `res://addons/gamearts/` folder where integration is requested. Internally invoke `scripts/generate_godot_scene.py` to produce a native `.tscn` referencing the built bundle, and verify all file paths when the candidate is later approved/moved. The runtime supports per-direction component atlas regions, animated parent mounts, normalized playback and nested Node2D inheritance; actual Godot execution, physics, navigation, light/occlusion, and visual regression remain unverified until performed. See `docs/GODOT_COMPONENT_RUNTIME.md`. Keep the user-facing workflow conversational.
