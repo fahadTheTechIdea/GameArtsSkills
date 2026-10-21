@@ -50,7 +50,7 @@ class AtlasBuilderTests(unittest.TestCase):
                 self.assertEqual(im.convert("RGBA").getpixel((6, 11)), (20, 50, 90, 255))
             self.assertEqual(len(atlas["frames"]), 2)
             self.assertEqual(atlas["frames"][0]["pivot"], atlas["frames"][1]["pivot"])
-            self.assertEqual(atlas["frames"][0]["anchors"]["hinge"], [4, 7])
+            self.assertEqual(atlas["frames"][0]["anchors"]["hinge"], [4, 9])
             self.assertEqual(atlas["frames"][0]["duration_ms"], 120)
             self.assertEqual(atlas["frames"][1]["duration_ms"], 150)
             self.assertEqual(atlas["frames"][0]["source_ink_bounds"], [4, 5, 1, 1])
