@@ -34,15 +34,9 @@ These files provide reusable agent workflows and validators, not a standalone im
 
 Game Arts saves **per-game settings in the game repository**, at `.gamearts/project.json` (not in the shared skills repository). These settings survive new Claude and Codex sessions when the agents load the project's files.
 
-Run the interactive setup questionnaire once:
+**Run the setup wizard directly in Claude Code or Codex chat** by saying **“Set up Game Arts for my game”**. The agent asks a few simple questions, offers recommended defaults, and saves the answers to the game repository itself. No command-line steps or manual JSON edits are required. For later changes say **“Show my Game Arts settings”** or **“Change my Game Arts settings.”** Commit the generated settings file in the game repository for shared persistence. See [project settings documentation](docs/PROJECT_SETTINGS.md) and [JSON schema](schemas/gamearts-project.schema.json).
 
-```bash
-python scripts/setup_gamearts.py --project-dir /path/to/your-game
-```
-
-For reconfiguration, use `--overwrite` deliberately. For read-only inspection and validation, use `--show` or `--validate`. Commit the generated file to the game repository. See [project settings documentation](docs/PROJECT_SETTINGS.md) and [JSON schema](schemas/gamearts-project.schema.json).
-
-Both Claude and Codex have a [project setup skill](.agents/skills/game-arts-project-setup/SKILL.md) which can guide the questionnaire when you ask to configure Game Arts.
+Both Claude and Codex have a [project setup skill](.agents/skills/game-arts-project-setup/SKILL.md) which runs the entire setup conversationally and saves your selections for you.
 
 ## Skill catalog
 
