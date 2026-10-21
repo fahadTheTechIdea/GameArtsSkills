@@ -70,3 +70,7 @@ Inside each **game repository**, not this shared skills repository:
 ```
 
 For installation details, see [README_INSTALL.md](../README_INSTALL.md). The canonical production requirements are in [GAME_ARTS_MASTER_STANDARD_v7.5.md](../GAME_ARTS_MASTER_STANDARD_v7.5.md).
+
+## Working sheet and atlas generator
+
+When approved source frames exist and a sprite sheet is requested, invoke the `sheet-atlas` skill and have the agent run `scripts/build_sheet_atlas.py` internally, then `scripts/validate_sheet_atlas.py`. This creates **real** native-scale opaque pink PNG sheets and companion measured JSON atlases. Save the pair together in the game project's generated asset bundle and request approval. See `docs/ATLAS_GENERATION.md`. The builder transforms **provided** pivot and anchor data into cell coordinates; it does not infer physical mount points or certify visual/Godot readiness. Never claim atlas generation unless files were actually written and checked. Users do not need to run commands.
