@@ -1322,3 +1322,30 @@ The user opens their game project and requests any game art in ordinary language
 Retain exact opaque #FF00FF backgrounds for PNGs, one measured JSON atlas per actual sprite sheet, all required direction-aware nested and animated attachments, universal/art/asset profile consistency, world-space scale, individual deliverables, no ZIP archives, source provenance, and truthful tool/test status. The configured world grid remains orthogonal square where that game profile is selected.
 
 **No new technical term or command is required of the user. The entire workflow is connected and automatically routed behind the scenes.**
+
+
+---
+
+## External and user-supplied mockup intake (v7.5 amendment)
+
+Game Arts supports **both agent-generated mockups and user-provided mockups made outside the framework**. A user does not need to regenerate an external design in Claude or Codex.
+
+When a user uploads, links to, imports or identifies an existing mockup:
+
+1. Identify the **target game**, source artwork, visual scope, art style and whether the user has explicitly approved the exact version.
+2. Preserve the original source file by default. **Copy/import** it into the game's managed mockup storage; never remove or alter the external original without express user authorization. If the file is only visible as a chat attachment or an inaccessible external URL, first obtain a legitimately accessible copy; don't claim import was completed when the agent cannot read/write the bytes.
+3. Use descriptive game-related names, a stable mockup ID, new managed revision, source provenance, and file hash when possible. Do not reencode or modify original image pixels without an approved transformation. Validate its file type, content, dimensions and integrity.
+4. If **explicitly already approved** by the user, import the candidate directly to `.gamearts/outputs/mockups/approved/` and record the approval source in `manifests/mockups.json`. That direct import **counts as mockup approval**; do not ask the user to approve the same version again.
+5. If approval is unclear or not given, import into `.gamearts/outputs/mockups/generated/`, present a preview and ask simply whether to approve or revise. Do not silently promote the external file.
+6. For rejected/superseded externally supplied mockups, keep the **managed copy** in `mockups/revoked/`; leave the original external source untouched unless explicitly instructed otherwise.
+7. After approval, apply the same mandatory **full-detail mockup analysis** as for agent-generated previews, including geometry, textures, small features, components, material treatment and all realistic motion/state candidates. Use nested world/scene/asset/UI blueprints as appropriate.
+8. Production assets must reference the managed approved `mockup_id`, exact revision, approved path, source hash/URI when allowed, and applicable blueprint element IDs. The same naming, master-lock, 8-direction coverage where applicable, animated attachments, sprite+measured atlas, opaque #FF00FF, Godot validation and asset lifecycle rules still apply.
+9. If a user-supplied *mockup* has transparency or a nonconforming background, preserve the unmodified external original as provenance and create a **separate compliant working/export copy** when needed and technically achievable; obtain clarification for destructive or appearance-changing conversions. Do not falsely claim exact opaque pink compliance until it is measured and verified.
+10. An imported mockup is a **visual reference**, not automatically a finished sprite sheet or runtime asset. Production outputs still follow their own generated/approved/revoked lifecycle.
+
+Everyday behavior:
+- "Here is my mockup, use it" → import a managed copy under `mockups/generated/` unless explicit approval is stated, then show it for approval.
+- "This mockup is already approved" → import under `mockups/approved/`, record approval and start detailed decomposition, without recreating the mockup.
+- "Replace the current mockup with this external version" → register a new revision, confirm material changes as needed, retain the old managed revision in `mockups/revoked/` only after a successful transition.
+
+**Rule:** Imported and agent-generated mockups enter the **same traceable mockup lifecycle**; source ownership and approval status remain explicit.
