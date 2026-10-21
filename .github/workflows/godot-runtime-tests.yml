@@ -1,0 +1,47 @@
+name: Game Arts Godot Runtime Smoke Test
+
+on:
+  push:
+    paths:
+      - "godot/addons/gamearts/**"
+      - "scripts/build_component_bundle.py"
+      - "scripts/build_sheet_atlas.py"
+      - "scripts/validate_component_bundle.py"
+      - "scripts/generate_godot_scene.py"
+      - "tests/create_godot_fixture.py"
+      - "tests/godot/**"
+      - ".github/workflows/godot-runtime-tests.yml"
+  pull_request:
+    paths:
+      - "godot/addons/gamearts/**"
+      - "scripts/build_component_bundle.py"
+      - "scripts/build_sheet_atlas.py"
+      - "scripts/validate_component_bundle.py"
+      - "scripts/generate_godot_scene.py"
+      - "tests/create_godot_fixture.py"
+      - "tests/godot/**"
+      - ".github/workflows/godot-runtime-tests.yml"
+
+jobs:
+  godot-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install sprite processing dependencies
+        run: python -m pip install Pillow
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.4.1
+          use-dotnet: false
+      - name: Verify Godot version
+        run: godot --version
+      - name: Generate and validate moving part fixture
+        run: python tests/create_godot_fixture.py tests/_godot_generated
+      - name: Import fixture and parse engine resources
+        run: godot --headless --path tests/_godot_generated --editor --import --quit
+      - name: Test nested attachments and facing changes in Godot
+        run: godot --headless --path tests/_godot_generated --script res://test_runtime.gd
