@@ -5,7 +5,7 @@ description: Use for any creation, transformation, review, mockup, sprite, sprit
 
 # Game Arts orchestrator
 
-1. Read `GAME_ARTS_MASTER_STANDARD_v7.3.md` at the repository root. Treat the master as authoritative; avoid filling gaps by guessing.
+1. Read `GAME_ARTS_MASTER_STANDARD_v7.4.md` at the repository root. Treat the master as authoritative; avoid filling gaps by guessing.
 2. Classify the task: visual mockup, mockup analysis, production image, animation/components, sheet/atlas, Godot validation or a mixed project.
 3. For **new** visual content produce a reviewable mockup and obtain **explicit approval** before final production. If an explicitly approved reference already exists, reuse its revision; do not re-approve needlessly.
 4. Determine mockup scope: world, scene, asset, character, ui_screen, ui_flow or mixed. For complex or mixed work, delegate analysis to `mockup-analyzer` and recurse into nested blueprints.
@@ -27,3 +27,7 @@ On **every Game Arts task**, load active applicable rules from `<game-root>/.gam
 ## Mandatory v7.3 mockup and asset lifecycle
 
 Read the v7.3 standard and invoke the `game-arts-lifecycle` skill for generation staging, mockup/asset approval, rejection, revocation, replacement, restoration and listing. Use separate `<game>/.gamearts/outputs/mockups/{generated,approved,revoked}` and `<game>/.gamearts/outputs/assets/{generated,approved,revoked}` stores plus linked manifests. Every final asset references its exact **approved mockup revision** and blueprint region IDs. Use unique descriptive game-related versioned filenames, keep companion PNG/JSON/metadata together, and never silently overwrite or delete a revoked version. **No user-facing CLI or manual folder management.** Never claim approval without explicit user approval and verified file transitions.
+
+## Automatic, user-friendly Game Arts behavior (v7.4)
+
+When the user opens a game project and asks for art normally, **apply Game Arts automatically** using the project-root instructions. Quietly load the relevant `.gamearts/project.json`, active scoped `.gamearts/instructions/*.md` and approved mockup/asset manifests as needed; invoke specialist skills only for the actual task. **Do not require "initialize", "load Game Arts", command-line setup, special phrases or manual skill selection.** If settings are absent, use known approved defaults for preliminary work and ask one simple question only if an essential decision is missing. Do not repeat saved choices or demand approval again for unchanged accepted mockups. Keep storage, naming, manifests, JSON and tool operations behind the scenes. Ask only for meaningful design/approval decisions; verify files before reporting success. The user workflow is simply **open project → ask for art → approve when needed**.
