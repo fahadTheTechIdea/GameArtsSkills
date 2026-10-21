@@ -8,6 +8,10 @@ This repository is the canonical source for Game Arts skills, specifications, sc
 
 Once installed in your game project, **open Claude Code or Codex and describe what you want**. Game Arts automatically reads your saved project settings and relevant approved references. You do **not** need to initialize skills or run commands. It asks only for necessary choices and approval of new mockups/art. See the [automatic user experience standard](GAME_ARTS_MASTER_STANDARD_v7.5.md).
 
+## Use your own mockup
+
+**Bring your own mockup:** Upload or point the agent to artwork you created elsewhere. Game Arts imports a managed copy into the mockup lifecycle, preserves your original, and uses the approved version as its production reference—no unnecessary recreation. If you say it's already approved, it enters the project's `mockups/approved/` with provenance; otherwise it goes into `mockups/generated/` for review. Final sprites and atlases are still generated and approved separately. Original external files are never moved or modified without permission.
+
 ## The complete workflow — automatic, not just setup
 
 Ask for an art asset in natural language. Game Arts reuses saved project choices and your relevant custom rules, **creates and displays a visual mockup** when no approved one exists, asks for approval, analyzes the mockup's geometry/textures/small details/animations, generates the production sprite and atlas, validates it, and asks for final approval. There are **two distinct approvals**: the visual mockup and final production asset. No CLI or manual folder management.
