@@ -76,3 +76,7 @@ Each mount offset comes from the parent atlas frame's named anchor minus that fr
 - Never use this tool to regenerate new reference art instead of obtaining approved mockups and frame images.
 
 For developers/test runners, `python -m unittest discover -s tests -v` runs synthetic modular-component tests. The normal user never needs to run that command.
+
+## Automated bundle validator
+
+After building, the agent should invoke `scripts/validate_component_bundle.py <generated-bundle-folder>` internally and keep the bundle in generated until human approval and any required Godot tests. The validator checks PNGs, atlases, frame bounds, alpha, directional listings and sampled transforms, but does not infer physical geometry or verify unsampled motion.
