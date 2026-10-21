@@ -28,6 +28,9 @@ var _nodes: Dictionary = {}
 var _mount_nodes: Dictionary = {}
 var _sprites: Dictionary = {}
 var _invalid: bool = false
+# A component may hold its own animation phase while its parent continues moving.
+# Entries override normalized_time until cleared.
+var _component_phases: Dictionary = {}
 
 func _ready() -> void:
     if not bundle_path.is_empty():
@@ -94,8 +97,9 @@ func load_bundle(path: String) -> bool:
         sprite.name = "Sprite"
         sprite.centered = false
         sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-        sprite.material = ShaderMaterial.new()
-        sprite.material.shader = KEY_SHADER
+        var chroma_material := ShaderMaterial.new()
+        chroma_material.shader = KEY_SHADER
+        sprite.material = chroma_material
         node.add_child(sprite)
         _sprites[id] = sprite
         var views: Dictionary = {}
@@ -143,6 +147,27 @@ func set_facing(new_direction: String) -> void:
 func set_progress(time_0_to_1: float) -> void:
     normalized_time = clampf(time_0_to_1, 0.0, 1.0)
 
+func set_component_progress(component_id: String, time_0_to_1: float) -> void:
+    if not _components.has(component_id):
+        push_warning("Game Arts: unknown component " + component_id)
+        return
+    _component_phases[component_id] = clampf(time_0_to_1, 0.0, 1.0)
+    _apply_pose()
+
+func clear_component_progress(component_id: String) -> void:
+    _component_phases.erase(component_id)
+    _apply_pose()
+
+func set_component_action(component_id: String, action: String) -> void:
+    if not _components.has(component_id):
+        push_warning("Game Arts: unknown component " + component_id)
+        return
+    _components[component_id]["action"] = action
+    _apply_pose()
+
+func _phase_for(component_id: String) -> float:
+    return float(_component_phases.get(component_id, normalized_time))
+
 func _apply_pose() -> void:
     if _invalid or _bundle.is_empty():
         return
@@ -154,7 +179,7 @@ func _apply_pose() -> void:
         var arr: Array = atlas.get("frames", [])
         if arr.is_empty():
             return
-        var idx: int = mini(int(normalized_time * arr.size()), arr.size() - 1)
+        var idx: int = mini(int(_phase_for(id) * arr.size()), arr.size() - 1)
         var f: Dictionary = arr[idx]
         frames[id] = f
         var sprite: Sprite2D = _sprites[id]
@@ -191,7 +216,7 @@ func _apply_pose() -> void:
             position = Vector2(float(a[0] - p[0]), float(a[1] - p[1]))
             var action: String = str(part.get("parent_action") if part.get("parent_action") != null else _components[pid].get("action", "default"))
             var mount_track := _select_track(part.get("mount_tracks", {}), action, direction)
-            var mt := _eval_track(mount_track, normalized_time)
+            var mt := _eval_track(mount_track, _phase_for(pid))
             position += Vector2(mt.position[0], mt.position[1])
             anchor_rotation = mt.rotation_degrees
             anchor_scale = Vector2(mt.scale[0], mt.scale[1])
@@ -200,7 +225,7 @@ func _apply_pose() -> void:
         mount_node.scale = anchor_scale
         var rest: Dictionary = _transform(part.get("rest", {}))
         var own_action := str(part.get("action", "default"))
-        var own := _eval_track(_select_track(part.get("motion_tracks", {}), own_action, direction), normalized_time)
+        var own := _eval_track(_select_track(part.get("motion_tracks", {}), own_action, direction), _phase_for(id))
         var node: Node2D = _nodes[id]
         # Compose rest × child motion with an intermediate Node2D as needed.
         # For no shear, a rest transform combined with motion is evaluated in local space.
@@ -287,3 +312,4 @@ func _clear_parts() -> void:
     _nodes.clear()
     _mount_nodes.clear()
     _sprites.clear()
+    _component_phases.clear()
