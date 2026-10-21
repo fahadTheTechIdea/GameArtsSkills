@@ -49,3 +49,6 @@ Respond with concise human-friendly filenames and status rather than raw JSON. A
 
 ## Quality requirements
 Universal exact opaque #FF00FF source PNG; JSON atlas measured from every actual sprite sheet; locked approved references, dynamic animated attachment hierarchies, directional coverage when applicable, and Godot validation remain mandatory. Approval decisions are separate from technical validation.
+
+## Connected workflow
+Mockup creator registers actual rendered previews as generated candidates; on explicit approval promote the exact revision, then hand off to mockup analyzer. Production art is registered separately as generated and requires its own approval. Keep both lifecycles and exact mockup-to-asset links distinct.
