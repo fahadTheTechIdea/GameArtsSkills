@@ -53,4 +53,4 @@ These are examples only. The naming contract is generic and does not hardcode an
 - File changes and manifest pointers are verified before claiming a transition succeeded.
 - All exported PNG unused pixels remain exact opaque #FF00FF.
 
-See [master standard v7.3](../GAME_ARTS_MASTER_STANDARD_v7.3.md).
+See [master standard v7.3](../GAME_ARTS_MASTER_STANDARD_v7.4.md).
