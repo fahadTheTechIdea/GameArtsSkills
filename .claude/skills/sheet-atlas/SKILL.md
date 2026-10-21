@@ -26,3 +26,7 @@ When a production request requires a sprite sheet:
 8. Source-frame anchors are **supplied and transformed**, not automatically inferred from image content. Mark anchor or Godot validation unverified until actually checked.
 
 For complete examples see `docs/ATLAS_GENERATION.md`. 
+
+## Executable modular moving component implementation (v7.6)
+
+When approved artwork includes separately moving or state-changing parts, do **not** stop at generic atlas metadata. Use `scripts/build_component_bundle.py` internally with the actual approved frame PNGs and **artist-verified parent anchors/pivots** to build individual directional sheets and measured JSON atlases, plus a `.bundle.json` containing the nested component hierarchy and sampled direction/time-dependent mount transforms. See `docs/COMPONENT_ANIMATION.md`. Do not hardcode component types or frame counts. Ensure all required directions and parent mounts exist, validate the generated bundle, and keep it in `assets/generated` pending final approval. The tool cannot infer artwork anchor geometry, create missing animation images, or certify Godot rendering, so never claim those capabilities without separate actual tests.
