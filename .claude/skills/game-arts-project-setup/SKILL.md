@@ -50,3 +50,6 @@ Offer **Use recommended settings** as an easy path whenever possible.
 - Show the user only the decisions they can meaningfully make.
 - Provide plain-language options to view settings, change art style, reset optional choices, or revisit setup.
 - Never claim settings persist when they have not been written successfully.
+
+## Optional custom instructions
+After saving the basic game profile, mention once that the user can say **“Add a Game Arts instruction”** to customize the pipeline for this game. Do not force a separate questionnaire. Use the `game-arts-custom-instructions` skill to persist approved rules in `.gamearts/instructions/`, not in `.gamearts/project.json` or the shared skills repository.
