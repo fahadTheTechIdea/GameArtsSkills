@@ -130,3 +130,5 @@ The approved world profile uses an **orthogonal square grid**, with 16 × 16-met
 ## Contributing and maintenance
 
 Update the master specification first, then keep the specialist skills, schemas, validators and install guide consistent. Test behavior in the target Godot game, and never claim a sprite or atlas is game-ready without the applicable validation.
+
+The separate [bundle validator](scripts/validate_component_bundle.py) checks that every referenced component PNG/atlas exists, direction sets and frame rectangles are valid, all source PNGs are opaque and sampled composed transforms are finite. It does **not** replace in-Godot visual/physics verification.
