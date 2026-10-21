@@ -54,3 +54,9 @@ These are examples only. The naming contract is generic and does not hardcode an
 - All exported PNG unused pixels remain exact opaque #FF00FF.
 
 See [master standard v7.3](../GAME_ARTS_MASTER_STANDARD_v7.4.md).
+
+## Bring your own mockup
+
+**Bring your own mockup:** Upload or point the agent to artwork you created elsewhere. Game Arts imports a managed copy into the mockup lifecycle, preserves your original, and uses the approved version as its production reference—no unnecessary recreation.
+
+When the user supplies an existing external mockup, **import a copy rather than generating a replacement**. Respect explicit prior approval; if not approved, ask for approval of that actual revision. Keep source provenance and a traceable managed reference. Do not claim an import succeeded unless file access and write operations were completed. Follow the v7.5 external mockup intake rules and require detailed decomposition before final art production.
