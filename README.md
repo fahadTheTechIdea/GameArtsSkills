@@ -4,6 +4,25 @@
 
 This repository is the canonical source for Game Arts skills, specifications, schemas and validation tools.
 
+## Quick commands — just talk to Claude or Codex
+
+No special commands or technical setup are required. Open the game project and ask normally:
+
+| What you say | What Game Arts does |
+|---|---|
+| **“Set up my game art.”** | Runs a short in-chat settings wizard and saves choices in the game. |
+| **“Create a city scene mockup.”** | Generates a real visual preview and asks for approval. |
+| **“Here is a mockup I created.”** | Imports a copy into generated mockups and offers approval. |
+| **“This mockup is already approved.”** | Imports the approved version without generating a replacement. |
+| **“Revise the mockup.”** | Creates a new candidate version, preserving earlier artwork. |
+| **“Approve this mockup.”** | Locks the reference, saves it in approved, and analyzes all visible details. |
+| **“Generate sprites from the approved mockup.”** | Produces traceable assets, animation sheets and measured atlases. |
+| **“Approve this sprite.”** | Promotes the validated PNG and companion metadata as a complete bundle. |
+| **“Show approved art.”** | Finds the current approved images in the game project. |
+| **“Change my settings / add an art instruction.”** | Updates saved settings or scoped custom instructions conversationally. |
+
+See **[all natural-language commands](docs/COMMANDS.md)** for animation, atlas, rejected/revoked versions, restoration and Godot testing.
+
 ## Just ask for game art
 
 Once installed in your game project, **open Claude Code or Codex and describe what you want**. Game Arts automatically reads your saved project settings and relevant approved references. You do **not** need to initialize skills or run commands. It asks only for necessary choices and approval of new mockups/art. See the [automatic user experience standard](GAME_ARTS_MASTER_STANDARD_v7.5.md).
