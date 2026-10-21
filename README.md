@@ -6,7 +6,19 @@ This repository is the canonical source for Game Arts skills, specifications, sc
 
 ## Just ask for game art
 
-Once installed in your game project, **open Claude Code or Codex and describe what you want**. Game Arts automatically reads your saved project settings and relevant approved references. You do **not** need to initialize skills or run commands. It asks only for necessary choices and approval of new mockups/art. See the [automatic user experience standard](GAME_ARTS_MASTER_STANDARD_v7.4.md).
+Once installed in your game project, **open Claude Code or Codex and describe what you want**. Game Arts automatically reads your saved project settings and relevant approved references. You do **not** need to initialize skills or run commands. It asks only for necessary choices and approval of new mockups/art. See the [automatic user experience standard](GAME_ARTS_MASTER_STANDARD_v7.5.md).
+
+## The complete workflow — automatic, not just setup
+
+Ask for an art asset in natural language. Game Arts reuses saved project choices and your relevant custom rules, **creates and displays a visual mockup** when no approved one exists, asks for approval, analyzes the mockup's geometry/textures/small details/animations, generates the production sprite and atlas, validates it, and asks for final approval. There are **two distinct approvals**: the visual mockup and final production asset. No CLI or manual folder management.
+
+- **Set up my game art** → friendly in-chat wizard when you actually want to configure settings.
+- **Create a city-scene mockup** → image preview, revision and approval flow.
+- **Generate an asset** → find the approved reference or create a mockup first.
+- **Approve this** → move exact revision to approved and continue the next stage.
+- **Show approved artwork** → read lifecycle records, not loose files.
+
+Read the [complete everyday workflow](docs/USER_WORKFLOW.md).
 
 ## Capabilities
 
@@ -62,6 +74,7 @@ You can simply say **“Approve this mockup”**, **“Reject this image”**, *
 | [game-arts-project-setup](.agents/skills/game-arts-project-setup/SKILL.md) | Configures persistent game-specific defaults |
 | [game-arts-lifecycle](.agents/skills/game-arts-lifecycle/SKILL.md) | Manages generated, approved, revoked mockups and linked asset bundles |
 | [game-arts-custom-instructions](.agents/skills/game-arts-custom-instructions/SKILL.md) | Saves, retrieves and manages user-defined per-game art rules |
+| [game-arts-mockup-creator](.agents/skills/game-arts-mockup-creator/SKILL.md) | Produces actual visual mockups and handles review before final art |
 | [mockup-analyzer](.agents/skills/mockup-analyzer/SKILL.md) | Decomposes approved world, scene, character, asset and UI mockups |
 | [art-profile](.agents/skills/art-profile/SKILL.md) | Applies the approved game visual style |
 | [animation-planner](.agents/skills/animation-planner/SKILL.md) | Plans moving parts, directional coverage and key poses |
@@ -70,7 +83,7 @@ You can simply say **“Approve this mockup”**, **“Reject this image”**, *
 
 ## Reference and validation
 
-- [Master standard v7.2](GAME_ARTS_MASTER_STANDARD_v7.4.md) — **canonical specification**.
+- [Master standard v7.5](GAME_ARTS_MASTER_STANDARD_v7.5.md) — **canonical specification**.
 - [Mockup Blueprint JSON schema](schemas/mockup-blueprint.schema.json)
 - [Blueprint validator](scripts/validate_blueprint.py)
 - [Sprite sheet/atlas validator](scripts/validate_sheet_atlas.py)
