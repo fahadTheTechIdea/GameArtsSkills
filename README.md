@@ -4,6 +4,10 @@
 
 This repository is the canonical source for Game Arts skills, specifications, schemas and validation tools.
 
+## Just ask for game art
+
+Once installed in your game project, **open Claude Code or Codex and describe what you want**. Game Arts automatically reads your saved project settings and relevant approved references. You do **not** need to initialize skills or run commands. It asks only for necessary choices and approval of new mockups/art. See the [automatic user experience standard](GAME_ARTS_MASTER_STANDARD_v7.4.md).
+
 ## Capabilities
 
 - **Mockup-first:** approve whole-world, scene, asset, character and UI mockups before final art production.
@@ -66,7 +70,7 @@ You can simply say **“Approve this mockup”**, **“Reject this image”**, *
 
 ## Reference and validation
 
-- [Master standard v7.2](GAME_ARTS_MASTER_STANDARD_v7.3.md) — **canonical specification**.
+- [Master standard v7.2](GAME_ARTS_MASTER_STANDARD_v7.4.md) — **canonical specification**.
 - [Mockup Blueprint JSON schema](schemas/mockup-blueprint.schema.json)
 - [Blueprint validator](scripts/validate_blueprint.py)
 - [Sprite sheet/atlas validator](scripts/validate_sheet_atlas.py)
