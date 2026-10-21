@@ -44,3 +44,7 @@ Ask the agent normally for a world, scene, character, asset or UI design. If no 
 **Bring your own mockup:** Upload or point the agent to artwork you created elsewhere. Game Arts imports a managed copy into the mockup lifecycle, preserves your original, and uses the approved version as its production reference—no unnecessary recreation.
 
 When the user supplies an existing external mockup, **import a copy rather than generating a replacement**. Respect explicit prior approval; if not approved, ask for approval of that actual revision. Keep source provenance and a traceable managed reference. Do not claim an import succeeded unless file access and write operations were completed. Follow the v7.5 external mockup intake rules and require detailed decomposition before final art production.
+
+## User-friendly commands
+
+Once installed, there is no manual activation. Ask normally: **“Create a mockup”**, **“Use this outside mockup”**, **“This is already approved”**, **“Revise it”**, **“Approve this mockup”**, **“Generate sprites”**, **“Approve this sprite”**, **“Show approved art”**, **“Set up my game art”**, or **“Change my settings.”** The agent routes the complete wizard, mockup creation/import, decomposition, production, animation, atlas, validation and lifecycle stages automatically. See [full commands](docs/COMMANDS.md).
