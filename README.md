@@ -43,6 +43,12 @@ Ask for an art asset in natural language. Game Arts reuses saved project choices
 
 Read the [complete everyday workflow](docs/USER_WORKFLOW.md).
 
+## Real sprite-sheet and atlas builder
+
+Game Arts now includes an executable [sprite-sheet + measured atlas generator](scripts/build_sheet_atlas.py) using actual frame PNGs. Claude Code and Codex should invoke it automatically behind the scenes when creating multi-frame artwork. The generator produces a paired **opaque pink PNG** and **JSON atlas**; [tests](tests/test_build_sheet_atlas.py) and [CI](.github/workflows/atlas-tests.yml) check basic assembly invariants. Read the [atlas generation guide](docs/ATLAS_GENERATION.md) for details and limitations.
+
+The generator accurately calculates frame rectangles and transformed **supplied** anchors. It does **not** automatically infer mechanical attachment points from images or create native Godot scenes. Those remain separate validation/integration steps.
+
 ## Capabilities
 
 - **Mockup-first:** approve whole-world, scene, asset, character and UI mockups before final art production.
