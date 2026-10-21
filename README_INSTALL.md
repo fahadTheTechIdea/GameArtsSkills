@@ -21,10 +21,4 @@ Simply say, "Create a mockup of my game scene", "Generate a sprite for this asse
 These are instructions plus small validators, not an AI image model, sprite renderer or Godot importer. Art generation, atlas assembly and Godot validation require those external tools to be available and actually run. None of the generated assets is automatically declared game-ready. All delivered Game Arts PNGs follow exact opaque #FF00FF and every sprite sheet needs a measured atlas JSON. No ZIP deliverables.
 ## Persistent per-game settings (new)
 
-After installing the skills, configure the game **in its own repository**:
-
-```bash
-python /path/to/GameArtsSkills/scripts/setup_gamearts.py --project-dir /path/to/game
-```
-
-The wizard writes `<game>/.gamearts/project.json`. Commit that file so future Claude/Codex sessions read the exact saved settings. Use `--show` to inspect, `--validate` to check, and `--overwrite` only for intentional changes. Full details: [Project settings](docs/PROJECT_SETTINGS.md).
+After installing the skills, open your game in **Claude Code or Codex** and say **“Set up Game Arts for this project.”** The agent asks a short series of easy questions, offers recommended defaults, and saves `<game>/.gamearts/project.json` through its project file tools. **Users do not run any Python command or edit JSON.** To review or update, say **“Show my Game Arts settings”** or **“Change my Game Arts settings.”** Commit the saved file so later sessions and teammates reuse your choices. Full details: [Project settings](docs/PROJECT_SETTINGS.md).
