@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts Mockup Blueprint v7.2",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "mockup_id",
+    "mockup_revision",
+    "approval_status",
+    "scope",
+    "elements",
+    "coverage_audit"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "7.2"
+    },
+    "mockup_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mockup_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "approval_status": {
+      "enum": [
+        "approved",
+        "pending_approval",
+        "revise",
+        "rejected"
+      ]
+    },
+    "scope": {
+      "enum": [
+        "world",
+        "scene",
+        "asset",
+        "character",
+        "ui_screen",
+        "ui_flow",
+        "mixed"
+      ]
+    },
+    "subscopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "source_ref": {
+      "type": "string"
+    },
+    "game_profile": {
+      "type": "string"
+    },
+    "style_profile": {
+      "type": "string"
+    },
+    "parent_blueprint_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "child_blueprint_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "element_id",
+          "scope",
+          "evidence_status",
+          "observed_details",
+          "motion_candidates",
+          "production_strategy"
+        ],
+        "properties": {
+          "element_id": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_region_px": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "coordinate_system": {
+            "type": "string"
+          },
+          "evidence_status": {
+            "enum": [
+              "observed",
+              "user_specified",
+              "inferred",
+              "unknown"
+            ]
+          },
+          "observed_details": {
+            "type": "object"
+          },
+          "geometry": {
+            "type": "object"
+          },
+          "textures_materials": {
+            "type": "object"
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "motion_candidates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "production_strategy": {
+            "type": "string"
+          },
+          "output_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "coverage_audit": {
+      "type": "object",
+      "required": [
+        "status",
+        "unassigned_regions"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "pass",
+            "incomplete",
+            "pending_review"
+          ]
+        },
+        "unassigned_regions": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "intentional_exclusions": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "unknowns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}
