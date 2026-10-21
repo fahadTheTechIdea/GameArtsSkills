@@ -61,3 +61,9 @@ Revoked/replaced mockups and assets move to their own revoked folders. Productio
 - Measured per-sheet atlas JSON, accurate animated attachments, proper directional coverage and honest Godot testing.
 - No ZIP-only deliverables.
 - Do not demand user-run commands, manual file moving, manual JSON editing or repeated approvals for already accepted material.
+
+## Bring your own mockup
+
+**Bring your own mockup:** Upload or point the agent to artwork you created elsewhere. Game Arts imports a managed copy into the mockup lifecycle, preserves your original, and uses the approved version as its production reference—no unnecessary recreation.
+
+When the user supplies an existing external mockup, **import a copy rather than generating a replacement**. Respect explicit prior approval; if not approved, ask for approval of that actual revision. Keep source provenance and a traceable managed reference. Do not claim an import succeeded unless file access and write operations were completed. Follow the v7.5 external mockup intake rules and require detailed decomposition before final art production.
