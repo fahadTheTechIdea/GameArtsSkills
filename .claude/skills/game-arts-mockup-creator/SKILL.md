@@ -30,3 +30,7 @@ description: Create, revise, present and stage visually reviewable mockups of wh
 - "Use my existing approved UI mockup" → reuse it; never make users reapprove the same design.
 - Don't require the user to say "activate Game Arts", run a command, read schema files, select a skill or manually move assets.
 - If saving fails or tools are unavailable, report honestly and don't mark the lifecycle complete.
+
+
+## User-supplied / externally generated mockups
+A user may supply an existing mockup created outside Game Arts. **Do not regenerate it.** Import a managed **copy** into the target game's mockup lifecycle, preserving the original external source. If the user explicitly confirms this exact revision is already approved, register it directly under `.gamearts/outputs/mockups/approved/`; otherwise register it under `mockups/generated/` and show it for approval. Store source provenance, descriptive versioned filename, ID, hash when available and manifest record. Never claim the import was saved if the agent lacks source access or filesystem permissions. After approval, analyze all its visual details and use that locked reference for production. Any exported Game Arts PNG derivative must comply with exact opaque #FF00FF; preserve nonconforming original external files separately and do not silently alter source pixels.
