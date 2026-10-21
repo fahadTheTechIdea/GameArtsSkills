@@ -38,12 +38,19 @@ Game Arts saves **per-game settings in the game repository**, at `.gamearts/proj
 
 Both Claude and Codex have a [project setup skill](.agents/skills/game-arts-project-setup/SKILL.md) which runs the entire setup conversationally and saves your selections for you.
 
+## Custom instructions — saved per game
+
+You can add persistent Game Arts preferences directly in Claude Code or Codex by saying **“Always use soft morning lighting for this game”**, **“Add a custom UI art instruction”**, or **“Show my custom Game Arts instructions.”** No JSON editing or commands required.
+
+Each approved rule is saved separately in the **game repository** at `.gamearts/instructions/*.md`. The orchestrator retrieves active rules automatically for relevant art tasks and checks them against the universal master requirements. See [custom instructions guide](docs/CUSTOM_INSTRUCTIONS.md).
+
 ## Skill catalog
 
 | Skill | Purpose |
 |---|---|
 | [game-arts](.agents/skills/game-arts/SKILL.md) | Orchestrates profile selection and production gates |
 | [game-arts-project-setup](.agents/skills/game-arts-project-setup/SKILL.md) | Configures persistent game-specific defaults |
+| [game-arts-custom-instructions](.agents/skills/game-arts-custom-instructions/SKILL.md) | Saves, retrieves and manages user-defined per-game art rules |
 | [mockup-analyzer](.agents/skills/mockup-analyzer/SKILL.md) | Decomposes approved world, scene, character, asset and UI mockups |
 | [art-profile](.agents/skills/art-profile/SKILL.md) | Applies the approved game visual style |
 | [animation-planner](.agents/skills/animation-planner/SKILL.md) | Plans moving parts, directional coverage and key poses |
