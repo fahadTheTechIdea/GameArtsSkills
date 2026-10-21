@@ -30,11 +30,26 @@ This repository is the canonical source for Game Arts skills, specifications, sc
 
 These files provide reusable agent workflows and validators, not a standalone image renderer. Actual sprite generation requires supported image and artifact tools.
 
+## Persistent game settings and setup wizard
+
+Game Arts saves **per-game settings in the game repository**, at `.gamearts/project.json` (not in the shared skills repository). These settings survive new Claude and Codex sessions when the agents load the project's files.
+
+Run the interactive setup questionnaire once:
+
+```bash
+python scripts/setup_gamearts.py --project-dir /path/to/your-game
+```
+
+For reconfiguration, use `--overwrite` deliberately. For read-only inspection and validation, use `--show` or `--validate`. Commit the generated file to the game repository. See [project settings documentation](docs/PROJECT_SETTINGS.md) and [JSON schema](schemas/gamearts-project.schema.json).
+
+Both Claude and Codex have a [project setup skill](.agents/skills/game-arts-project-setup/SKILL.md) which can guide the questionnaire when you ask to configure Game Arts.
+
 ## Skill catalog
 
 | Skill | Purpose |
 |---|---|
 | [game-arts](.agents/skills/game-arts/SKILL.md) | Orchestrates profile selection and production gates |
+| [game-arts-project-setup](.agents/skills/game-arts-project-setup/SKILL.md) | Configures persistent game-specific defaults |
 | [mockup-analyzer](.agents/skills/mockup-analyzer/SKILL.md) | Decomposes approved world, scene, character, asset and UI mockups |
 | [art-profile](.agents/skills/art-profile/SKILL.md) | Applies the approved game visual style |
 | [animation-planner](.agents/skills/animation-planner/SKILL.md) | Plans moving parts, directional coverage and key poses |
