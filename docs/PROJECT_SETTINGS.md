@@ -50,3 +50,7 @@ Global requirements are never presented as optional checkboxes: mockup approval,
 **User:** Yes.
 
 **Claude / Codex:** Saved to `.gamearts/project.json`. I'll reuse these settings for this game.
+
+## Custom pipeline instructions
+
+The project configuration holds structured defaults. Separately, users can add unrestricted, scoped art preferences through a conversational skill: `game-arts-custom-instructions`. These are saved as individual files in `<game>/.gamearts/instructions/`, read automatically for relevant tasks, and never used to weaken mandatory framework requirements. See [custom instructions](CUSTOM_INSTRUCTIONS.md).
