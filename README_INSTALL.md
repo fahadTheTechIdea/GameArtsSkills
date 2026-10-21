@@ -38,3 +38,9 @@ When Claude Code or Codex is opened in an installed game project, project-root i
 ## Automatic mockup and production flow
 
 Ask the agent normally for a world, scene, character, asset or UI design. If no approved visual reference exists, the agent should use `game-arts-mockup-creator` to create and display a real mockup using its available image tools, save a candidate, then request your approval. After approval it analyzes small details and creates final production art, sprite sheets and measured atlas JSON. Final assets have their own approval. The conversational setup wizard is used **only when you ask to configure the project or an essential setting is missing**, not as a mandatory ceremony before every mockup. Details: [User workflow](docs/USER_WORKFLOW.md).
+
+## Bring your own mockup
+
+**Bring your own mockup:** Upload or point the agent to artwork you created elsewhere. Game Arts imports a managed copy into the mockup lifecycle, preserves your original, and uses the approved version as its production reference—no unnecessary recreation.
+
+When the user supplies an existing external mockup, **import a copy rather than generating a replacement**. Respect explicit prior approval; if not approved, ask for approval of that actual revision. Keep source provenance and a traceable managed reference. Do not claim an import succeeded unless file access and write operations were completed. Follow the v7.5 external mockup intake rules and require detailed decomposition before final art production.
