@@ -5,7 +5,7 @@ description: Use for any creation, transformation, review, mockup, sprite, sprit
 
 # Game Arts orchestrator
 
-1. Read `GAME_ARTS_MASTER_STANDARD_v7.2.md` at the repository root. Treat the master as authoritative; avoid filling gaps by guessing.
+1. Read `GAME_ARTS_MASTER_STANDARD_v7.3.md` at the repository root. Treat the master as authoritative; avoid filling gaps by guessing.
 2. Classify the task: visual mockup, mockup analysis, production image, animation/components, sheet/atlas, Godot validation or a mixed project.
 3. For **new** visual content produce a reviewable mockup and obtain **explicit approval** before final production. If an explicitly approved reference already exists, reuse its revision; do not re-approve needlessly.
 4. Determine mockup scope: world, scene, asset, character, ui_screen, ui_flow or mixed. For complex or mixed work, delegate analysis to `mockup-analyzer` and recurse into nested blueprints.
@@ -23,3 +23,7 @@ Before selecting profiles or generating art, locate and read `<target-game-root>
 
 ## Custom user instructions (mandatory preflight)
 On **every Game Arts task**, load active applicable rules from `<game-root>/.gamearts/instructions/*.md` after reading persistent settings. Project-wide rules always apply; scope-specific rules apply to matching scene/world/asset/UI/animation etc. Route saving, finding, updating, disabling and deleting such rules to `game-arts-custom-instructions`. They are explicitly user-approved and stored in the game repository, never in the shared framework. Distinguish one-off requests from requests for persistence. No silent conflicts or overrides of global master requirements.
+
+## Mandatory v7.3 mockup and asset lifecycle
+
+Read the v7.3 standard and invoke the `game-arts-lifecycle` skill for generation staging, mockup/asset approval, rejection, revocation, replacement, restoration and listing. Use separate `<game>/.gamearts/outputs/mockups/{generated,approved,revoked}` and `<game>/.gamearts/outputs/assets/{generated,approved,revoked}` stores plus linked manifests. Every final asset references its exact **approved mockup revision** and blueprint region IDs. Use unique descriptive game-related versioned filenames, keep companion PNG/JSON/metadata together, and never silently overwrite or delete a revoked version. **No user-facing CLI or manual folder management.** Never claim approval without explicit user approval and verified file transitions.
