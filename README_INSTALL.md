@@ -12,7 +12,7 @@ This is a **folder tree**, not a ZIP. Copy its files into the root of your game 
 Simply say, "Create a mockup of my game scene", "Generate a sprite for this asset", "Animate this component", or "Export atlas JSON". For new visual artwork, expect a mockup and approval stage; for an explicitly approved reference the workflow can continue directly.
 
 ## Sources
-- `GAME_ARTS_MASTER_STANDARD_v7.5.md` — authoritative policy.
+- `GAME_ARTS_MASTER_STANDARD_v7.6.md` — authoritative policy.
 - `schemas/mockup-blueprint.schema.json` — one shared blueprint schema.
 - `scripts/validate_blueprint.py` — basic structure and optional JSON schema checks.
 - `scripts/validate_sheet_atlas.py` — dimensional checks and opaque-alpha gate (requires Pillow).
@@ -48,3 +48,7 @@ When the user supplies an existing external mockup, **import a copy rather than 
 ## User-friendly commands
 
 Once installed, there is no manual activation. Ask normally: **“Create a mockup”**, **“Use this outside mockup”**, **“This is already approved”**, **“Revise it”**, **“Approve this mockup”**, **“Generate sprites”**, **“Approve this sprite”**, **“Show approved art”**, **“Set up my game art”**, or **“Change my settings.”** The agent routes the complete wizard, mockup creation/import, decomposition, production, animation, atlas, validation and lifecycle stages automatically. See [full commands](docs/COMMANDS.md).
+
+## Real moving component generation
+
+For assets with moving parts, Claude/Codex calls `scripts/build_component_bundle.py` internally with approved frames and verified attachment coordinates. This generates separate component PNG sheets, their matching measured atlas JSON files and a nested sampled-transform bundle; it is not merely an instruction to generate metadata. The user does not run commands. See [Component Animation](docs/COMPONENT_ANIMATION.md). Actual Godot tests remain a separate step.
