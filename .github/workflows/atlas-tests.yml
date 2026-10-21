@@ -3,12 +3,16 @@ on:
   push:
     paths:
       - "scripts/build_sheet_atlas.py"
+      - "scripts/build_component_bundle.py"
+      - "scripts/validate_component_bundle.py"
       - "scripts/validate_sheet_atlas.py"
       - "tests/**"
       - ".github/workflows/atlas-tests.yml"
   pull_request:
     paths:
       - "scripts/build_sheet_atlas.py"
+      - "scripts/build_component_bundle.py"
+      - "scripts/validate_component_bundle.py"
       - "scripts/validate_sheet_atlas.py"
       - "tests/**"
       - ".github/workflows/atlas-tests.yml"
