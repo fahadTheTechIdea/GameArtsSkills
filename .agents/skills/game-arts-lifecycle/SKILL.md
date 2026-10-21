@@ -52,3 +52,7 @@ Universal exact opaque #FF00FF source PNG; JSON atlas measured from every actual
 
 ## Connected workflow
 Mockup creator registers actual rendered previews as generated candidates; on explicit approval promote the exact revision, then hand off to mockup analyzer. Production art is registered separately as generated and requires its own approval. Keep both lifecycles and exact mockup-to-asset links distinct.
+
+
+## User-supplied / externally generated mockups
+A user may supply an existing mockup created outside Game Arts. **Do not regenerate it.** Import a managed **copy** into the target game's mockup lifecycle, preserving the original external source. If the user explicitly confirms this exact revision is already approved, register it directly under `.gamearts/outputs/mockups/approved/`; otherwise register it under `mockups/generated/` and show it for approval. Store source provenance, descriptive versioned filename, ID, hash when available and manifest record. Never claim the import was saved if the agent lacks source access or filesystem permissions. After approval, analyze all its visual details and use that locked reference for production. Any exported Game Arts PNG derivative must comply with exact opaque #FF00FF; preserve nonconforming original external files separately and do not silently alter source pixels.
