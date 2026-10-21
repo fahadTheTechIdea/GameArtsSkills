@@ -16,3 +16,5 @@ Treat approved mockups as detailed production sources, not moodboards. For an un
 7. Produce a JSON blueprint following `schemas/mockup-blueprint.schema.json` and run `python scripts/validate_blueprint.py <blueprint.json>` if permitted.
 
 Keep approved mockup ID, revision and visual constraints on all downstream assets. Never silently alter approved composition.
+## When to launch
+Only after mockup approval for definitive asset breakdown. The separate `game-arts-mockup-creator` handles **actual visual mockup generation**, revision, preview, and approval. A provisional analysis may support a pending mockup but is not production authorization.
