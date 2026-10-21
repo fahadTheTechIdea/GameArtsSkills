@@ -89,8 +89,8 @@ class ComponentTests(unittest.TestCase):
     def test_cycle_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d); cfg=self.fixture(root)
-            cfg["components"][0]["parent"]="tip"
-            cfg["components"][0]["mount"]="base_mount"
+            cfg["components"][1]["parent"]="tip"
+            cfg["components"][1]["mount"]="tip_mount"
             with self.assertRaisesRegex(ValueError,"cycle"):
                 engine.validate_structure(cfg)
 
