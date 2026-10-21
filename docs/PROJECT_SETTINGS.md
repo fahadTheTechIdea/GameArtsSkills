@@ -1,44 +1,52 @@
-# Persistent Game Arts project settings
+# Game Arts project settings — simple, persistent setup
 
-This repository is the **shared skill implementation**, while **each game repository owns its configuration** at:
+Set up your game's visual preferences **inside Claude Code or Codex**. No programming or command line steps are required from the user.
 
-```
-<game-repository>/.gamearts/project.json
-```
+## Start
+Open your game project in Claude Code or Codex and say:
 
-## Wizard
+> Set up Game Arts for this game.
 
-From the GameArtsSkills repository:
+The agent asks a few friendly questions about the game's visual style, viewpoint, and animation needs. It offers recommended choices and can skip advanced technical options. Say **“Use recommended settings”** for the simplest setup.
 
-```bash
-python scripts/setup_gamearts.py --project-dir /path/to/my-godot-game
-```
+## Review or change settings
+Just say:
 
-The wizard asks for the game's art style, camera, terrain footprint and image size, nominal pixels per meter, placement snap, default directions, animation preference, and usual mockup scope.
+- **“Show my Game Arts settings.”**
+- **“Change my game's art style.”**
+- **“Update the Game Arts camera/viewpoint.”**
+- **“Use the recommended settings for this project.”**
 
-Useful commands:
+The agent reads existing settings before asking questions; it must not ask for information already saved.
 
-```bash
-python scripts/setup_gamearts.py --project-dir /path/to/my-godot-game --show
-python scripts/setup_gamearts.py --project-dir /path/to/my-godot-game --validate
-python scripts/setup_gamearts.py --project-dir /path/to/my-godot-game --overwrite
-```
+## Where choices are saved
+The agent writes the project's settings to:
 
-The resulting JSON is **not** written into the shared GameArtsSkills repo. Commit it to **the actual game repository**, and future sessions can reuse the same settings.
+`<game-repository>/.gamearts/project.json`
 
-## Priority and persistence
+The file belongs to **each game**, not to the shared GameArtsSkills repository. Once saved to your game repository, later Claude Code or Codex sessions can reuse it when they can read the same project files. Commit it to version control for team-wide persistence.
 
-1. The Game Arts master standard supplies universal production requirements.
-2. `.gamearts/project.json` supplies the game's persistent defaults.
-3. An approved art/mockup profile and asset-specific configuration further specify each output within those requirements.
-4. Explicit user-requested and approved changes should update the file and be committed; don't silently drift settings across sessions.
+**The wizard is a conversational agent skill**. The optional Python script in `scripts/setup_gamearts.py` is legacy/advanced internal tooling and is not part of the normal user experience.
 
-Universal invariants are intentionally not wizard-selectable: exact opaque #FF00FF for unused PNG regions; explicit mockup approval and detailed decomposition; measured JSON atlas for every sprite sheet; direction-aware animated attachment support where applicable; honest validation status; individual file delivery, no ZIP.
+## Advanced choices
+World scale, terrain tile dimensions, frame counts, file locations and detailed engine import options use the active approved game profile unless a user explicitly wants to customize them. Do not overwhelm nontechnical users with these details.
 
-## Claude / Codex
+## Fixed Game Arts requirements
+Global requirements are never presented as optional checkboxes: mockup approval, detailed decomposition, exact opaque `#FF00FF` background for generated PNGs, measured atlas JSON per sprite sheet, applicable directional moving attachments, honest validation, individual files and no ZIP archives.
 
-`CLAUDE.md` and `AGENTS.md` require the agent to read `.gamearts/project.json` at the start of relevant tasks. If missing, the agent should offer or run the wizard before starting substantial game-art production. If the game uses skills installed elsewhere, make sure their instruction entry point is visible to the agent in that game project.
+## Example conversation
+**User:** Set up Game Arts for my project.
 
-## Limitations
+**Claude / Codex:** What art style would you like? Pixel art, illustrated, painted, or should I choose based on your references?
 
-The wizard is a **CLI questionnaire**, not a visual desktop interface. It configures the production agent; it does not perform image generation or Godot validation. Its saved configuration is an input for the other Game Arts skills.
+**User:** Pixel art.
+
+**Claude / Codex:** What viewpoint? Elevated 3/4 (recommended for your current profile), top-down or side?
+
+**User:** Elevated 3/4.
+
+**Claude / Codex:** Great. I'll use the existing recommended scale and automatically choose animation methods. Save these settings?
+
+**User:** Yes.
+
+**Claude / Codex:** Saved to `.gamearts/project.json`. I'll reuse these settings for this game.
