@@ -50,7 +50,7 @@ func load_bundle(path: String) -> bool:
     playing = false
     _clear_parts()
     _invalid = true
-    var raw := _read_json(path)
+    var raw: Variant = _read_json(path)
     if not (raw is Dictionary):
         push_error("Game Arts: missing or invalid bundle: " + path)
         return false
@@ -118,7 +118,7 @@ func load_bundle(path: String) -> bool:
                 push_error("Game Arts: unsafe atlas filename")
                 _clear_parts()
                 return false
-            var atlas := _read_json(folder.path_join(atlas_filename))
+            var atlas: Variant = _read_json(folder.path_join(atlas_filename))
             if not (atlas is Dictionary and atlas.has("frames")):
                 push_error("Game Arts: missing atlas for " + id + "/" + d)
                 _clear_parts()
