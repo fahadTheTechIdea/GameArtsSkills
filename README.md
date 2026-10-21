@@ -44,12 +44,19 @@ You can add persistent Game Arts preferences directly in Claude Code or Codex by
 
 Each approved rule is saved separately in the **game repository** at `.gamearts/instructions/*.md`. The orchestrator retrieves active rules automatically for relevant art tasks and checks them against the universal master requirements. See [custom instructions guide](docs/CUSTOM_INSTRUCTIONS.md).
 
+## Mockup and asset lifecycle
+
+Mockups and production art have **separate generated / approved / revoked** folders inside each game. Every production asset is linked to its **specific approved mockup revision** and approved blueprint details. Files use descriptive game-related versioned names; PNGs, companion atlases and metadata move together during approval or revocation.
+
+You can simply say **“Approve this mockup”**, **“Reject this image”**, **“Show approved sprites”**, or **“Restore the previous version.”** The agent manages the folders and records automatically. See [asset lifecycle guide](docs/ASSET_LIFECYCLE.md).
+
 ## Skill catalog
 
 | Skill | Purpose |
 |---|---|
 | [game-arts](.agents/skills/game-arts/SKILL.md) | Orchestrates profile selection and production gates |
 | [game-arts-project-setup](.agents/skills/game-arts-project-setup/SKILL.md) | Configures persistent game-specific defaults |
+| [game-arts-lifecycle](.agents/skills/game-arts-lifecycle/SKILL.md) | Manages generated, approved, revoked mockups and linked asset bundles |
 | [game-arts-custom-instructions](.agents/skills/game-arts-custom-instructions/SKILL.md) | Saves, retrieves and manages user-defined per-game art rules |
 | [mockup-analyzer](.agents/skills/mockup-analyzer/SKILL.md) | Decomposes approved world, scene, character, asset and UI mockups |
 | [art-profile](.agents/skills/art-profile/SKILL.md) | Applies the approved game visual style |
@@ -59,7 +66,7 @@ Each approved rule is saved separately in the **game repository** at `.gamearts/
 
 ## Reference and validation
 
-- [Master standard v7.2](GAME_ARTS_MASTER_STANDARD_v7.2.md) — **canonical specification**.
+- [Master standard v7.2](GAME_ARTS_MASTER_STANDARD_v7.3.md) — **canonical specification**.
 - [Mockup Blueprint JSON schema](schemas/mockup-blueprint.schema.json)
 - [Blueprint validator](scripts/validate_blueprint.py)
 - [Sprite sheet/atlas validator](scripts/validate_sheet_atlas.py)
