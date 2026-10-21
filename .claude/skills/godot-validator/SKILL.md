@@ -15,3 +15,7 @@ When approved artwork includes separately moving or state-changing parts, do **n
 ## Executable component validation
 
 When modular assets are generated, run `scripts/validate_component_bundle.py <bundle-directory>` internally. Require its geometry/attachment structure checks to pass before marking technical file integrity verified. Also test actual rendered motion, color-key masking, collision, z-order and direction transitions in Godot if available. Do not claim Godot tested from JSON checks alone.
+
+## Godot runtime component support (v7.7)
+
+For approved nested moving-part bundles, use the reusable `godot/addons/gamearts/game_arts_component.gd`, `.tscn` and `chroma_key.gdshader` in the target game's `res://addons/gamearts/` folder where integration is requested. Internally invoke `scripts/generate_godot_scene.py` to produce a native `.tscn` referencing the built bundle, and verify all file paths when the candidate is later approved/moved. The runtime supports per-direction component atlas regions, animated parent mounts, normalized playback and nested Node2D inheritance; actual Godot execution, physics, navigation, light/occlusion, and visual regression remain unverified until performed. See `docs/GODOT_COMPONENT_RUNTIME.md`. Keep the user-facing workflow conversational.
