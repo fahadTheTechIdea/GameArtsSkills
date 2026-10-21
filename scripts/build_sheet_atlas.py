@@ -29,9 +29,6 @@ def hash_file(path):
 
 def ink_bounds(image):
     # Exclusive right/bottom bounds; no alpha transparency.
-    mask = image.convert("RGB").point(
-        lambda v: 0 if v == 255 else 255
-    ) if False else None  # Do not use RGB thresholding: artwork can include magenta-like colors.
     px = image.load()
     xmin, ymin, xmax, ymax = image.width, image.height, -1, -1
     for y in range(image.height):
