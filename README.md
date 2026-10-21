@@ -25,7 +25,7 @@ See **[all natural-language commands](docs/COMMANDS.md)** for animation, atlas, 
 
 ## Just ask for game art
 
-Once installed in your game project, **open Claude Code or Codex and describe what you want**. Game Arts automatically reads your saved project settings and relevant approved references. You do **not** need to initialize skills or run commands. It asks only for necessary choices and approval of new mockups/art. See the [automatic user experience standard](GAME_ARTS_MASTER_STANDARD_v7.5.md).
+Once installed in your game project, **open Claude Code or Codex and describe what you want**. Game Arts automatically reads your saved project settings and relevant approved references. You do **not** need to initialize skills or run commands. It asks only for necessary choices and approval of new mockups/art. See the [automatic user experience standard](GAME_ARTS_MASTER_STANDARD_v7.6.md).
 
 ## Use your own mockup
 
@@ -48,6 +48,12 @@ Read the [complete everyday workflow](docs/USER_WORKFLOW.md).
 Game Arts now includes an executable [sprite-sheet + measured atlas generator](scripts/build_sheet_atlas.py) using actual frame PNGs. Claude Code and Codex should invoke it automatically behind the scenes when creating multi-frame artwork. The generator produces a paired **opaque pink PNG** and **JSON atlas**; [tests](tests/test_build_sheet_atlas.py) and [CI](.github/workflows/atlas-tests.yml) check basic assembly invariants. Read the [atlas generation guide](docs/ATLAS_GENERATION.md) for details and limitations.
 
 The generator accurately calculates frame rectangles and transformed **supplied** anchors. It does **not** automatically infer mechanical attachment points from images or create native Godot scenes. Those remain separate validation/integration steps.
+
+## Moving-part generation — now implemented
+
+The [modular component bundle builder](scripts/build_component_bundle.py) accepts actual approved frames and verified anchor coordinates, builds **separate PNG sprite sheets plus measured atlas JSON files for every required component direction**, and outputs a nested, time-dependent attachment-transform bundle. Its [tests](tests/test_component_bundle.py) cover direction checks, missing mounts, nested transforms and error handling. Read the [component animation guide](docs/COMPONENT_ANIMATION.md).
+
+**Limitations:** It does not generate missing artwork, visually infer true pivots/mount locations, or export/test a Godot scene automatically. Those stages require separate image and engine tooling.
 
 ## Capabilities
 
@@ -112,7 +118,7 @@ You can simply say **“Approve this mockup”**, **“Reject this image”**, *
 
 ## Reference and validation
 
-- [Master standard v7.5](GAME_ARTS_MASTER_STANDARD_v7.5.md) — **canonical specification**.
+- [Master standard v7.6](GAME_ARTS_MASTER_STANDARD_v7.6.md) — **canonical specification**.
 - [Mockup Blueprint JSON schema](schemas/mockup-blueprint.schema.json)
 - [Blueprint validator](scripts/validate_blueprint.py)
 - [Sprite sheet/atlas validator](scripts/validate_sheet_atlas.py)
