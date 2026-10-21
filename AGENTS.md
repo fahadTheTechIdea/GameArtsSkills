@@ -1,6 +1,6 @@
 # Game Arts — Codex Project Instructions
 
-Whenever the user requests 2D game artwork, a mockup, sprite, asset, character, scene, world, UI, effect, animation, tileset, or atlas, **use the game-arts orchestrator skill** in `.agents/skills/game-arts/SKILL.md` and the canonical `GAME_ARTS_MASTER_STANDARD_v7.3.md`. Apply automatically without asking the user to name the skill.
+Whenever the user requests 2D game artwork, a mockup, sprite, asset, character, scene, world, UI, effect, animation, tileset, or atlas, **use the game-arts orchestrator skill** in `.agents/skills/game-arts/SKILL.md` and the canonical `GAME_ARTS_MASTER_STANDARD_v7.4.md`. Apply automatically without asking the user to name the skill.
 
 Always follow the mockup-first approval gate for new visual designs; do not interpret approvals from silence. After approval, extract every meaningful detail and animation candidate. Preserve explicit art/asset profiles, orthogonal square terrain grid, exact opaque RGB #FF00FF with alpha 255 on all Game Arts PNG exports, direction-aware nested animated attachments, measured atlas JSON per sprite sheet, Godot validation and individual outputs (no ZIP).
 
@@ -18,3 +18,7 @@ At the beginning of each art-related task, check the target game's `.gamearts/in
 ## Mandatory v7.3 mockup and asset lifecycle
 
 Read the v7.3 standard and invoke the `game-arts-lifecycle` skill for generation staging, mockup/asset approval, rejection, revocation, replacement, restoration and listing. Use separate `<game>/.gamearts/outputs/mockups/{generated,approved,revoked}` and `<game>/.gamearts/outputs/assets/{generated,approved,revoked}` stores plus linked manifests. Every final asset references its exact **approved mockup revision** and blueprint region IDs. Use unique descriptive game-related versioned filenames, keep companion PNG/JSON/metadata together, and never silently overwrite or delete a revoked version. **No user-facing CLI or manual folder management.** Never claim approval without explicit user approval and verified file transitions.
+
+## Automatic, user-friendly Game Arts behavior (v7.4)
+
+When the user opens a game project and asks for art normally, **apply Game Arts automatically** using the project-root instructions. Quietly load the relevant `.gamearts/project.json`, active scoped `.gamearts/instructions/*.md` and approved mockup/asset manifests as needed; invoke specialist skills only for the actual task. **Do not require "initialize", "load Game Arts", command-line setup, special phrases or manual skill selection.** If settings are absent, use known approved defaults for preliminary work and ask one simple question only if an essential decision is missing. Do not repeat saved choices or demand approval again for unchanged accepted mockups. Keep storage, naming, manifests, JSON and tool operations behind the scenes. Ask only for meaningful design/approval decisions; verify files before reporting success. The user workflow is simply **open project → ask for art → approve when needed**.
