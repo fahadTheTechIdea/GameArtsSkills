@@ -69,8 +69,12 @@ Inside each **game repository**, not this shared skills repository:
     manifests/{mockups.json,assets.json}
 ```
 
-For installation details, see [README_INSTALL.md](../README_INSTALL.md). The canonical production requirements are in [GAME_ARTS_MASTER_STANDARD_v7.5.md](../GAME_ARTS_MASTER_STANDARD_v7.5.md).
+For installation details, see [README_INSTALL.md](../README_INSTALL.md). The canonical production requirements are in [GAME_ARTS_MASTER_STANDARD_v7.6.md](../GAME_ARTS_MASTER_STANDARD_v7.6.md).
 
 ## Working sheet and atlas generator
 
 When approved source frames exist and a sprite sheet is requested, invoke the `sheet-atlas` skill and have the agent run `scripts/build_sheet_atlas.py` internally, then `scripts/validate_sheet_atlas.py`. This creates **real** native-scale opaque pink PNG sheets and companion measured JSON atlases. Save the pair together in the game project's generated asset bundle and request approval. See `docs/ATLAS_GENERATION.md`. The builder transforms **provided** pivot and anchor data into cell coordinates; it does not infer physical mount points or certify visual/Godot readiness. Never claim atlas generation unless files were actually written and checked. Users do not need to run commands.
+
+## Real moving component generation
+
+For assets with moving parts, Claude/Codex calls `scripts/build_component_bundle.py` internally with approved frames and verified attachment coordinates. This generates separate component PNG sheets, their matching measured atlas JSON files and a nested sampled-transform bundle; it is not merely an instruction to generate metadata. The user does not run commands. See [Component Animation](docs/COMPONENT_ANIMATION.md). Actual Godot tests remain a separate step.
