@@ -225,7 +225,7 @@ def build(config, output, source_dir):
                             {"position":[anchor[0]-origin[0], anchor[1]-origin[1]]},
                             pid+".mount_origin"))
                         mount_animation = matrix(animate(
-                            select_track(part.get("mount_tracks", {}), action, direction),
+                            select_track(part.get("mount_tracks", {}), part.get("parent_action", parts[parent_id].get("action", "default")), direction),
                             t, pid+".mount_tracks"))
                         combined = mul(mul(mul(mul(matrices[parent_id],local_mount),mount_animation),rest),own)
                     else:
@@ -240,7 +240,7 @@ def build(config, output, source_dir):
                 "components":[{"id":pid,"parent":parts[pid].get("parent"),
                                "mount":parts[pid].get("mount"),"action":parts[pid].get("action","default"),
                                "rest":parts[pid].get("rest",{}),
-                               "mount_tracks":parts[pid].get("mount_tracks",{}),
+                               "mount_tracks":parts[pid].get("mount_tracks",{}),"parent_action":parts[pid].get("parent_action"),
                                "motion_tracks":parts[pid].get("motion_tracks",{}),
                                "atlases":{d:sheets[pid][d]["image"].replace(".png",".atlas.json") for d in directions}}
                               for pid in order],
