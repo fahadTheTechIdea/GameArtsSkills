@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts Project Settings",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project_id",
+    "art_style",
+    "world",
+    "directions",
+    "animation",
+    "workflow",
+    "export"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "master_standard": {
+      "type": "string"
+    },
+    "art_style": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "pixel_art",
+            "hand_painted",
+            "illustrated",
+            "vector",
+            "rendered_2d",
+            "custom"
+          ]
+        },
+        "reference": {
+          "type": "string"
+        }
+      }
+    },
+    "world": {
+      "type": "object",
+      "required": [
+        "grid",
+        "logical_tile_m",
+        "ground_tile_px",
+        "pixels_per_meter",
+        "construction_snap_m"
+      ],
+      "properties": {
+        "grid": {
+          "enum": [
+            "orthogonal_square",
+            "custom"
+          ]
+        },
+        "object_camera": {
+          "type": "string"
+        },
+        "logical_tile_m": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "ground_tile_px": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "pixels_per_meter": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "construction_snap_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "directions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "animation": {
+      "type": "object",
+      "required": [
+        "preferred_method",
+        "animated_attachment_anchors"
+      ],
+      "properties": {
+        "preferred_method": {
+          "enum": [
+            "hybrid",
+            "frame_based",
+            "transform_based"
+          ]
+        },
+        "animated_attachment_anchors": {
+          "const": true
+        }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "required": [
+        "mockup_approval_required",
+        "detail_decomposition_required"
+      ],
+      "properties": {
+        "mockup_approval_required": {
+          "const": true
+        },
+        "detail_decomposition_required": {
+          "const": true
+        }
+      }
+    },
+    "export": {
+      "type": "object",
+      "required": [
+        "background_hex",
+        "background_alpha",
+        "atlas_per_sheet",
+        "no_zip"
+      ],
+      "properties": {
+        "background_hex": {
+          "const": "#FF00FF"
+        },
+        "background_alpha": {
+          "const": 255
+        },
+        "atlas_per_sheet": {
+          "const": true
+        },
+        "no_zip": {
+          "const": true
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}
