@@ -22,3 +22,7 @@ These are instructions plus small validators, not an AI image model, sprite rend
 ## Persistent per-game settings (new)
 
 After installing the skills, open your game in **Claude Code or Codex** and say **“Set up Game Arts for this project.”** The agent asks a short series of easy questions, offers recommended defaults, and saves `<game>/.gamearts/project.json` through its project file tools. **Users do not run any Python command or edit JSON.** To review or update, say **“Show my Game Arts settings”** or **“Change my Game Arts settings.”** Commit the saved file so later sessions and teammates reuse your choices. Full details: [Project settings](docs/PROJECT_SETTINGS.md).
+
+## Custom instructions in each game
+
+To keep project-specific Game Arts rules, simply tell Claude or Codex **“Add a Game Arts instruction: ...”**. The agent uses `game-arts-custom-instructions` to save a dedicated Markdown file under the actual game's `.gamearts/instructions/` directory. It will automatically read applicable active rules on future art tasks. Say **“Show my custom art instructions”** to review or change them. See [custom instruction guide](docs/CUSTOM_INSTRUCTIONS.md). No commands required.
