@@ -76,6 +76,100 @@ def _storage_path(root, out, record, kind):
     return candidate
 
 
+
+def audit_asset(game_root, item_id):
+    """Check a recorded asset's own lifecycle, source and metadata consistency.
+
+    File/manifest metadata audit only, not artistic correctness or engine readiness.
+    Returns issues; callers must block approval/reference use if nonempty.
+    """
+    root, out, _, data, rows = _read(game_root, "assets")
+    record = _record(rows, "assets", item_id)
+    issues = []
+    try:
+        folder = _storage_path(root, out, record, "assets")
+    except (ValueError, OSError) as exc:
+        return [str(exc)]
+    status = record.get("status")
+    if status == "approved" and (
+        record.get("visual_review") != "approved" or
+        record.get("approval") not in ("user_granted", "approved", "granted")
+    ):
+        issues.append("approved manifest missing explicit user visual/art approval")
+    required = record.get("files", [])
+    if not isinstance(required, list) or not required:
+        issues.append("asset manifest lacks declared bundle files")
+        required = []
+    for filename in required:
+        if not isinstance(filename, str) or not filename:
+            issues.append("invalid declared bundle file")
+            continue
+        target = (folder / filename).resolve()
+        if not _within(target, folder) or not target.is_file():
+            issues.append(f"missing or unsafe bundle file: {filename}")
+    # Manifest and approved-source provenance must match actual registered bytes.
+    mockups = record.get("source_mockups", [])
+    if status == "approved" and not mockups:
+        issues.append("approved asset has no approved source mockup linkage")
+    if mockups:
+        try:
+            _, _, _, _, references = _read(game_root, "mockups")
+        except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            issues.append(f"cannot validate approved sources: {exc}")
+            references = []
+        for ref in mockups:
+            if not isinstance(ref, dict):
+                issues.append("invalid source mockup reference")
+                continue
+            matches = [m for m in references if isinstance(m, dict)
+                       and _id(m, "mockups") == ref.get("mockup_id")
+                       and m.get("revision", m.get("mockup_revision")) == ref.get("revision")]
+            if len(matches) != 1 or matches[0].get("status") != "approved":
+                issues.append("asset refers to a missing or nonapproved mockup")
+                continue
+            m = matches[0]
+            try:
+                image = _storage_path(root, out, m, "mockups")
+                recorded_hash = m.get("sha256")
+                ref_hash = ref.get("reference_sha256", ref.get("sha256"))
+                if not recorded_hash or not ref_hash or recorded_hash != ref_hash:
+                    issues.append("asset source mockup hash disagrees with approved manifest")
+                elif hashlib.sha256(image.read_bytes()).hexdigest() != recorded_hash:
+                    issues.append("approved source mockup image bytes have changed")
+            except (OSError, ValueError) as exc:
+                issues.append(f"approved source unavailable: {exc}")
+    for bp in folder.glob("*.blueprint.json"):
+        try:
+            body = json.loads(bp.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            issues.append(f"invalid blueprint {bp.name}: {exc}")
+            continue
+        if status == "approved":
+            if str(body.get("status", "")).startswith("generated") or body.get("status") in ("pending", "rejected"):
+                issues.append(f"{bp.name}: blueprint still reports unapproved status")
+            if body.get("production_approval") in ("not_granted", "pending", "rejected", False):
+                issues.append(f"{bp.name}: blueprint contradicts recorded production approval")
+            if body.get("approved_clean_plate") is False and str(body.get("clean_plate_approval", "")).startswith("approved"):
+                issues.append(f"{bp.name}: clean-plate approval fields contradict each other")
+            visual = body.get("user_visual_approval")
+            if isinstance(visual, dict) and visual.get("status") not in ("approved", "user_granted"):
+                issues.append(f"{bp.name}: blueprint visual approval disagrees with manifest")
+    for report in folder.glob("*.validation.json"):
+        try:
+            body = json.loads(report.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            issues.append(f"invalid validation report {report.name}: {exc}")
+            continue
+        if status == "approved":
+            if body.get("status") in ("generated", "pending", "rejected"):
+                issues.append(f"{report.name}: validation status contradicts approval")
+            sprite_status = body.get("isolated_props_background_masking")
+            if isinstance(sprite_status, str) and "pending_user_review" in sprite_status:
+                issues.append(f"{report.name}: sprite review is still marked pending")
+    # No claim of engine testing here. Godot status can legitimately be not_tested.
+    return issues
+
+
 def select(game_root, kind, stage, item_id=None, revision=None):
     if stage not in ("approved", "generated"):
         raise ValueError("Only approved production references or generated candidates may be selected")
@@ -93,6 +187,10 @@ def select(game_root, kind, stage, item_id=None, revision=None):
                 raise ValueError(f"Item {_id(record,kind)} is {status}, not {stage}; do not bypass lifecycle")
             continue
         path = _storage_path(root, out, record, kind)
+        if stage == "approved" and kind == "assets":
+            problems = audit_asset(game_root, _id(record, "assets"))
+            if problems:
+                raise ValueError("Approved asset metadata audit failed: " + "; ".join(problems))
         if stage == "approved" and kind == "mockups":
             expected = record.get("sha256")
             if not expected:
@@ -167,6 +265,9 @@ def main():
     choose.add_argument("--stage", choices=("approved", "generated"), required=True)
     choose.add_argument("--id")
     choose.add_argument("--revision", help="Specific mockup revision when ID is shared")
+    check = commands.add_parser("audit")
+    check.add_argument("--id", required=True)
+    check.add_argument("--game-root", type=Path, required=True)
     deny = commands.add_parser("revoke")
     deny.add_argument("--id", required=True)
     deny.add_argument("--revision", help="Exact mockup revision when ID is shared")
@@ -178,10 +279,15 @@ def main():
     try:
         if args.operation == "select":
             result = select(args.game_root, args.kind, args.stage, args.id, args.revision)
+        elif args.operation == "audit":
+            issues = audit_asset(args.game_root, args.id)
+            result = {"asset_id": args.id, "status": "blocked" if issues else "consistent",
+                      "issues": issues, "artistic_fidelity": "not_assessed",
+                      "godot_runtime": "not_assessed"}
         else:
             result = revoke(args.game_root, args.kind, args.id, args.reason, args.revision)
         print(json.dumps(result, indent=2))
-        return 0
+        return 1 if args.operation == "audit" and result["issues"] else 0
     except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
         print("BLOCKED", str(exc), file=sys.stderr)
         return 1
