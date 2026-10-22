@@ -67,3 +67,12 @@ Revoked/replaced mockups and assets move to their own revoked folders. Productio
 **Bring your own mockup:** Upload or point the agent to artwork you created elsewhere. Game Arts imports a managed copy into the mockup lifecycle, preserves your original, and uses the approved version as its production reference—no unnecessary recreation.
 
 When the user supplies an existing external mockup, **import a copy rather than generating a replacement**. Respect explicit prior approval; if not approved, ask for approval of that actual revision. Keep source provenance and a traceable managed reference. Do not claim an import succeeded unless file access and write operations were completed. Follow the v7.5 external mockup intake rules and require detailed decomposition before final art production.
+
+
+## Prompting and production-image quality gates
+
+When an approved mockup is the reference, create a **source-conditioned prompt packet** using its actual image or accurately isolated region, approved revision, camera projection, style, identity invariants, output type, exact allowed changes and artifact constraints. See **Mandatory reference-controlled image prompting** in `GAME_ARTS_MASTER_STANDARD_v7.7.md`. If a tool supports an attached reference image, pass it; merely saying "match the mockup" is insufficient.
+
+For static buildings/fixed machinery, generate **one fixed camera master first**, with separate moving components only after the master has been visually checked and approved. For freely moving objects with directional gameplay, generate and approve a coherent eight-view locked master prior to separate action animations. For UI illustration, use independent UI-appropriate art/view rules. Do not ask image generation to produce a complete annotated animation sheet, companion JSON or mechanically accurate attachment measurements; assemble verified sheets and metadata with the executable tools.
+
+Before advancing, compare style, silhouette, geometry, camera, materials, colors, perspective, moving-part mounts, static unchanged pixels and expected #FF00FF export. A deviation means reject/revise the candidate. Never claim image conditioning or technical verification unless performed.
