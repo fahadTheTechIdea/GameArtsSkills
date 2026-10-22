@@ -202,6 +202,18 @@ class VisualReviewTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "review_board changed"):
                 mod.verify(packet, vote)
 
+    def test_review_cannot_depend_on_revoked_or_external_asset_files(self):
+        with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as other:
+            root = Path(td)
+            cleanup, review, folder = fixture(root)
+            external = Path(other) / "old-revoked-workbench.png"
+            external.write_bytes((folder / "workbench.png").read_bytes())
+            manifest = json.loads(cleanup.read_text())
+            manifest["detached_components"][0]["sprite"] = str(external)
+            cleanup.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "outside current asset candidate"):
+                mod.prepare(cleanup, review, root / "review")
+
     def test_agent_cannot_self_approve(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
