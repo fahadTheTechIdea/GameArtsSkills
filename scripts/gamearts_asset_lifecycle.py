@@ -14,6 +14,11 @@ from pathlib import Path
 import shutil
 import sys
 
+# Tools are usually executed from this scripts folder, but standalone import
+# in regression/agent contexts also needs sibling visual review utilities.
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 KINDS = {"assets": "assets", "mockups": "mockups"}
 STATES = {"approved", "generated", "revoked"}
 STATE_FIELD = "status"
@@ -166,6 +171,49 @@ def audit_asset(game_root, item_id):
             sprite_status = body.get("isolated_props_background_masking")
             if isinstance(sprite_status, str) and "pending_user_review" in sprite_status:
                 issues.append(f"{report.name}: sprite review is still marked pending")
+    # For NEW production using the visual-review protocol, a claim of approval
+    # is invalid without the exact reviewed packet, explicit user decision and
+    # unchanged source/art/mask/board hashes. Legacy approvals are not revoked
+    # merely because the protocol was introduced later.
+    if status == "approved" and record.get("visual_review_protocol") == "review_packet_v1":
+        slots = record.get("visual_reviews")
+        if not isinstance(slots, list) or not slots:
+            issues.append("approved asset lacks mandatory user visual review packet")
+        else:
+            for index, slot in enumerate(slots):
+                if not isinstance(slot, dict):
+                    issues.append(f"visual review {index}: invalid record")
+                    continue
+                paths = []
+                for key in ("packet", "decision"):
+                    rel = slot.get(key)
+                    if not isinstance(rel, str) or not rel.strip():
+                        issues.append(f"visual review {index}: missing {key} path")
+                        break
+                    candidate = (folder / rel).resolve()
+                    if not _within(candidate, folder) or not candidate.is_file():
+                        issues.append(f"visual review {index}: missing or unsafe {key} file")
+                        break
+                    paths.append(candidate)
+                if len(paths) != 2:
+                    continue
+                try:
+                    # Import lazily so old installations continue to read legacy
+                    # manifests but cannot claim a NEW review protocol pass.
+                    from visual_review_cleanup import verify as verify_visual_cleanup
+                    verified = verify_visual_cleanup(paths[0], paths[1])
+                    if verified["asset_id"] != _id(record, "assets"):
+                        issues.append(f"visual review {index}: approved different asset ID")
+                    if record.get("revision") and verified["revision"] != record["revision"]:
+                        issues.append(f"visual review {index}: approved different revision")
+                except (ImportError, OSError, ValueError, TypeError, KeyError,
+                        json.JSONDecodeError) as err:
+                    issues.append(f"visual review {index}: invalid approval evidence: {err}")
+    elif status == "approved" and record.get("visual_review_protocol") not in (
+        None, "legacy", "review_packet_v1"
+    ):
+        issues.append("approved asset declares unknown visual-review protocol")
+
     # No claim of engine testing here. Godot status can legitimately be not_tested.
     return issues
 
