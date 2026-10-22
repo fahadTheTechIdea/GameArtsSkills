@@ -91,3 +91,10 @@ Before an image-generation tool call, the orchestrator resolves the current game
 A recorded tool-call receipt with crop/image hashes supports traceability and basic file checks but does **not** prove the image provider conditioned on the crop or that the appearance matches. Review against the same crop and request approval of the master separately. Once locked, produce moving parts and real sprite/atlas files through existing specialist skills. If the framework helper, Pillow or image-conditioning access is absent, address availability internally or transparently report what could not be performed.
 
 UI artwork inherits the chosen UI camera; terrain uses the approved ground camera/grid; world structures use the approved object camera. The selected game project's settings are read before every production image prompt. Do not introduce a parallel file lifecycle or hardcoded game-specific viewpoint.
+
+
+## Framework auto-updates after one-time trusted enrollment
+
+On a locally accessible game project, users may request **“Enable automatic updates for Game Arts in Claude and Codex.”** The agent detects current framework paths, runs the bundled updater bootstrap with permission and installs non-destructive `SessionStart` hooks for both clients. Existing game-specific `project.json`, custom instructions, approved mockups and assets remain untouched; colliding locally modified framework files are backed up only with permission or reported as conflicts.
+
+On future starts/resumes either trusted agent checks the latest GameArtsSkills `main` commit, synchronizes both local agent skill trees plus framework scripts/master/docs, and reports failures. A remote GitHub edit alone cannot update a disconnected PC; the next trusted local session or an explicitly requested refresh is the update trigger. The user doesn't need to run update commands for routine use. See `README_INSTALL.md`.
