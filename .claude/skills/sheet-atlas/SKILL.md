@@ -34,3 +34,8 @@ When approved artwork includes separately moving or state-changing parts, do **n
 
 ## Image-generation versus atlas-generation boundary
 **Never prompt an image model to draw final sprite sheets, fake atlases, or printed JSON.** It may generate ONE approved master, ONE isolated component, or ONE key pose at a time using the actual approved reference. Deterministic builders must combine verified actual PNGs and calculate frame bounds/pivots/atlases from image geometry. Reject changing static pixels, directions, perspective, clipping, fake grid lines, annotations and backgrounds that violate opaque #FF00FF. Refer to the master **Mandatory reference-controlled image prompting** section.
+
+
+## No duplicated detachable parts inside source parent sheets
+
+Before assembling an atlas, inspect the component ownership inventory. Every object exported independently (movable, removable, interactive, replaceable, animated) must be excluded from the parent-frame pixels. Do not let an image model generate a whole workshop with tools/props painted into it and then separately export the same tools as additional sprites. Source-frame clean-parent hash and independent masks/plate must be verified by `validate_parent_cleanup.py`; final modular packages use `validate_component_bundle.py --approval-gate`. Without the required proof mark candidate `pending`; no finalized/approved atlas claim. Art-medium-independent technical check after rasterization; the selected art style must remain unchanged.
