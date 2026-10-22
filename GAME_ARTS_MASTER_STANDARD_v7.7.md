@@ -1419,3 +1419,87 @@ For every asset, record `asset_class`, `view_policy`, `directions`, `approved_vi
 
 
 **Consolidated mockup scope principle:** `Identify mockup scope → analyze every meaningful visible detail at that scope → descend into nested blueprints as needed → plan static and animated production assets → validate reconstruction against the approved mockup.`
+
+---
+
+## Mandatory reference-controlled image prompting — permanent framework contract
+
+This section governs **all prompts submitted to image generation or image editing tools**, not merely user-facing explanations. Prompt quality is a production gate. The model must not substitute an attractive generic illustration for a faithful asset built from the approved mockup.
+
+### Preflight: construct a verified prompt packet
+
+For each generation/edit, resolve the following from the game project and exact approved mockup/blueprint revision:
+
+1. **Visual source**: actual image reference(s), source file path or image ID supported by the tool, mockup ID/revision, selected crop/region and component identity. **Attach/pass the actual source image to the image tool whenever the tool supports conditioning; mentioning a mockup in text is not equivalent.** A screenshot containing several assets should be cropped/isolated to the correct region for reference. Do not claim the tool received an image if it did not.
+2. **Target classification**: static_structure / fixed_machinery / mobile_directional / ui_presentation / environment / prop / effect; state whether it is a master, edit, layer, key pose, reference concept or production export.
+3. **Style lock**: approved art style, exact gameplay camera/projection, palette/materials, line weight, texture density, light/shading and pixels-per-meter policy, plus immovable world-space geometry (Oilfield Days: top-down elevated 3/4 oblique, orthographic; not isometric).
+4. **Identity lock**: observed features and spatial relationships that **must remain unchanged**. List distinguishing roof shape, building footprint, openings, machinery attachments, side materials, windows, proportions, and anchors. Do not invent reference details not actually visible; label unknowns and obtain approval before locking them.
+5. **Change contract**: enumerate precisely what may change, and state that everything else must remain identical. For component motion, source artwork and parent body geometry must remain fixed.
+6. **Directional policy**: static structures/fixed equipment = **one** approved world-facing view by default; freely moving directional objects = **eight** matching views (S, SW, W, NW / N, NE, E, SE) where gameplay needs them; UI display = separate presentation style; limited rotation only where declared. Direction means rotation of the SAME object, not redesign.
+7. **Export constraints**: single isolated asset/component per production image unless explicitly building a verified sheet, measured native resolution, exact solid opaque #FF00FF background (RGB 255,0,255, alpha 255), no text/labels/panels/grid lines/borders/mock JSON, no gradient/pink halos or baked-in unrelated objects, no arbitrary perspective transforms or resampling.
+8. **Tool capability contract**: image generator for art/key poses, image editor for source-conditioned revisions, deterministic pixel/layer processing for repeatable animation/assembly, actual atlas generator for JSON. If image conditioning, precise segmentation, or deterministic editing is not available, **stop that step and disclose**, rather than silently replace with freehand whole-image regeneration.
+
+A prompt packet may be serialized internally in the game project's production blueprint but does not require manual user form entry. The agent composes prompts silently from approved references and scoped custom rules.
+
+### Universal image-generation prompt skeleton (fill bracketed fields with verified data)
+
+> **TASK:** [one exact output: static master / component art / controlled edit / single key pose / concept mockup].  
+> **AUTHORITATIVE REFERENCES:** Use attached [approved mockup revision] and [cropped target region]; preserve [locked master ID] when supplied. Do not replace these with a generic art-style interpretation.  
+> **CLASS + VIEW POLICY:** [asset class], [one fixed oblique world view | one exact mobile direction | one UI portrait direction | explicitly limited rotation].  
+> **CAMERA:** [approved camera description]. **Never isometric unless the selected approved game art style explicitly IS isometric.** No camera-angle drift between master, layers or poses.  
+> **IDENTITY LOCK:** [observed invariant geometry, proportions, palette, material, attachments, perspective and distinguishable small details]. Preserve location of every unchanged pixel/element when editing source pixels.  
+> **ALLOWED CHANGE:** [only explicit layer / component / state / pose change]. **UNALLOWED:** new extensions, alternate roof, relocated door/window, altered depth, added props, different structure identity, alternate camera.  
+> **COMPOSITION:** one isolated subject [or exact bounded component] in native-size-compatible framing; entire silhouette visible, stable anchor and ground contact, clear buffer around bounds.  
+> **OUTPUT:** standalone art on solid #FF00FF, completely opaque, no captions, diagrams, invented coordinates, contact-sheet panels, UI or multiple angles unless the task explicitly asks for an approved multi-view *review* layout.  
+> **QUALITY TARGET:** match reference silhouette and visual density first; high image appeal is secondary to fidelity. If important reference details are ambiguous, preserve observed content and surface uncertainty rather than inventing.
+
+Treat this as **actual instructions to the image tool**, adapted to the tool's supported reference-image mechanism. Do not merely print the skeleton in chat and call that a generation.
+
+### Task-specific prompt templates
+
+**A. Static structure / building master (one approved angle):**
+
+> Produce exactly ONE isolated [building] using the attached, cropped approved [mockup ID/revision] as the authority. Match its **elevated top-down 3/4 oblique orthographic** camera and [approved style]; not isometric, not frontal, not architectural rendering. Lock the same roof pitch/outline, wall proportions, door bay and window positions, cladding, material tones, ground footprint and distinguishing details. Preserve only details visible in the reference; missing unseen features require explicit design review. Base is fixed and does not rotate; no eight-view sheet. Moving doors and lights will be separate later. Solid opaque #FF00FF background; no labels, illustrated captions, animation strip or contact sheet.
+
+**B. Fixed machinery master (one approved angle, modular):**
+
+> Render one fixed [machine] base from [approved mockup crop]. Preserve mechanical footprint/supports/gear location and oblique camera. Identify stationary housing versus pivoting beam, crank, rod, turret, valve or flame; **do not draw separate motion poses or composite six whole-machine redraws**. Export the fixed base and separately approved components later, maintaining mounting landmarks. Same #FF00FF isolation requirements.
+
+**C. Mobile asset locked master, single requested direction:**
+
+> Render [direction] of [locked vehicle/equipment identity] based on attached approved design and existing directional master. Keep physical width/length/height, wheelbase, axles, cab body, doors, windows, cargo bed, color and mounting geometry consistent. Only rotate the **same** object to [direction] under the approved world camera; do not reinterpret shape or introduce another model. One direction only in this generation. Preserve standard world-scale pixels-per-meter and ground pivot. Repeat until all required directions are visually approved before creating action-specific animations.
+
+**D. Separate moving part / layer extraction:**
+
+> Starting with supplied **locked master**, isolate only [component] while preserving correct [direction/state] geometry and original scale. Provide component with its real hinge/pivot/attachment neighborhood intact. Do not repaint the static parent, redraw an alternate building, invent hidden geometry or turn this into a scene-wide sheet. If the hidden portion is not present in the reference, request an additional approved source/key pose rather than claiming precise extraction.
+
+**E. Single animation key pose (controlled):**
+
+> Edit only [component] from approved [component master] to [pose/state at normalized time]. Keep master camera, color, outline, lighting, texture resolution, attachment identity and base pixels unchanged. Return **one pose**, not an animation chart. Parent remains pixel-identical. Preserve declared pivot/hinge; do not move it to fit a visually pleasing composition. Generate necessary unseen component art only with explicit approved reference. Assemble/interpolate subsequent frames deterministically when transforms suffice.
+
+**F. UI presentation graphic or icon:**
+
+> Use attached approved UI screen and associated world-asset identity as visual references. Produce one [UI icon/portrait/frame] at its approved screen-space presentation view and hierarchy, not a 3/4 world sprite unless the reference actually uses it. Match UI palette, outline and spacing; keep text and dynamic values separate for Godot UI except deliberately decorative lettering. No world-view directional package.
+
+**G. Terrain, roads and modular environment:**
+
+> Follow approved orthogonal square-grid coordinates and texture/profile scale; create precisely one [tile/overlay/prop] serving [edge/transition/variant]. Preserve natural variation and boundary-matching requirements. No isometric diamond tile, raised sidewall, terrain slab thickness or baked shadows unless explicitly required. Keep terrain and independent features in separate layers/assets.
+
+**H. Effects, particles and screen feedback:**
+
+> Generate only [effect component/key pose] with the approved style and localized attachment bounds, not a full scene. Specify loop or state timing. Keep parent base unchanged, and use shader/tween/procedural effects rather than repeated raster art where that is accurate and more stable.
+
+**I. Source-conditioned correction / failed output repair:**
+
+> EDIT the provided output **against the attached original approved mockup crop**. Restore [specific mismatch: camera, roof outline, static pixels, hinge, proportions]. Change *only* those mismatched features. Do not add artwork or regenerate another interpretation. If the tool cannot perform a locality-preserving edit, reject and return to master/source stage.
+
+### Staged image workflow — must NOT collapse into one prompt
+
+1. Reference crop & evidence extraction → 2. One master candidate only → 3. Compare and explicitly approve master → 4. Independent visible components → 5. Approved key poses as needed → 6. Deterministic transforms and assembly → 7. Real PNG sheets and measured atlas JSON → 8. automated+visual validation → 9. separate final production approval.
+Never prompt a generative image model to create the full structure + six redraws + detachable components + printed JSON in one shot. It produces an *illustration of a sprite sheet*, not a verified sprite sheet.
+
+For animation, compare a shared unchanged-pixel mask against the approved static master and reject changed static regions. Reject inconsistent perspective, mismatched directions, missing/shifted hinge anchors, clipping, repeated frames where meaningful motion is required, invalid #FF00FF, or printed metadata on the PNG. The validator must distinguish **artistic reference-consistency review** from **pixel/atlas script checks**; neither alone proves a Godot-ready asset.
+
+### Mandatory response to failed prompt validation
+
+Do not deliver an invalid image as completed game art. Report the specific failure, classify candidate as rejected/needs-revision, preserve the prior approved master, and revise the **prompt packet or source constraints** before using image generation again. Repeating the same broad prompt is prohibited. Never silently promote a review image to an approved asset.
