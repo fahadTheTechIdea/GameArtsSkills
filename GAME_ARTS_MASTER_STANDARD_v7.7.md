@@ -1725,3 +1725,19 @@ The current cleanup manifest supplies the actual source composite, cleaned paren
 ### Important limits
 
 No automatic mask, panel, LLM, or image model can *prove* complete semantic recognition or plausible reconstructed hidden surfaces. A human/independent reviewer must inspect and approve the actual pixels. Separate objective geometry/hash validation, agent-reported user decision, human visual acceptance and genuine Godot/runtime verification in metadata. When a reviewer identifies a missing/incorrect part, revise the **generated** candidate with a new review packet; never alter approved pixels under an old decision hash. Older revoked artwork must not be used as an active source. The protocol is universal across pixel art, painted, illustrated, vector, rendered-to-2D and custom profiles.
+
+
+---
+
+## Executable exact-approval transition after visual review
+
+The existing \`scripts/gamearts_asset_lifecycle.py\` now includes a **guarded \`approve\` operation** for current \`assets/generated\` candidates. The workflow is:
+
+1. The agent displays the current candidate's visual review boards and separate output files, backed by the exact approved original mockup crop and independent silhouette/occlusion audit. User explicitly accepts *that exact asset revision* and any described inferred/hidden regions.
+2. The agent, using a truthful reference to the actual user message, records the candidate's \`visual_review/decision.json\` only after acceptance. It identifies all reviewed component IDs, acknowledged uncertain-region IDs, actual user review criteria and hash of the displayed packet. The review verifier rejects changed sources, boards, masks and mismatched revisions.
+3. The agent calls the **existing lifecycle helper's \`approve\` operation internally**, which re-verifies mandatory new-protocol visual-review evidence from the source bundle/blueprint, checks declared required files, reconciles bundled blueprint and visual QA approval fields, moves the complete candidate to \`assets/approved\`, records source/review references and hashes *every final file*. It immediately runs its own asset audit before reporting success.
+4. If a downstream audit fails, it restores original metadata and moves the files back to generated where possible, and reports the unresolved problem. It does not claim successful promotion from a partial move. Subsequent asset selection checks all stored file hashes so modified art, masks, atlases, review boards or metadata cannot silently reuse an old acceptance.
+5. **Only known visual fields** are reconciled after actual user acceptance. Genuine Godot tests, physics/occlusion and pixels-per-meter calibration remain \`not_tested\` or unknown until performed. Do not invent or infer that a JSON user-decision record is cryptographic host attestation.
+6. Rejected/revoked versions remain excluded. Previously approved legacy assets are not retroactively demoted solely because newer protocols require stricter review. Preserve all files and revisions in the original generated/approved/revoked lifecycle.
+
+Every normal user still says **“Approve this generated version”** or **“Revise that cabinet”**. Agents handle technical commands, masks, the review packet, atlas checks, approval reconciliation and Godot tests only when actually available. Do not require users to type JSON, file paths or terminal commands.
