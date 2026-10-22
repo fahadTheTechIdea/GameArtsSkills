@@ -181,6 +181,14 @@ class LifecycleGuardTests(unittest.TestCase):
             spec["approved_reference"]["mockup_id"] = "scene"
             spec["approved_reference"]["mockup_revision"] = "v001"
             review.write_text(json.dumps(spec))
+            crop_receipt = bundle / "reference.packet.json"
+            crop_info = json.loads(crop_receipt.read_text())
+            crop_info["approved_mockup"]["id"] = "scene"
+            crop_info["approved_mockup"]["revision"] = "v001"
+            crop_info["approved_mockup"]["sha256"] = json.loads(
+                (output / "manifests/mockups.json").read_text()
+            )["mockups"][0]["sha256"]
+            crop_receipt.write_text(json.dumps(crop_info))
             packet_path = prepare(cleanup, review, bundle / "visual_review")
             vote = bundle / "visual_review/decision.json"
             vote.write_text(json.dumps(decision(packet_path)))
