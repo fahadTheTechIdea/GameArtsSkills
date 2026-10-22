@@ -54,3 +54,12 @@ Global requirements are never presented as optional checkboxes: mockup approval,
 ## Custom pipeline instructions
 
 The project configuration holds structured defaults. Separately, users can add unrestricted, scoped art preferences through a conversational skill: `game-arts-custom-instructions`. These are saved as individual files in `<game>/.gamearts/instructions/`, read automatically for relevant tasks, and never used to weaken mandatory framework requirements. See [custom instructions](CUSTOM_INSTRUCTIONS.md).
+
+
+## Settings are used in real image-generator prompts
+
+Every image or image-edit request reads this game's existing `.gamearts/project.json` **before composing the prompt**, together with applicable active `.gamearts/instructions/*.md`, current approved mockup/asset references and any asset-specific profile. The agent inserts the actual selected style, camera, visual reference, size/scale and animation/output choices into the **tool call**; it must not just mention them in a plan. The style controls brushwork, outlines, texture density, pixels or vector edges and lighting as appropriate to that medium.
+
+Supported selected styles include `pixel_art`, `hand_painted`, `illustrated`, `vector`, `rendered_2d` and `custom`. Optional style fields include `reference`, `palette_reference`, `outline_policy`, `shading_policy`, `texture_policy` and `pixel_density`. The world `object_camera` is project-specific. Optional `prompting` settings can record reference/camera locks and additional constraints. Existing game configuration remains valid without these optional fields.
+
+User-approved source artwork and explicit changes outrank fallback defaults. If a saved style or viewpoint conflicts with an approved master, the agent flags it rather than silently changing existing art. Framework defaults are used only for genuinely missing values; Oilfield Days' oblique look is **not** a universal camera setting for all games.
