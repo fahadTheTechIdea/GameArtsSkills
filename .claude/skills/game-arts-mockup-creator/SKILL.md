@@ -62,3 +62,8 @@ Never hardcode Oilfield Days, pixel-art style, oblique projection, an isometric 
 
 ## Actual crop before editing approved reference imagery
 When a user has supplied/approved a mockup and requests production art, first select the **actual asset region** in its managed approved image and run scripts/prepare_reference_crop.py through available filesystem tools. The script creates a real cropped PNG, source and settings hashes, and a selected-style prompt. Pass that crop as an actual image input if the image tool supports it. **Do not turn a text description of the mockup into a new uncontrolled image generation.** If input conditioning is unsupported, disclose that production cannot yet be reference-locked. A reported tool attachment and matching hashes still require visual similarity review; no automatic approval.
+
+
+## Production references versus concept mockups
+
+Creating a **new concept mockup** does not require a pre-existing approved crop. After the user has approved a generated or imported mockup, however, production from that source must use the approved registered image's actual pixels. Use the existing analyzer → `scripts/prepare_reference_crop.py` → image-tool attachment sequence before one locked asset master is generated. The crop must be a real PNG attached as an image, not merely an instruction saying “based on the mockup.” If the tool cannot accept conditioning, report a production limitation. The crop and receipt remain inside the existing `assets/generated/<asset-revision>/reference/` candidate; do not create a parallel mockup folder.
