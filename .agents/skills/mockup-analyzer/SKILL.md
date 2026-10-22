@@ -44,3 +44,10 @@ Before master generation, produce the complete `separation_inventory` and `paren
 
 ## Workshop-derived exhaustive separation & inferred-pixel inventory (all styles)
 Before generating the parent, inventory small objects **separately** even when they overlap: workbenches, toolboxes, cabinets, spanners, nuts, bolts, doors, wheels, lights, and any independent detail appropriate to this asset (list derived from real image, not hardcoded). For each candidate describe its visible extent, exact silhouette/ownership mask, removal region, parent layer, occluded surfaces, source-observed versus inferred pixels, game-dependent interactivity and intended output. Do not treat an object’s rectangular bounding box as its silhouette. No source-derived image may be called fully observed if part is behind another object. Pass this inventory and clean-plate requirements before any static-master prompt.
+
+
+## Independent second-pass object/occlusion audit
+
+Pixel-based masks cannot tell whether the producer forgot a screw, cabinet, wheel, small tool or separable structure part. Re-inspect the ORIGINAL approved image/crop independently of the candidate components, record a complete expected component ID inventory, and compare it to the actual detached component manifests. Inspect where each removed object hid underlying wall/floor/tabletop/mechanism pixels; classify reconstructed regions as `inferred`, `partially_observed` or `unknown`, with source-aligned binary region masks and reasons. Even an empty uncertainty list requires an explicit completed occlusion audit. Pass this evidence as internal `review_spec` to the existing visual review helper; do not mark inferred pixels source-verified.
+
+Present the original/source + each isolated sprite side by side with the reconstructed clean plate for actual human review. A silhouette mask automatically extracted from the very same contaminated sprite is not independent evidence.
