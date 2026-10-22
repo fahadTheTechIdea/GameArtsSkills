@@ -112,3 +112,9 @@ For **new** assets using the protocol, store these asset-manifest fields:
 Those are **paths relative to the current asset bundle**, so source/mask/board hashes remain valid when the complete bundle moves to approved. The lifecycle `audit` verifies every declared packet/decision, actual source files, review-board bytes and exact accepted asset ID/revision. A modified sprite or plate after user approval requires renewed visual acceptance. If the packet is missing/invalid, keep new production in generated and do not call it approved.
 
 Historical artwork already approved under the prior process is not silently revoked solely because these new files don't exist; its engine/scale/semantic limitations remain honest. The review receipt is agent-recorded, **not proof that the host authenticated the user's message**.
+
+
+### Exact approved reference is part of the review
+The internal visual-review spec must include `approved_reference` with the actual approved source crop's `file`, `sha256`, `mockup_id` and `mockup_revision`. This cropped image is prepared through the existing approved-reference crop gate, kept with the **current** asset candidate, and displayed as the first panel on the QA board. A mask-only comparison of a newly redrawn source is insufficient: the reviewer must see the original authoritative mockup too. The lifecycle audit compares that approved mockup ID/revision to the asset's actual registered `source_mockups` so a different source cannot be silently substituted.
+
+The new-protocol bundle builder marks new modular assets with `visual_review_protocol: "review_packet_v1"` automatically. The lifecycle audit derives the requirement from the bundle or blueprint metadata even if an asset-manifest writer accidentally omits the flag, then blocks approved reuse until the actual exact-user review is complete. This requirement does not retroactively revoke existing approved revisions.
