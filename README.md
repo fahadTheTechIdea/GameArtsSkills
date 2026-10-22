@@ -153,3 +153,6 @@ The separate [bundle validator](scripts/validate_component_bundle.py) checks tha
 Static structures and fixed machinery have **one approved world view by default**, with separately animated moving parts; freely moving objects use **eight directions when directional gameplay requires it**. UI portraits are their own single-view presentation assets. Restricted placement rotations are explicit exceptions, not forced eight-view sheets. All angles must preserve the approved asset identity and art style.
 
 **Maintenance:** revise the existing canonical master standard and associated files in place; do not add another numbered master document for each change.
+
+
+**Single canonical master:** Only [GAME_ARTS_MASTER_STANDARD_v7.7.md](GAME_ARTS_MASTER_STANDARD_v7.7.md) is maintained; older numbered copies have been retired. Future revisions update this existing file in place, rather than adding another master document. Distinct technical guides and Claude/Codex skills remain separate because they serve different purposes.
