@@ -98,9 +98,9 @@ def revision(source):
 def managed_block(rev):
     return ("\n" + BEGIN + "\n"
             "Game Arts managed setup: for game-art work, apply the current "
-            "\`GAME_ARTS_MASTER_STANDARD_v7.7.md\` and the "
-            "\`.agents/skills/game-arts/SKILL.md\` (Codex) or "
-            "\`.claude/skills/game-arts/SKILL.md\` (Claude Code). "
+            "`GAME_ARTS_MASTER_STANDARD_v7.7.md` and the "
+            "`.agents/skills/game-arts/SKILL.md` (Codex) or "
+            "`.claude/skills/game-arts/SKILL.md` (Claude Code). "
             "Use this game's saved settings, applicable instructions, approved "
             "mockups and generated/approved/revoked lifecycle. "
             "Both local agent skill trees are synced at session start when configured.\n"
@@ -188,8 +188,10 @@ def install_hooks(game):
         if not isinstance(obj, dict):
             raise ValueError("Invalid JSON settings at " + relative)
         hooks = obj.setdefault("hooks", {})
+        if not isinstance(hooks, dict):
+            raise ValueError("Existing hooks config must be an object: " + relative)
         sessions = hooks.setdefault("SessionStart", [])
-        if not isinstance(hooks, dict) or not isinstance(sessions, list):
+        if not isinstance(sessions, list):
             raise ValueError("Existing SessionStart hook config invalid: " + relative)
         # Remove only prior Game Arts commands, retain third-party hooks.
         remaining = []
