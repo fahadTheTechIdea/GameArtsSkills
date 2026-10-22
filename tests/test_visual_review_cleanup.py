@@ -4,9 +4,11 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import sys
 from PIL import Image
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "visual_review_cleanup.py"
+sys.path.insert(0, str(SCRIPT.parent))
 spec = importlib.util.spec_from_file_location("visual_review_cleanup", SCRIPT)
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
@@ -27,6 +29,14 @@ def fixture(root):
     parent.save(folder / "plate.png")
     original.save(folder / "original.png")
     original.save(Path(root) / "approved_mockup_crop.png")
+    (Path(root) / "reference.packet.json").write_text(json.dumps({
+        "approved_mockup": {
+            "id": "approved_test_scene", "revision": "v001",
+            "sha256": mod.sha(folder / "original.png")
+        },
+        "reference_crop_sha256": mod.sha(Path(root) / "approved_mockup_crop.png"),
+        "reference_crop": str((Path(root) / "approved_mockup_crop.png").resolve())
+    }))
     source_mask.save(folder / "workbench.mask.png")
     sprite = Image.new("RGBA", (18, 16), PINK)
     mask = Image.new("L", sprite.size, 0)
@@ -49,7 +59,9 @@ def fixture(root):
         "detached_components": [{
             "id": "workbench", "kind": "removable",
             "sprite": "workbench.png", "removal_mask": "workbench.mask.png",
-            "sprite_silhouette_mask": "workbench.silhouette.png"
+            "sprite_silhouette_mask": "workbench.silhouette.png",
+            "silhouette_review": "approved",
+            "silhouette_reference_id": "reviewed_workbench_original"
         }]
     }
     cleanup_file = folder / "cleanup.json"
@@ -58,6 +70,7 @@ def fixture(root):
         "asset_id": "test_workshop", "revision": "v002",
         "approved_reference": {
             "file": "approved_mockup_crop.png",
+            "crop_packet": "reference.packet.json",
             "sha256": mod.sha(Path(root) / "approved_mockup_crop.png"),
             "mockup_id": "approved_test_scene", "mockup_revision": "v001"
         },
@@ -127,6 +140,17 @@ class VisualReviewTests(unittest.TestCase):
             self.assertEqual(checked["review_status"], "user_visual_approval_recorded")
             self.assertEqual(checked["approval_source_verification"],
                              "agent_recorded_not_host_attested")
+
+    def test_claimed_approved_reference_must_match_crop_packet(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cleanup, review, _ = fixture(root)
+            packet_file = root / "reference.packet.json"
+            meta = json.loads(packet_file.read_text())
+            meta["approved_mockup"]["id"] = "wrong_mockup"
+            packet_file.write_text(json.dumps(meta))
+            with self.assertRaisesRegex(ValueError, "Approved crop provenance"):
+                mod.prepare(cleanup, review, root / "review")
 
     def test_source_mutation_invalidates_prior_user_review(self):
         with tempfile.TemporaryDirectory() as td:
