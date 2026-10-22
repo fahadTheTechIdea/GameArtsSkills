@@ -25,3 +25,8 @@ Never hardcode Oilfield Days, pixel-art style, oblique projection, an isometric 
 
 ## Crop-and-reference image-tool input
 The image prompt must inherit the selected project's actual art_style and world.object_camera from saved settings and preserve the camera and appearance shown by the exact cropped approved source image. The canonical crop gate produces a reference.packet.json with resolved selected values. Check the prompt and **actual image attachment** against this packet; do not allow freehand isometric/generic pixel-art substitutions or silently replace the selected medium. Output mismatch is a failed concept, not a locked master.
+
+
+## Apply crop packet settings by image type
+
+For every image output from an approved mockup, use the packet prepared by `scripts/prepare_reference_crop.py` with the **actual selected game's style** and camera. The packet uses `world.object_camera` for buildings/machines/vehicles, `art_style.ui_camera` or the approved screen reference for UI presentation graphics, and `world.ground_camera` or the orthogonal grid for terrain. A camera/view is **not** the same as a direction identifier: fixed art defaults to the single `fixed` view, UI uses `ui`, ground art `tile`, and free-facing mobile assets use the game's approved directional set. Do not substitute another game's style or auto-generate eight static building views. The actual source crop must be attached to reference-capable image tools, or production stops.
