@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Game Arts Mockup Blueprint v7.2",
+  "title": "Game Arts Mockup Blueprint (single maintained schema)",
   "type": "object",
   "required": [
     "schema_version",
@@ -96,9 +96,26 @@
           },
           "source_region_px": {
             "type": "array",
-            "items": {
-              "type": "number"
-            },
+            "description": "Actual bounded source-pixel rectangle [x,y,width,height] selected by analyzer; never invented. Round observed fractional coverage outward before reference-crop preparation.",
+            "prefixItems": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "integer",
+                "minimum": 1
+              }
+            ],
+            "items": false,
             "minItems": 4,
             "maxItems": 4
           },
@@ -147,6 +164,29 @@
             "type": "number",
             "minimum": 0,
             "maximum": 1
+          },
+          "reference_region_id": {
+            "type": "string",
+            "description": "Stable region ID for the selected approved mockup revision."
+          },
+          "reference_padding_px": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 256,
+            "description": "Context margin around reference crop; never modifies source image."
+          },
+          "asset_class": {
+            "type": "string",
+            "description": "Resolved asset class passed to existing reference-crop and production skills."
+          },
+          "approved_source_sha256": {
+            "type": "string",
+            "pattern": "^[A-Fa-f0-9]{64}$",
+            "description": "Actual approved source image hash; never guessed."
+          },
+          "reference_packet_path": {
+            "type": "string",
+            "description": "Existing generated asset candidate's reference/reference.packet.json path when prepared."
           }
         },
         "additionalProperties": true
