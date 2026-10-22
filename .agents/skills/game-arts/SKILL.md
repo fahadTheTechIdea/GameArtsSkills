@@ -137,3 +137,11 @@ If the gate fails, reject/revise the static master; generating an extra sprite s
 A different generated revision awaiting approval is **not automatically rejected** because an earlier revision was rejected. It stays in `generated`, never silently becomes `approved`. Do not continue toward final assets if a required master/clean plate has been rejected or remains unapproved.
 
 The agent performs lifecycle actions using tools and verifies files; no user CLI or manual JSON required. If filesystem access is missing or errors occur, report the rejection intent and unsuccessful transition; do not claim that a revocation was persisted.
+
+
+## Workshop-proven preflight and acceptance gates (ALL art profiles)
+Before generating a single production parent image, load selected style/camera, exact approved mockup crop and manifest, then build a complete source-grounded inventory of **all independently movable, removable, interactive, replaceable or animated parts**. Require the clean parent image exclude every inventoried element. Crop-to-bounding-box does not isolate a sprite. Use independently reviewed per-object silhouette masks (source pixels) and check exports with \`scripts/validate_parent_cleanup.py --strict-props\` for newly produced standalone parents; for rigs use \`scripts/validate_component_bundle.py --approval-gate\`. A failing or unverified mask cannot produce an approved artwork claim.
+
+When the source hides a tabletop, back wall, cabinet side, or similar surface, mark the reconstructed pixels as **inferred** and obtain clean-plate visual approval; include accepted caveats in final metadata. Reject unconditioned camera/style drift. Do not use revoked predecessor artwork in current generation or QA; a new candidate must be self-contained and tied only to actual approved source ID/revision/hash.
+
+After user approval, **audit** the actual approved asset with \`scripts/gamearts_asset_lifecycle.py audit\` and reconcile any contradictory status in blueprint/QA/manifest. A manifest marked approved while blueprint says generated, production not granted, or visual review pending is a blocking inconsistency. Do not falsely promote Godot/runtime/scale to tested. The user need only decide real artistic matters, not repeat approvals already granted.
