@@ -1569,3 +1569,26 @@ The executable image-reference gate is a **built-in step of the current skills a
 - **Availability:** Any user installing the complete framework into their game project receives this behavior automatically for production from approved mockups; it does not require special prompt phrases, manual crop jobs, new setup screens, or new folders. Pure first-time mockup creation and non-image tasks are unaffected.
 
 **Maintenance:** Update this same canonical master document, the existing skills, and the existing lifecycle/installation guides in place. Never create a parallel versioned master or duplicative image-type workflow solely for crop conditioning.
+
+
+## Automatically keep local Claude Code and Codex framework installations current
+
+**Permanent maintenance policy:** Every framework change must update both `.claude/skills/` and `.agents/skills/` and the single existing canonical master, validators, schemas, scripts and related documentation. Do not assume updating GitHub also changed anybody's personal computer.
+
+### One-time opt-in local installation
+The complete framework includes `scripts/sync_local_agents.py`. When a user says **"Enable automatic Game Arts updates for Claude and Codex"** in a locally connected agent, the agent should:
+1. Locate the user's actual game workspace(s), existing Claude/Codex skill directories and a trusted checkout of this exact GameArtsSkills repository.
+2. Inspect current configuration and obtain the normal explicit trust/approval for installing project-local lifecycle hooks. Do not hide that the hooks execute local code and can fetch updated code.
+3. Run the updater's `bootstrap` mode **internally**, with the trusted repo as `--source`, each game as `--game-root`, and `--adopt-existing` only when the user authorizes updating previously installed framework-path files. That flag backs up files before replacing them. Never overwrite `.gamearts/project.json`, personal `.gamearts/instructions/`, `.gamearts/outputs/`, source assets or unrelated tools.
+4. Merge one Game Arts `SessionStart` hook into existing `.claude/settings.json` and `.codex/hooks.json`, retaining all unrelated settings/hooks. Codex project hooks are subject to its built-in trust review; Claude hooks also require applicable local approval. Do not claim activation until those checks and an actual sync have completed.
+5. Verify both project-local skill trees and installation state at `.gamearts/system/agent-sync-state.json`. Report any skipped local edits.
+
+### Automatic update behavior
+On each subsequent local **Claude Code or Codex session startup/resume**, each trusted hook runs the same local updater. It fetches the latest `main` revision from the configured `fahadTheTechIdea/GameArtsSkills` repository and updates both agent skill trees, the master standard, scripts, docs, schemas and Godot integration resources as one managed source set. It tracks installed file hashes. Files edited locally are **not silently overwritten**, and unrelated project data never enters its managed list. Existing `AGENTS.md` and `CLAUDE.md` contents are preserved; the updater refreshes only its marked Game Arts guidance block.
+
+Network loss, an unavailable Git executable, no hook trust, installation conflict or inaccessible local filesystem mean that synchronization has **not** succeeded. Do not report that a remote GitHub commit directly updated an offline computer. When both agents are closed, a server-side GitHub commit cannot immediately push to their local installations; the updated framework is applied at their **next trusted SessionStart**, not instantaneously while offline. For an immediate refresh during an open session, a locally authorized agent may invoke the updater's `update` operation explicitly.
+
+**Security:** This is an opt-in updater that fetches executable framework scripts from a trusted remote branch. Review/trust the source and hooks; follow workspace policies. Never install local hooks on another user's device without their action or connected file access.
+
+### Developer validation
+The existing test suite checks project data preservation, managed-file hashes, conflict handling, one-time backup adoption, hook merging/idempotence and file safety; the existing CI workflow watches `scripts/sync_local_agents.py`. A committed test suite is not a passing test run, and GitHub cannot attest to a user's individual local installation.
