@@ -89,3 +89,12 @@ An installed bootstrap merges one project-local `SessionStart` entry into `.clau
 **Update timing:** Since GitHub cannot directly modify an offline PC, local installations refresh on the next trusted agent session startup/resume, not instantly at the remote commit timestamp. Internet access, Git and local filesystem permissions are required. If a check fails, the agent must report that it did **not** synchronize. This updater is for project-local installations; arbitrary unknown global installations elsewhere on the machine are not silently altered. Both Claude and Codex for each enrolled game are updated from the same verified source revision.
 
 **Security:** Auto-update is opt-in because trusted local hooks can download and run framework code. Review the repository and hooks before enabling.
+
+
+## Parent-artwork cleanup verification is required for ALL styles
+
+Install the existing `scripts/validate_parent_cleanup.py` with the rest of Game Arts. The current `mockup-analyzer` identifies *all* independently movable/removable/interactive/replaceable/animated objects. The agent must remove those objects **from the clean static parent** as well as export them individually—creating a reviewed clean background where the objects used to be. Keeping the workbench/screw/wheel/door painted in the parent and also exporting an isolated sprite is a rejection.
+
+The helper compares original composite PNG, final static-parent PNG, independently reviewed clean plate, component ownership masks, and exported component sprites. For nested/multi-view component bundles, use the current builder with packaged cleanup evidence and the existing validator's `--approval-gate` before promoting to approved. For a stand-alone structure with detached props but no animation bundle, run `validate_parent_cleanup.py` directly. These scripts are run internally by Claude/Codex, not by the user.
+
+All styles (pixel, painted, vector, illustrated, rendered-to-2D, custom) share this ownership rule. Exact raster comparison requires **pixel-aligned exported layers**, but does not dictate the style's visible edge quality. If aligned source art, masks, or reviewed clean plates are unavailable, the gate stays pending and approval is blocked. Do not fabricate compliance evidence.
