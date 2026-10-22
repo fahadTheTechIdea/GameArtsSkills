@@ -93,7 +93,7 @@ def checked_report(manifest_path):
         part_file = require_path(directory, part.get("sprite"), f"{identifier}.sprite")
         mask_file = require_path(directory, part.get("removal_mask"), f"{identifier}.removal_mask")
         component = rgba(part_file, f"{identifier}.sprite")
-        if ImageChops.difference(component, Image.new("RGBA", component.size, PINK)).getbbox() is None:
+        if ImageChops.difference(component.convert("RGB"), Image.new("RGB", component.size, PINK[:3])).getbbox() is None:
             raise ValueError(f"{identifier}: detached sprite contains no non-pink artwork")
         mask = mask_image(mask_file, src.size, f"{identifier}.removal_mask").tobytes()
         area = 0
