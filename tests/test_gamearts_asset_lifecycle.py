@@ -5,6 +5,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from PIL import Image
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "gamearts_asset_lifecycle.py"
 spec = importlib.util.spec_from_file_location("gamearts_asset_lifecycle", SCRIPT)
@@ -121,6 +122,72 @@ class LifecycleGuardTests(unittest.TestCase):
             mf.write_text(json.dumps(data))
             self.assertTrue(any("source mockup hash disagrees" in s for s in
                                 mod.audit_asset(root, "workshop_v001")))
+
+    def test_new_review_protocol_blocks_approval_without_visual_packet(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            output, blueprint, report = self.approved_fixture(root)
+            bp = json.loads(blueprint.read_text())
+            bp.update({"status": "approved_artwork_not_engine_verified",
+                       "production_approval": "granted_by_user",
+                       "approved_clean_plate": True})
+            blueprint.write_text(json.dumps(bp))
+            qa = json.loads(report.read_text())
+            qa["isolated_props_background_masking"] = "user_approved"
+            report.write_text(json.dumps(qa))
+            mf = output / "manifests/assets.json"
+            data = json.loads(mf.read_text())
+            data["assets"][0]["visual_review_protocol"] = "review_packet_v1"
+            data["assets"][0]["revision"] = "v001"
+            mf.write_text(json.dumps(data))
+            issues = mod.audit_asset(root, "workshop_v001")
+            self.assertTrue(any("lacks mandatory user visual review" in s for s in issues))
+            with self.assertRaisesRegex(ValueError, "metadata audit failed"):
+                mod.select(root, "assets", "approved", "workshop_v001")
+
+    def test_exact_visual_review_record_allows_reuse_only_while_files_unchanged(self):
+        from test_visual_review_cleanup import fixture, decision
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+        from visual_review_cleanup import prepare
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            output, blueprint, report = self.approved_fixture(root)
+            bp = json.loads(blueprint.read_text())
+            bp.update({"status": "approved_artwork_not_engine_verified",
+                       "production_approval": "granted_by_user",
+                       "approved_clean_plate": True})
+            blueprint.write_text(json.dumps(bp))
+            qa = json.loads(report.read_text())
+            qa["isolated_props_background_masking"] = "user_approved"
+            report.write_text(json.dumps(qa))
+            bundle = output / "assets/approved/workshop_v001"
+            cleanup, review, folder = fixture(bundle)
+            spec = json.loads(review.read_text())
+            spec["asset_id"] = "workshop_v001"
+            spec["revision"] = "v001"
+            review.write_text(json.dumps(spec))
+            packet_path = prepare(cleanup, review, bundle / "visual_review")
+            vote = bundle / "visual_review/decision.json"
+            vote.write_text(json.dumps(decision(packet_path)))
+            mf = output / "manifests/assets.json"
+            data = json.loads(mf.read_text())
+            data["assets"][0]["visual_review_protocol"] = "review_packet_v1"
+            data["assets"][0]["revision"] = "v001"
+            data["assets"][0]["visual_reviews"] = [{
+                "packet": "visual_review/visual_review.packet.json",
+                "decision": "visual_review/decision.json"
+            }]
+            mf.write_text(json.dumps(data))
+            self.assertEqual(mod.audit_asset(root, "workshop_v001"), [])
+            self.assertEqual(len(mod.select(root, "assets", "approved", "workshop_v001")), 1)
+            # Any post-review change requires new explicit user review.
+            with Image.open(folder / "parent.png") as before:
+                edited = before.convert("RGBA")
+            edited.putpixel((32, 23), (10, 20, 30, 255))
+            edited.save(folder / "parent.png")
+            issues = mod.audit_asset(root, "workshop_v001")
+            self.assertTrue(any("invalid approval evidence" in s for s in issues))
 
     def test_revoke_moves_complete_bundle_out_of_generated(self):
         with tempfile.TemporaryDirectory() as td:
