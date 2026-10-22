@@ -30,3 +30,7 @@ For complete examples see `docs/ATLAS_GENERATION.md`.
 ## Executable modular moving component implementation (v7.6)
 
 When approved artwork includes separately moving or state-changing parts, do **not** stop at generic atlas metadata. Use `scripts/build_component_bundle.py` internally with the actual approved frame PNGs and **artist-verified parent anchors/pivots** to build individual directional sheets and measured JSON atlases, plus a `.bundle.json` containing the nested component hierarchy and sampled direction/time-dependent mount transforms. See `docs/COMPONENT_ANIMATION.md`. Do not hardcode component types or frame counts. Ensure all required directions and parent mounts exist, validate the generated bundle, and keep it in `assets/generated` pending final approval. The tool cannot infer artwork anchor geometry, create missing animation images, or certify Godot rendering, so never claim those capabilities without separate actual tests.
+
+
+## Image-generation versus atlas-generation boundary
+**Never prompt an image model to draw final sprite sheets, fake atlases, or printed JSON.** It may generate ONE approved master, ONE isolated component, or ONE key pose at a time using the actual approved reference. Deterministic builders must combine verified actual PNGs and calculate frame bounds/pivots/atlases from image geometry. Reject changing static pixels, directions, perspective, clipping, fake grid lines, annotations and backgrounds that violate opaque #FF00FF. Refer to the master **Mandatory reference-controlled image prompting** section.
