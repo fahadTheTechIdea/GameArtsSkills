@@ -66,11 +66,11 @@ def checker(size, tile=12):
     return canvas
 
 
-def fit(image, size):
+def fit(image, size, method=Image.Resampling.NEAREST):
     w, h = image.size
     scale = min(size[0] / w, size[1] / h)
     return image.resize((max(1, int(w*scale)), max(1, int(h*scale))),
-                        Image.Resampling.NEAREST)
+                        method)
 
 
 def matte(image):
@@ -82,7 +82,7 @@ def matte(image):
     return background.convert("RGB")
 
 
-def panel_board(panels, cols=3, panel=(330, 275)):
+def panel_board(panels, cols=3, panel=(330, 275), method=Image.Resampling.NEAREST):
     margin, label_h = 12, 34
     rows = math.ceil(len(panels) / cols)
     cell_w, cell_h = panel[0] + 2*margin, panel[1] + label_h + 2*margin
@@ -94,7 +94,7 @@ def panel_board(panels, cols=3, panel=(330, 275)):
         y = i // cols * cell_h + margin
         painter.rectangle((x-3, y-3, x+panel[0]+3, y+panel[1]+label_h+3),
                           outline=(68, 69, 71), width=2)
-        art = fit(image.convert("RGB"), panel)
+        art = fit(image.convert("RGB"), panel, method)
         board.paste(art, (x+(panel[0]-art.width)//2, y+(panel[1]-art.height)//2))
         painter.text((x+4, y+panel[1]+6), title[:47], fill=(20, 20, 20), font=font)
     return board
@@ -231,8 +231,10 @@ def prepare(cleanup_file, review_spec_file, output_dir):
     main_board = output_dir / "visual_review_board.png"
     prop_board = output_dir / "visual_review_props.png"
     packet_file = output_dir / "visual_review.packet.json"
-    panel_board(panels).save(main_board)
-    panel_board(prop_panels, cols=2, panel=(285, 220)).save(prop_board)
+    art_style = spec.get("art_style_id", manifest.get("art_style_id", "custom"))
+    resampling = Image.Resampling.NEAREST if art_style == "pixel_art" else Image.Resampling.LANCZOS
+    panel_board(panels, method=resampling).save(main_board)
+    panel_board(prop_panels, cols=2, panel=(285, 220), method=resampling).save(prop_board)
     tracked = [{"path": rel(output_dir, path), "sha256": sha(path)}
                for path in sorted(set(dependencies))]
     packet = {
@@ -242,6 +244,7 @@ def prepare(cleanup_file, review_spec_file, output_dir):
         "cleanup_manifest": rel(output_dir, cleanup_file),
         "review_spec": rel(output_dir, review_spec_file),
         "source_files": tracked,
+        "art_style_id": art_style,
         "review_board": {"path": main_board.name, "sha256": sha(main_board)},
         "props_board": {"path": prop_board.name, "sha256": sha(prop_board)},
         "component_ids": sorted(ids), "object_source_bounds": bounds,
