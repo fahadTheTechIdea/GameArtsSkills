@@ -166,6 +166,8 @@ class LifecycleGuardTests(unittest.TestCase):
             spec = json.loads(review.read_text())
             spec["asset_id"] = "workshop_v001"
             spec["revision"] = "v001"
+            spec["approved_reference"]["mockup_id"] = "scene"
+            spec["approved_reference"]["mockup_revision"] = "v001"
             review.write_text(json.dumps(spec))
             packet_path = prepare(cleanup, review, bundle / "visual_review")
             vote = bundle / "visual_review/decision.json"
