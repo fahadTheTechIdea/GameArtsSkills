@@ -126,3 +126,14 @@ In the **actual image/editing tool prompt**, explicitly enumerate all blueprint-
 Before **final production approval**, run `scripts/validate_parent_cleanup.py` for each relevant standalone static parent, or `scripts/validate_component_bundle.py --approval-gate` for every composite rig. The existing bundle builder accepts `detached_inventory` and `parent_cleanup_evidence`; candidates without proof remain `pending`. Validate every parent/frame/direction and real atlas source-frame hash; include independently packaged props in the inventory. Also visually review inventory completeness, clean plate and approved camera/style. **Technical pixel checking cannot find objects absent from the declared inventory**, so never claim automatic artistic certification.
 
 If the gate fails, reject/revise the static master; generating an extra sprite sheet is NOT remediation when the same objects remain painted inside it. Follow the canonical master section "Permanent universal parent-artwork cleanup and separation gate".
+
+
+## Mandatory revoked/rejected asset exclusion (automatically enforced)
+
+**Before EVERY reference lookup, generated-candidate continuation, image tool call or production operation**, use the existing lifecycle manifest and the executable `scripts/gamearts_asset_lifecycle.py` to select **only eligible records**. Production source mockups and source assets must be `approved`; the current in-progress revision must be `generated` and not `visual_review: rejected`. **Do not read/compose/regenerate from `revoked` candidates**, even if their files remain for history. A rejected/superseded candidate is not active merely because its former PNG path is still accessible.
+
+**When the user explicitly rejects an image, asset, or revision**, route the precise ID/revision to `game-arts-lifecycle` and internally run the helper's `revoke` operation, with the recorded rejection reason. This validates bundle completeness, physically moves the entire managed version from generated/approved to `assets/revoked` (or `mockups/revoked`), backs up the manifest, updates its status/reason/path, and checks the transition. Never leave a clearly rejected candidate in `generated` with only a `visual_review: needs_revision` note, then silently reuse it. **Use exact revision identity** and do not mutate unrelated approved mockups or the next generated revision.
+
+A different generated revision awaiting approval is **not automatically rejected** because an earlier revision was rejected. It stays in `generated`, never silently becomes `approved`. Do not continue toward final assets if a required master/clean plate has been rejected or remains unapproved.
+
+The agent performs lifecycle actions using tools and verifies files; no user CLI or manual JSON required. If filesystem access is missing or errors occur, report the rejection intent and unsuccessful transition; do not claim that a revocation was persisted.
