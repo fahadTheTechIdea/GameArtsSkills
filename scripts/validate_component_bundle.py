@@ -116,6 +116,18 @@ def validate(bundle_dir, approval_gate=False):
                 issues.append(f"duplicate parent-cleanup evidence for {key}")
             slots[key] = row
         expected_keys = set()
+        # Independently exported props may be in other asset bundles rather than
+        # in this hierarchy. They still require cleanup of their visual parent.
+        for parent_id, declared_ids in declarations.items():
+            if not isinstance(declared_ids, list) or not declared_ids or any(
+                not isinstance(v, str) or not v for v in declared_ids
+            ):
+                issues.append(f"{parent_id}: detached inventory must contain nonempty component IDs")
+                continue
+            if parent_id not in available:
+                issues.append(f"{parent_id}: detached inventory parent is not in bundle")
+                continue
+            children.setdefault(parent_id, set()).update(declared_ids)
         for parent_id, child_ids in children.items():
             parent = available.get(parent_id)
             if not parent:
