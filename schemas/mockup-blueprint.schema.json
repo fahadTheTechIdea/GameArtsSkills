@@ -275,6 +275,91 @@
                 "type": "string"
               }
             }
+          },
+          "visual_review_evidence": {
+            "type": "object",
+            "description": "Evidence for independently inspected detached sprites and reconstructed parent background; optional in legacy blueprints, required by skills for new composite production.",
+            "properties": {
+              "review_protocol": {
+                "type": "string",
+                "enum": [
+                  "review_packet_v1",
+                  "legacy"
+                ]
+              },
+              "source_inventory_audit": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "complete_for_visible_reference",
+                  "needs_revision"
+                ]
+              },
+              "expected_component_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "occlusion_audit": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "completed",
+                  "needs_revision"
+                ]
+              },
+              "uncertain_regions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "evidence_status",
+                    "reason"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "evidence_status": {
+                      "enum": [
+                        "inferred",
+                        "partially_observed",
+                        "unknown"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "source_pixel_mask": {
+                      "type": "string",
+                      "description": "Binary source-aligned region for human review"
+                    }
+                  }
+                }
+              },
+              "review_packet_ref": {
+                "type": "string",
+                "description": "Relative path to candidate visual_review.packet.json"
+              },
+              "user_decision_ref": {
+                "type": "string",
+                "description": "Relative path to explicitly user-approved reviewed decision"
+              },
+              "review_status": {
+                "enum": [
+                  "pending_user_visual_review",
+                  "user_visual_approval_recorded",
+                  "needs_revision",
+                  "rejected"
+                ]
+              }
+            }
           }
         },
         "additionalProperties": true
