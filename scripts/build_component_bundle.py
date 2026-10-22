@@ -206,10 +206,13 @@ def stage_cleanup_evidence(config, source_dir, stage):
                 raise ValueError("Invalid detached component ID")
             part["sprite"] = copy_art(part.get("sprite"), identifier + "_sprite.png", "sprite")
             part["removal_mask"] = copy_art(part.get("removal_mask"), identifier + "_mask.png", "mask")
+            if part.get("sprite_silhouette_mask"):
+                part["sprite_silhouette_mask"] = copy_art(
+                    part["sprite_silhouette_mask"], identifier + "_silhouette.png", "sprite_silhouette_mask")
         target = folder / "cleanup.json"
         target.write_text(json.dumps(spec, indent=2) + "\n", encoding="utf-8")
         # No false technical pass: an invalid clean master prevents publication.
-        validate_cleanup(target)
+        validate_cleanup(target, strict_props=True)
         staged.append({"parent_component": parent, "direction": direction,
                        "frame_index": index,
                        "manifest": target.relative_to(stage).as_posix()})
