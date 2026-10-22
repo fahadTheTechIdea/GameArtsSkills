@@ -18,3 +18,9 @@ Treat approved mockups as detailed production sources, not moodboards. For an un
 Keep approved mockup ID, revision and visual constraints on all downstream assets. Never silently alter approved composition.
 ## When to launch
 Only after mockup approval for definitive asset breakdown. The separate `game-arts-mockup-creator` handles **actual visual mockup generation**, revision, preview, and approval. A provisional analysis may support a pending mockup but is not production authorization.
+
+
+## Image-prompt grounding output
+After analyzing the approved mockup, supply a concise **reference-conditioned prompt packet** per individual asset: actual source image/region, approved revision, observable identity features, unobserved/unknown details, style/camera, asset class and exact view policy, materials and proportions, components and motion candidates, locked elements, allowed changes, output constraints, and validation checks. **Observations must not be silently promoted to inferred hidden geometry.**
+
+For a static structure, define its ONE exact approved camera and prevent redraws of walls/roof during component animation. For mobile assets, list all eight required directions where gameplay requires and describe identical model geometry across directions. Never treat UI icons as interchangeable with world views.
