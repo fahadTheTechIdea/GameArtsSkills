@@ -211,6 +211,129 @@ class LifecycleGuardTests(unittest.TestCase):
             issues = mod.audit_asset(root, "workshop_v001")
             self.assertTrue(any("invalid approval evidence" in s for s in issues))
 
+    def test_approve_generated_asset_atomically_and_reconcile_metadata(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            out = self.fixture(root)
+            candidate = out / "assets/generated/workshop_v001"
+            (candidate / "workshop_v001.blueprint.json").write_text(json.dumps({
+                "status": "generated_needs_visual_review",
+                "production_approval": "not_granted"
+            }))
+            (candidate / "workshop_v001.validation.json").write_text(json.dumps({
+                "status": "pending", "godot": "not_tested"
+            }))
+            mf = out / "manifests/assets.json"
+            body = json.loads(mf.read_text())
+            source = json.loads((out / "manifests/mockups.json").read_text())["mockups"][0]
+            body["assets"][0]["source_mockups"] = [{
+                "mockup_id": "scene", "revision": "v001",
+                "reference_sha256": source["sha256"]
+            }]
+            body["assets"][0]["files"] += ["workshop_v001.blueprint.json",
+                                          "workshop_v001.validation.json"]
+            mf.write_text(json.dumps(body))
+            outcome = mod.approve_asset(root, "workshop_v001", "approved-in-chat")
+            self.assertEqual(outcome["status"], "approved")
+            folder = out / "assets/approved/workshop_v001"
+            self.assertTrue((folder / "shell.png").exists())
+            self.assertFalse(candidate.exists())
+            bp = json.loads((folder / "workshop_v001.blueprint.json").read_text())
+            self.assertEqual(bp["status"], "approved_artwork_not_engine_verified")
+            self.assertEqual(bp["production_approval"], "granted_by_user")
+            qa = json.loads((folder / "workshop_v001.validation.json").read_text())
+            self.assertEqual(qa["godot"], "not_tested")
+            self.assertEqual(mod.audit_asset(root, "workshop_v001"), [])
+            # Hash changes after approval must immediately block approved reuse.
+            (folder / "shell.png").write_bytes(b"tampered")
+            self.assertTrue(any("approved artifact bytes changed" in message
+                                for message in mod.audit_asset(root, "workshop_v001")))
+
+    def test_promote_new_composite_only_after_exact_user_review_packet(self):
+        from test_visual_review_cleanup import fixture as review_fixture, decision
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+        from visual_review_cleanup import prepare
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            out = self.fixture(root)
+            candidate = out / "assets/generated/workshop_v001"
+            cleanup, review_spec, _ = review_fixture(candidate)
+            spec = json.loads(review_spec.read_text())
+            spec["asset_id"] = "workshop_v001"
+            spec["revision"] = "v001"
+            spec["approved_reference"]["mockup_id"] = "scene"
+            review_spec.write_text(json.dumps(spec))
+            ref = candidate / "reference.packet.json"
+            crop = json.loads(ref.read_text())
+            crop["approved_mockup"]["id"] = "scene"
+            crop["approved_mockup"]["revision"] = "v001"
+            source = json.loads((out / "manifests/mockups.json").read_text())["mockups"][0]
+            crop["approved_mockup"]["sha256"] = source["sha256"]
+            ref.write_text(json.dumps(crop))
+            packet = prepare(cleanup, review_spec, candidate / "visual_review")
+            vote = candidate / "visual_review" / "decision.json"
+            accept = decision(packet)
+            accept["user_approval_reference"] = "actual-approved-turn-in-test"
+            vote.write_text(json.dumps(accept))
+            mf = out / "manifests/assets.json"
+            body = json.loads(mf.read_text())
+            record = body["assets"][0]
+            record["source_mockups"] = [{
+                "mockup_id": "scene", "revision": "v001",
+                "reference_sha256": source["sha256"]
+            }]
+            record["revision"] = "v001"
+            record["visual_review_protocol"] = "review_packet_v1"
+            record["visual_reviews"] = [{"packet": "visual_review/visual_review.packet.json",
+                                         "decision": "visual_review/decision.json"}]
+            mf.write_text(json.dumps(body))
+            outcome = mod.approve_asset(root, "workshop_v001", "actual-approved-turn-in-test")
+            self.assertEqual(outcome["visual_review_protocol"], "review_packet_v1")
+            folder = out / "assets/approved/workshop_v001"
+            self.assertTrue((folder / "workbench" / "cleanup.json").is_file())
+            self.assertTrue((folder / "visual_review" / "visual_review.packet.json").is_file())
+            self.assertEqual(mod.audit_asset(root, "workshop_v001"), [])
+            png = folder / "workbench" / "workbench.png"
+            with Image.open(png) as original:
+                changed = original.convert("RGBA")
+            changed.putpixel((0, 0), (1, 20, 30, 255))
+            changed.save(png)
+            issues = mod.audit_asset(root, "workshop_v001")
+            self.assertTrue(any("approved artifact bytes changed" in item or
+                                "invalid approval evidence" in item for item in issues))
+
+    def test_invalid_decision_cannot_promote_or_change_manifest(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            out = self.fixture(root)
+            manifest = out / "manifests/assets.json"
+            body = json.loads(manifest.read_text())
+            body["assets"][0]["visual_review_protocol"] = "review_packet_v1"
+            body["assets"][0]["revision"] = "v001"
+            manifest.write_text(json.dumps(body))
+            before = manifest.read_bytes()
+            with self.assertRaisesRegex(ValueError, "acceptance packet missing|review packet"):
+                mod.approve_asset(root, "workshop_v001", "unverified")
+            self.assertEqual(manifest.read_bytes(), before)
+            self.assertTrue((out / "assets/generated/workshop_v001/shell.png").is_file())
+
+    def test_post_approval_audit_failure_rolls_back_bundle_and_manifest(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            out = self.fixture(root)
+            candidate = out / "assets/generated/workshop_v001"
+            original = (candidate / "shell.png").read_bytes()
+            mf = out / "manifests/assets.json"
+            before = mf.read_bytes()
+            # Missing approved source link causes post-move audit to fail.
+            with self.assertRaisesRegex(ValueError, "Post-approval asset audit failed"):
+                mod.approve_asset(root, "workshop_v001", "approved-in-test")
+            self.assertTrue((candidate / "shell.png").is_file())
+            self.assertEqual((candidate / "shell.png").read_bytes(), original)
+            self.assertEqual(mf.read_bytes(), before)
+            self.assertFalse((out / "assets/approved/workshop_v001").exists())
+
     def test_revoke_moves_complete_bundle_out_of_generated(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
