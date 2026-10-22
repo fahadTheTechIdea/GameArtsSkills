@@ -1592,3 +1592,61 @@ Network loss, an unavailable Git executable, no hook trust, installation conflic
 
 ### Developer validation
 The existing test suite checks project data preservation, managed-file hashes, conflict handling, one-time backup adoption, hook merging/idempotence and file safety; the existing CI workflow watches `scripts/sync_local_agents.py`. A committed test suite is not a passing test run, and GitHub cannot attest to a user's individual local installation.
+
+
+---
+
+## Permanent universal parent-artwork cleanup and separation gate
+
+**Applies to ALL selected art styles and ALL composite assets**: pixel art, painted, illustrated, vector, rendered-to-2D, custom, and future profiles. It applies equally to buildings, vehicles, machinery, characters, scene props, UI assemblies, modular effects and any parent artwork containing detachable elements. Do not misclassify a removable *workbench*, *screw*, *spanner*, *cabinet*, or interchangeable tool as fixed architecture merely because it appears in a reference screenshot. An object need not have its own animation to deserve a separate editable/movable sprite.
+
+### Mandatory inventory BEFORE master generation
+
+From each approved mockup, classify every visible element by **physical/gameplay ownership**:
+- **Permanently baked static parent**: inseparable walls, roof, foundation, permanent shell, structural backdrop, fixed floor/cavity.
+- **Independently movable**: objects/components that move as a unit relative to the parent.
+- **Removable/repositionable**: independently placeable or relocatable props and furniture, even if not currently animated.
+- **Interactive**: any object whose transform, state or independently rendered appearance can change through gameplay.
+- **Replaceable**: optional, upgradable, detachable, damaged/swappable or independently selectable hardware.
+- **Animated components**: mechanisms, lights, doors, wheels, cables, boom segments, rotors, flames and similar stateful subparts.
+An object can satisfy multiple categories. **Every independently movable, removable, interactive, replaceable or animated element must be omitted from the final static parent image AND exported independently**, not merely duplicated as a second sprite.
+
+When an original screenshot includes these elements, produce and approve a **clean background/foundation plate** revealing the wall, floor or mechanical mount behind them. Do not erase an object and leave a transparent hole, invented detail, or another copy of the item in the parent. Use real original/reference material and explicit review for otherwise occluded details. Nested parent/child artwork receives the same cleanup rule recursively.
+
+### Image-generation instructions (derived from selected game settings)
+
+For the **clean static parent**, the actual image-tool prompt must name the selected style, approved camera/projection, fixed or directional view policy, real attached approved source crop and **complete excluded-object inventory**:
+
+> Generate only the [asset]'s permanent base/shell. Preserve the locked [selected project style, camera, physical scale, silhouette, materials and permanent structure]. **REMOVE from the parent image** every identified independent element: [observed removable props, tools, furniture, cabinets, animated mechanisms, doors, wheels, etc.]. Preserve/reconstruct the **approved clean background** where those objects previously appeared. Do not leave original object shapes, shadows, duplicated painted parts, or empty holes. No separate components inside the parent's PNG. Create each excluded object as a separate sprite/approved component in later individual operations; do not redraw unrelated static pixels. Maintain the game's exact opaque #FF00FF export requirement.
+
+The list is **derived dynamically from the specific approved blueprint**, never hardcoded to the illustrative objects above. This is mandatory across art profiles; do not substitute a generic "pixel-art cleanup" instruction in vector or painted projects.
+
+### Required verifiable technical proof
+
+The production package must contain a parent-cleanup evidence manifest for every relevant parent, approved direction and rasterized parent frame:
+- original composite image before detaching the items (same raster geometry as candidate),
+- actual final **clean parent** image used to build that frame,
+- a distinct **reviewed/approved clean background plate** showing what must remain behind each removed object,
+- **binary removal/ownership masks** identifying actual pixel regions assigned to each detached component,
+- independent nonempty opaque-pink component sprite PNGs and an inventory of IDs/classifications, including separately packaged props,
+- immutable source references and hashes, matching real atlas source-frame hashes where applicable.
+
+The new **scripts/validate_parent_cleanup.py** implements an exact raster comparison **independent of the visual art medium**. It requires the cleaned parent to:
+1. have **no unchanged copy** of each declared item inside its removal mask (source must change),
+2. match the reviewed clean plate in those pixels,
+3. preserve the original parent pixels **outside** all declared removal masks,
+4. include nonempty detached sprite art and unique nonoverlapping ownership masks,
+5. retain consistent dimensions, full opacity and auditable source/component hashes.
+
+Raster-mask evidence may be produced by a layered vector/painted/3D-to-2D authoring workflow without changing its visual style. **Exact pixel comparison is only valid when source and cleaned exports have aligned pixels.** If the art was independently repainted, rescaled, antialiased differently or the clean plate is not independently reviewed, this checker must not report a technical pass; obtain a genuinely aligned layered export and/or separately validated evidence. Never lower the fidelity gate merely because the medium is not pixel art. Binary masks are a technical ownership map; they do not force pixelated visible edges in painterly/vector final artwork.
+
+### Production and approval enforcement
+
+- The existing **scripts/build_component_bundle.py** may create a *generated candidate* without the parent cleanup proof, but must mark the cleanup status **pending** and must never declare the bundle approved or game-ready.
+- When manifests are supplied, package the cleanup evidence into the **same asset candidate bundle** and run the technical gate before publishing any clean-proof status. In multi-direction/multi-frame assets, evidence must cover every relevant parent frame/direction (and recursively nested parents), with source-parent hash tied to the actual frame in its atlas.
+- **scripts/validate_component_bundle.py --approval-gate** checks the mandatory cleanup coverage. Missing clean-parent proof, omitted inventory IDs, mismatched atlases, leftover objects or unreviewed plates fail the gate. Static single-master assets with separately exported props must use **scripts/validate_parent_cleanup.py** even when no moving-component bundle is produced. No user-facing Python steps; the agent runs tools internally.
+- **Approval is blocked** until the blueprint's full detachable-object inventory is accounted for, every separated object's absence from the parent is verified, the cleaned plate/background is visually reviewed, and normal scale, camera, style, masking and atlas checks pass. A technical pixel-check cannot automatically discover an omitted object; visual inventory audit remains an independent requirement.
+- Keep evidence and removed components with the existing **assets/generated / approved / revoked** bundle lifecycle. Do not introduce a new top-level directory, duplicate master document or special UI ceremony. Never deliver only an extra "props sheet" while leaving the identical props baked into the structure.
+- On validation failure, **reject or revise the candidate static master**; do not patch the evidence/mask to conceal duplicated art. Only then proceed with independent animation and atlas generation.
+
+**Illustrative Oilfield Days case (not a universal art-style setting):** Clean maintenance-workshop base retains approved roof, walls, open bay, floor and permanent structural features, but excludes the workbench, spanners, screws, independent tool chests and other separable equipment. Each removed item becomes its own correctly styled asset. If a garage door moves independently, it too is not baked into the locked static wall/background. Freely moving vehicles likewise cannot have wheels/doors duplicated in both chassis and separate moving-component sprites.
