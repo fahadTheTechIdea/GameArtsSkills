@@ -37,10 +37,31 @@
             "vector",
             "rendered_2d",
             "custom"
-          ]
+          ],
+          "description": "Selected visual medium used in every prompt. Never replace with a hardcoded pixel-art default."
         },
         "reference": {
           "type": "string"
+        },
+        "palette_reference": {
+          "type": "string",
+          "description": "Optional approved palette reference file or profile"
+        },
+        "outline_policy": {
+          "type": "string",
+          "description": "Style-specific outlines and lineweight"
+        },
+        "shading_policy": {
+          "type": "string",
+          "description": "Style-specific shading and lighting"
+        },
+        "texture_policy": {
+          "type": "string",
+          "description": "Style-specific material/detail treatment"
+        },
+        "pixel_density": {
+          "type": "string",
+          "description": "Optional descriptive native art pixel-density policy"
         }
       }
     },
@@ -61,7 +82,8 @@
           ]
         },
         "object_camera": {
-          "type": "string"
+          "type": "string",
+          "description": "Selected project world-asset camera. Agents use this exact value in image-generation prompts instead of substituting a generic view."
         },
         "logical_tile_m": {
           "type": "array",
@@ -153,6 +175,30 @@
         },
         "no_zip": {
           "const": true
+        }
+      }
+    },
+    "prompting": {
+      "type": "object",
+      "description": "Optional prompt-resolution preferences; the agent combines these with selected project settings, active instructions and approved references.",
+      "properties": {
+        "reference_lock": {
+          "type": "boolean",
+          "default": true
+        },
+        "strict_camera_lock": {
+          "type": "boolean",
+          "default": true
+        },
+        "single_master_first": {
+          "type": "boolean",
+          "default": true
+        },
+        "additional_constraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     }
