@@ -52,3 +52,8 @@ Run internal build and verification scripts automatically when capable; do not m
 ## Developer test
 
 Install Pillow, then run `python -m unittest discover -s tests -v`. The tests use synthetic PNGs and check pivot alignment, frame geometry, mask opacity, anchor conversion, and rejection conditions.
+
+
+## Lessons from real production extraction
+
+Actual measured PNG and atlas rectangles prove sheet geometry, **not** that a detachable object was cleanly cut. A rectangle containing a workbench and its floor pixels can still have a mathematically correct atlas. For each new independent prop, require a separately reviewed sprite-local silhouette mask and run strict parent-cleanup checks before using the sprite as approved production artwork. Verify real pixel dimensions and hashes of the current revision, not frames from a rejected prior version. Keep the approved source mockup revision and original source hashes in provenance. Preserve inferred/retouched pixel notes (for occluded surfaces or JPEG edge fringes) and manual approval separately from engine testing.
