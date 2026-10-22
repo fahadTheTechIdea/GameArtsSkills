@@ -1650,3 +1650,15 @@ Raster-mask evidence may be produced by a layered vector/painted/3D-to-2D author
 - On validation failure, **reject or revise the candidate static master**; do not patch the evidence/mask to conceal duplicated art. Only then proceed with independent animation and atlas generation.
 
 **Illustrative Oilfield Days case (not a universal art-style setting):** Clean maintenance-workshop base retains approved roof, walls, open bay, floor and permanent structural features, but excludes the workbench, spanners, screws, independent tool chests and other separable equipment. Each removed item becomes its own correctly styled asset. If a garage door moves independently, it too is not baked into the locked static wall/background. Freely moving vehicles likewise cannot have wheels/doors duplicated in both chassis and separate moving-component sprites.
+
+
+## Executable reject / revoke lifecycle guard — mandatory
+
+The lifecycle exclusion rule is now implemented by `scripts/gamearts_asset_lifecycle.py` and tested by `tests/test_gamearts_asset_lifecycle.py`.
+
+- Every Game Arts workflow must **resolve exact ID/revision through the lifecycle manifest**, rather than selecting the most recent PNG or retaining an older rejected file as an implicit reference. For new production, only exact **approved** mockups and approved assets are eligible references. For continuing a generated candidate, the record must be non-rejected `generated`.
+- An explicit user rejection must **stop work on the rejected revision immediately**, record the reason, copy a manifest backup, move its complete file bundle from `generated` or `approved` into `revoked`, and atomically replace/verify manifest pointers. Use the helper internally and honor its errors; do not claim a transition that did not finish.
+- Files preserved in `revoked` are for audit/possible separately authorized restoration only. **Never use revoked artwork as a source, reference, animation frame, or generated continuation.** The next generated revision remains independent/pending until explicitly approved.
+- An existing record with `visual_review: rejected` or `approval: rejected` is ineligible even if a buggy producer left its physical files under `generated`. The agent must reconcile that inconsistency before proceeding.
+- Approved source mockups are hash-checked before selection; candidates with physical paths contradicting manifest lifecycle status are blocked.
+- User-facing commands are conversational (“Reject this version”, “Continue with current generated candidate”); agent executes the checker internally. Existing asset lifecycle storage and all visual style policies are unchanged. No new master document is created.
