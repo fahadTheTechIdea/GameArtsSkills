@@ -70,3 +70,22 @@ This works with all selected art media. World structures use a single approved v
 ## Framework maintenance
 
 Keep **one current master standard** (`GAME_ARTS_MASTER_STANDARD_v7.7.md`), the existing dedicated skills and workflows, and the existing generated/approved/revoked lifecycle. Update them in place instead of introducing multiple parallel standards or separate image-type pipelines.
+
+
+## Automatic local updates for BOTH Claude Code and Codex
+
+Game Arts now ships with [`scripts/sync_local_agents.py`](scripts/sync_local_agents.py), an opt-in **project-local updater**. One trusted setup installs safe `SessionStart` hooks for both local agents. Whenever either Claude Code or Codex opens/resumes the game project, the hook checks the canonical GameArtsSkills `main` branch and synchronizes both local skill directories and all framework-managed support files.
+
+**For ordinary users:** In your locally connected Claude Code or Codex session, say **“Enable automatic Game Arts updates for both Claude and Codex in this game.”** The agent should locate this framework's trusted checkout and run the updater's one-time bootstrap on the current game workspace, preserving your game data and all unrelated client settings. Approve the respective client hook trust review. If you have multiple game repositories, ask the agent to enroll each intended project once.
+
+**For advanced installers (optional):** From an existing trusted GameArtsSkills checkout:
+```text
+python scripts/sync_local_agents.py bootstrap --source <GameArtsSkills checkout> --game-root <your game root> --adopt-existing
+```
+Use `--adopt-existing` **only after authorizing the backup-and-update** of existing framework-path files. Without this flag the updater preserves colliding unowned files and reports them. The updater tracks managed hashes in `.gamearts/system/agent-sync-state.json` and stores backups inside `.gamearts/system/backups/`. It **never syncs or overwrites** `.gamearts/project.json`, `.gamearts/instructions/`, `.gamearts/outputs/`, unrelated custom skills, or unmarked user content in AGENTS.md/CLAUDE.md.
+
+An installed bootstrap merges one project-local `SessionStart` entry into `.claude/settings.json` and `.codex/hooks.json`, retaining existing settings. Codex may ask you to review/trust the hook in `/hooks`; Claude Code applies its own hook safety controls. This is a one-time trust step, not something required for each art asset.
+
+**Update timing:** Since GitHub cannot directly modify an offline PC, local installations refresh on the next trusted agent session startup/resume, not instantly at the remote commit timestamp. Internet access, Git and local filesystem permissions are required. If a check fails, the agent must report that it did **not** synchronize. This updater is for project-local installations; arbitrary unknown global installations elsewhere on the machine are not silently altered. Both Claude and Codex for each enrolled game are updated from the same verified source revision.
+
+**Security:** Auto-update is opt-in because trusted local hooks can download and run framework code. Review the repository and hooks before enabling.
