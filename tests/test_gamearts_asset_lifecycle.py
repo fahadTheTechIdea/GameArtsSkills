@@ -83,6 +83,29 @@ class LifecycleGuardTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "hash mismatch"):
                 mod.select(root, "mockups", "approved", "scene")
 
+    def test_revision_selects_exact_mockup_when_id_has_history(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            out = self.fixture(root)
+            rev2 = out / "mockups/approved/game_scene_v002.png"
+            rev2.write_bytes(b"new approved mockup")
+            manifest = out / "manifests/mockups.json"
+            data = json.loads(manifest.read_text())
+            data["mockups"].append({
+                "mockup_id": "scene", "revision": "v002", "status": "approved",
+                "file": ".gamearts/outputs/mockups/approved/game_scene_v002.png",
+                "sha256": hashlib.sha256(rev2.read_bytes()).hexdigest()
+            })
+            manifest.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ValueError, "Expected one exact"):
+                mod.select(root, "mockups", "approved", "scene")
+            selected = mod.select(root, "mockups", "approved", "scene", "v002")
+            self.assertEqual(len(selected), 1)
+            self.assertTrue(selected[0]["path"].endswith("game_scene_v002.png"))
+            mod.revoke(root, "mockups", "scene", "revision rejected", "v001")
+            self.assertTrue((out / "mockups/approved/game_scene_v002.png").is_file())
+            self.assertTrue((out / "mockups/revoked/game_scene_v001.png").is_file())
+
     def test_rejection_reason_is_required(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
