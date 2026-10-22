@@ -80,3 +80,12 @@ For a structure/scene with separate static props but no animation bundle, run `s
 ## Executable reject/ignore rule
 
 Use `scripts/gamearts_asset_lifecycle.py` internally for exact-version selection and actual rejected-to-revoked transitions. The helper rejects `revoked` records, refuses selection of a `visual_review: rejected` record, checks source references are truly approved, validates source hash and physical lifecycle folder, backs up the manifest, moves full bundles, and records explicit rejection reasons. A record marked `needs_revision` but rejected by the user must be physically transitioned to `revoked`; it is not an active generated asset. Other generated revisions stay pending until separately approved. The agent must never use a rejected asset as an active art reference or resume its animation work. A GitHub code change does not itself update a user's local project until synchronized.
+
+
+## Post-approval consistency audit (no stale pending fields)
+
+In the real Oilfield Days workshop test, v002 was correctly moved to `approved/` but its internal blueprint retained `generated_needs_visual_review`, `production_approval: not_granted`, and a contradictory clean-plate flag. These are now an **explicit lifecycle failure**.
+
+On explicit approval of the **exact revision**, capture user-approved scope and reconstruction caveats, promote the complete original bundle and update **all** its internal approval fields consistently (manifest, blueprint, clean-plate, visual QA, validated file references). Back up prior metadata. Run the existing `scripts/gamearts_asset_lifecycle.py audit --game-root <game> --id <asset_id>` internally; its selection gate blocks reusable approved art until contradictory status fields or missing approved source files are reconciled. It does not pretend to test Godot.
+
+Newly produced assets with independently detached props must have a separately reviewed **sprite-local silhouette mask** in their cleanup evidence; use `validate_parent_cleanup.py --strict-props` or `validate_component_bundle.py --approval-gate`. A previously user-approved asset with accepted caveats is **not automatically revoked** just because future verification becomes stricter. Keep independent version histories: v001 revoked, v002 approved with its real limitations.
