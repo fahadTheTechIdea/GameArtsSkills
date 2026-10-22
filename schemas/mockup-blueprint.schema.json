@@ -187,6 +187,94 @@
           "reference_packet_path": {
             "type": "string",
             "description": "Existing generated asset candidate's reference/reference.packet.json path when prepared."
+          },
+          "separation_inventory": {
+            "type": "array",
+            "description": "Explicit ownership inventory of every detachable, movable, removable, interactive, replaceable or independently animated object observed in this element. Emptiness must be reviewed for composite parents.",
+            "items": {
+              "type": "object",
+              "required": [
+                "component_id",
+                "ownership",
+                "source_evidence"
+              ],
+              "properties": {
+                "component_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownership": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "enum": [
+                      "movable",
+                      "removable",
+                      "interactive",
+                      "replaceable",
+                      "animated",
+                      "independent_prop"
+                    ]
+                  }
+                },
+                "source_evidence": {
+                  "type": "string",
+                  "description": "Observed location/visual evidence or user-approved scope"
+                },
+                "static_parent_action": {
+                  "const": "exclude",
+                  "description": "Always remove detached component pixels from its parent static artwork"
+                },
+                "sprite_output_id": {
+                  "type": "string"
+                },
+                "removal_mask_ref": {
+                  "type": "string"
+                },
+                "clean_plate_ref": {
+                  "type": "string"
+                },
+                "visual_status": {
+                  "enum": [
+                    "pending",
+                    "reviewed",
+                    "rejected"
+                  ]
+                }
+              }
+            }
+          },
+          "parent_cleanup": {
+            "type": "object",
+            "description": "Per-view/frame cleanup evidence. Approval requires verifiable parent image removal for every independently separated object, not merely an extra sprite sheet.",
+            "properties": {
+              "required": {
+                "type": "boolean",
+                "default": false
+              },
+              "status": {
+                "enum": [
+                  "pending",
+                  "technical_passed",
+                  "visual_reviewed",
+                  "rejected",
+                  "not_applicable"
+                ]
+              },
+              "clean_plate_reference": {
+                "type": "string"
+              },
+              "cleanup_manifests": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "technical_report": {
+                "type": "string"
+              }
+            }
           }
         },
         "additionalProperties": true
