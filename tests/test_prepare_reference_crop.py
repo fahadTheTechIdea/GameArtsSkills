@@ -48,6 +48,13 @@ class ReferenceCropTests(unittest.TestCase):
             "region": {"id": "workshop", "rect": [10, 6, 22, 14], "padding_px": 2},
             "identity_lock": ["brown roof", "one fixed camera"]
         }
+        manifest = root / ".gamearts" / "outputs" / "manifests" / "mockups.json"
+        manifest.parent.mkdir(parents=True)
+        manifest.write_text(json.dumps({"mockups": [{
+            "mockup_id": "fictional_scene", "revision": "v001",
+            "status": "approved", "file": str(source.relative_to(root)),
+            "sha256": digest(source)
+        }]}))
         job_file = root / "reference_job.json"
         job_file.write_text(json.dumps(job))
         return source, settings_file, job, job_file
@@ -105,6 +112,26 @@ class ReferenceCropTests(unittest.TestCase):
             job["approved_camera"] = "isometric"
             job_file.write_text(json.dumps(job))
             with self.assertRaisesRegex(ValueError, "camera conflicts"):
+                mod.prepare(root, job_file, root / "generated")
+
+    def test_rejects_unregistered_mockup(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _, _, _, job_file = self.fixture(root)
+            (root / ".gamearts" / "outputs" / "manifests" / "mockups.json").unlink()
+            with self.assertRaisesRegex(ValueError, "lifecycle manifest"):
+                mod.prepare(root, job_file, root / "generated")
+
+    def test_rejects_mismatching_approval_manifest(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _, _, _, job_file = self.fixture(root)
+            path = root / ".gamearts" / "outputs" / "manifests" / "mockups.json"
+            path.write_text(json.dumps({"mockups": [{
+                "mockup_id": "fictional_scene", "revision": "v001",
+                "status": "revoked", "file": "wrong.png"
+            }]}))
+            with self.assertRaisesRegex(ValueError, "matching explicitly approved"):
                 mod.prepare(root, job_file, root / "generated")
 
     def test_rejects_eight_view_static_without_explicit_rotation(self):
