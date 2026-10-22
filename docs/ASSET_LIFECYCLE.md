@@ -68,3 +68,10 @@ No new lifecycle or category-specific top-level image folders are created by sou
 A registered approved mockup entry includes `mockup_id` (or `id`), `revision`, `status: approved`, `file` (managed path), and `sha256` of the approved source. The agent obtains these from actual files, never invents them. The reference helper validates this record before creating crops. If a different manifest representation exists, the agent must adapt it consistently to the existing project rather than invent false approval metadata.
 
 Reference crops can preserve arbitrary original screenshot colors; they are **not delivered chroma-key game sprites**. Newly exported production PNGs still require fully opaque #FF00FF unused pixels and their own approval. A generated crop or positive technical receipt cannot upgrade an asset to approved.
+
+
+## Clean-parent approval gate (all artwork media)
+
+Before promoting a generated asset to approved, verify the complete inventory of detachable/movable/removable/interactive/replaceable/animated parts. Every such item must be **absent from the static parent sprite**, independently exported, and accompanied by suitable parent-cleanup evidence. Store reviewed clean plate, original composite, cleaned parent, per-object binary removal masks and validation results inside the *existing* candidate bundle. No new lifecycle.
+
+For a structure/scene with separate static props but no animation bundle, run `scripts/validate_parent_cleanup.py` internally and visually inspect the completed clean interior. For modular rigs, use `scripts/validate_component_bundle.py --approval-gate`, requiring evidence per parent/frame/direction and all detached inventory IDs. The plain bundle builder or non-approval geometry validation does **not** authorize promotion. Absent evidence means `generated / pending`, **never approved**. If declared objects remain painted inside the parent, reject the candidate despite having their own separate PNGs. The same rule applies to every project art style.
