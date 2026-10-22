@@ -1,5 +1,6 @@
 """End-to-end parent cleanup approval checks on actual generated component bundles."""
 import json
+import shutil
 from pathlib import Path
 import sys
 import tempfile
@@ -29,8 +30,8 @@ def prepare_cleanup_evidence(root, config):
             composite = clean.copy()
             composite.putpixel((4, 4), (220, 65, 33, 255))
             composite.save(workspace / "source.png")
-            clean.save(workspace / "master.png")
-            clean.save(workspace / "plate.png")
+            shutil.copy2(parent_source, workspace / "master.png")
+            shutil.copy2(parent_source, workspace / "plate.png")
             Image.open(child_source).save(workspace / "child.png")
             mask = Image.new("L", clean.size, 0)
             mask.putpixel((4, 4), 255)
