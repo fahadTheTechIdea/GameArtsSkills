@@ -69,3 +69,8 @@ User-approved source artwork and explicit changes outrank fallback defaults. If 
 The built-in reference helper reads the existing per-game `art_style` and `world.object_camera`; an optional `art_style.ui_camera` sets a separate UI illustration view, while optional `world.ground_camera` describes terrain instead of rotating world objects. Existing configurations remain valid without the optional camera fields. Image prompts must use the resolved selected values, current approved visual reference and active scoped custom instructions.
 
 In an existing approved mockup → production request, the agent automatically selects and crops the real reference image through the framework's `scripts/prepare_reference_crop.py` before calling an image tool. The normal user does not create crop JSON, enter pixel coordinates or run scripts. Do not reset saved project preferences to install this stage.
+
+
+## Framework version synchronization is separate from game art settings
+
+The optional trusted auto-updater stores its framework installation state in `.gamearts/system/agent-sync-state.json`, **not** in `project.json`. It may update installed Claude/Codex Game Arts skills and framework scripts on future local sessions, but must never reset or overwrite your selected art style, camera, custom instructions, approved mockups or generated assets. Enrollment is per game project and requires normal local hook trust permissions; see `README_INSTALL.md`.
