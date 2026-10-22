@@ -1,4 +1,4 @@
-# Game Arts automatic agent installation — v7.2
+# Game Arts automatic agent installation
 
 This is a **folder tree**, not a ZIP. Copy its files into the root of your game repository, preserving hidden directories.
 
@@ -56,3 +56,17 @@ For assets with moving parts, Claude/Codex calls `scripts/build_component_bundle
 ## Godot component scene integration
 
 For a Godot project, the agent should install the reusable `godot/addons/gamearts/` files under the game's `res://addons/gamearts/` folder and use `scripts/generate_godot_scene.py` internally to create a native `.tscn` referencing the actual approved component bundle. No user-run commands. In-engine scene loading must be verified separately; do not claim it from Python JSON tests. See [Godot component runtime](docs/GODOT_COMPONENT_RUNTIME.md).
+
+## Included reference-image workflow (all games, all users)
+
+**Install the framework as a complete package**, not just its Claude/Codex skill Markdown. In addition to the project-root `AGENTS.md` or `CLAUDE.md`, both skills directories, existing master standard and schemas, the agent needs the `scripts/` folder, especially **`scripts/prepare_reference_crop.py`** and the sprite/atlas builders. The reference helper uses Python 3 and **Pillow**; the agent should check dependencies and, with appropriate permissions, install them internally in its normal Python environment if missing. Do not make ordinary users run commands or manually write JSON.
+
+**Automatic path:** An approved mockup is already stored under the active **game** project’s `.gamearts/outputs/mockups/approved/` with an approved `mockups.json` entry. On “Generate this asset from the mockup,” the existing `mockup-analyzer` measures the object's actual bounding rectangle and passes it to the crop helper. The helper creates a source-faithful PNG crop and reference packet under the **same asset candidate** folder: `.gamearts/outputs/assets/generated/<asset-revision>/reference/`. The agent attaches that exact crop to a compatible image/edit tool and uses the game's chosen visual style, camera and instructions. The agent may then generate **one master candidate**, compare it with the reference and request master approval; component/sheet/atlas generation follows separately.
+
+The reference packet and crop are **supporting candidate files**, not a new top-level lifecycle, not an asset type, and not a reason to reorganize approved mockups. `prepare_reference_crop.py verify` can check recorded input/file hashes and opaque candidate pixels, **not provider-side proof of image conditioning or artistic similarity**. A source-conditioned tool invocation is required for reference-locked production. If the tool lacks actual image input, stop that stage and report the blocker instead of generating a generic structure. The agent must not claim local integration when only GitHub source files were updated.
+
+This works with all selected art media. World structures use a single approved view by default, mobile directional assets use the game's required directions, and UI icons use their own selected UI presentation viewpoint. The crop is left in original mockup colors; the new production PNG must use exact opaque #FF00FF. [Existing user workflow](docs/USER_WORKFLOW.md) describes the integrated steps.
+
+## Framework maintenance
+
+Keep **one current master standard** (`GAME_ARTS_MASTER_STANDARD_v7.7.md`), the existing dedicated skills and workflows, and the existing generated/approved/revoked lifecycle. Update them in place instead of introducing multiple parallel standards or separate image-type pipelines.
