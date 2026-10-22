@@ -147,3 +147,9 @@ The approved world profile uses an **orthogonal square grid**, with 16 × 16-met
 Update the master specification first, then keep the specialist skills, schemas, validators and install guide consistent. Test behavior in the target Godot game, and never claim a sprite or atlas is game-ready without the applicable validation.
 
 The separate [bundle validator](scripts/validate_component_bundle.py) checks that every referenced component PNG/atlas exists, direction sets and frame rectangles are valid, all source PNGs are opaque and sampled composed transforms are finite. It does **not** replace in-Godot visual/physics verification.
+
+## Asset direction policy and living documentation
+
+Static structures and fixed machinery have **one approved world view by default**, with separately animated moving parts; freely moving objects use **eight directions when directional gameplay requires it**. UI portraits are their own single-view presentation assets. Restricted placement rotations are explicit exceptions, not forced eight-view sheets. All angles must preserve the approved asset identity and art style.
+
+**Maintenance:** revise the existing canonical master standard and associated files in place; do not add another numbered master document for each change.
