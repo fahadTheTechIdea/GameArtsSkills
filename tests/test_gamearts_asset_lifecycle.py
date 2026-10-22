@@ -42,6 +42,86 @@ class LifecycleGuardTests(unittest.TestCase):
         }))
         return output
 
+    def approved_fixture(self, root):
+        output = self.fixture(root)
+        candidate = output / "assets/generated/workshop_v001"
+        new_folder = output / "assets/approved/workshop_v001"
+        new_folder.parent.mkdir(parents=True)
+        candidate.rename(new_folder)
+        bp = new_folder / "workshop_v001.blueprint.json"
+        bp.write_text(json.dumps({
+            "status": "generated_needs_visual_review",
+            "production_approval": "not_granted",
+            "approved_clean_plate": False,
+            "clean_plate_approval": "approved_by_user",
+            "user_visual_approval": {"status": "approved"}
+        }))
+        validation = new_folder / "workshop_v001.validation.json"
+        validation.write_text(json.dumps({
+            "status": "approved_artwork_not_engine_verified",
+            "isolated_props_background_masking": "improved_pending_user_review",
+            "godot": "not_tested"
+        }))
+        mf = output / "manifests/assets.json"
+        saved = json.loads(mf.read_text())
+        a = saved["assets"][0]
+        a["status"] = "approved"
+        a["approval"] = "user_granted"
+        a["visual_review"] = "approved"
+        a["bundle_path"] = ".gamearts/outputs/assets/approved/workshop_v001"
+        a["files"] += [bp.name, validation.name]
+        approved_hash = json.loads((output / "manifests/mockups.json").read_text())["mockups"][0]["sha256"]
+        a["source_mockups"] = [{"mockup_id": "scene", "revision": "v001",
+                                "reference_sha256": approved_hash}]
+        mf.write_text(json.dumps(saved))
+        return output, bp, validation
+
+    def test_detects_stale_blueprint_approval_and_visual_review(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            output, blueprint, report = self.approved_fixture(root)
+            issues = mod.audit_asset(root, "workshop_v001")
+            self.assertTrue(any("blueprint still reports unapproved status" in issue
+                                for issue in issues))
+            self.assertTrue(any("sprite review is still marked pending" in issue
+                                for issue in issues))
+            with self.assertRaisesRegex(ValueError, "metadata audit failed"):
+                mod.select(root, "assets", "approved", "workshop_v001")
+
+    def test_synchronized_approval_metadata_does_not_claim_godot_test(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            output, blueprint, report = self.approved_fixture(root)
+            bp = json.loads(blueprint.read_text())
+            bp.update({"status": "approved_artwork_not_engine_verified",
+                       "production_approval": "granted_by_user", "approved_clean_plate": True})
+            blueprint.write_text(json.dumps(bp))
+            qa = json.loads(report.read_text())
+            qa["isolated_props_background_masking"] = "user_approved"
+            report.write_text(json.dumps(qa))
+            self.assertEqual(mod.audit_asset(root, "workshop_v001"), [])
+            self.assertEqual(len(mod.select(root, "assets", "approved", "workshop_v001")), 1)
+            self.assertEqual(qa["godot"], "not_tested")
+
+    def test_detects_missing_declared_artwork(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            output, _, _ = self.approved_fixture(root)
+            (output / "assets/approved/workshop_v001/shell.png").unlink()
+            self.assertTrue(any("missing or unsafe bundle file" in s for s in
+                                mod.audit_asset(root, "workshop_v001")))
+
+    def test_detects_mismatched_reference_hash(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            output, _, _ = self.approved_fixture(root)
+            mf = output / "manifests/assets.json"
+            data = json.loads(mf.read_text())
+            data["assets"][0]["source_mockups"][0]["reference_sha256"] = "0" * 64
+            mf.write_text(json.dumps(data))
+            self.assertTrue(any("source mockup hash disagrees" in s for s in
+                                mod.audit_asset(root, "workshop_v001")))
+
     def test_revoke_moves_complete_bundle_out_of_generated(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
