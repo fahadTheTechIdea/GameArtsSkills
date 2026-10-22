@@ -109,3 +109,8 @@ When you ask **"Make this building/vehicle/scene into separate usable sprites,"*
 ## Check a production bundle before approving
 
 Users can simply say **“Validate this asset package”** or **“Check the separate sprites are actually clean.”** The agent checks the current approved mockup, the exact non-revoked candidate, independently reviewed silhouette masks, cleaned static parent, animation frames, measured atlas and source hashes; it visually reviews composition and suspected missing objects too. **“Approve this version”** must synchronize the entire bundle's status and then run the lifecycle audit; it cannot leave the blueprint or QA saying pending. Explicitly accepted unknown/hidden details stay marked inferred, and Godot remains untested until actually checked.
+
+
+## Review the actual cutouts (built into the existing workflow)
+
+Say **“Show me the clean workshop and all its separate parts”**, **“Check whether any background leaked into the sprites”**, or **“Review the hidden areas before approving.”** Game Arts automatically prepares two comparison boards: original/cleaned structure, affected background and uncertain surfaces; then each source object next to its independently exported sprite. It asks for one approval/revision decision when the artwork is ready. If you approve, it binds the decision to those exact images and files so later changes cannot silently reuse your earlier approval. No manual masks, JSON, command syntax, duplicate workflow or extra master document.
