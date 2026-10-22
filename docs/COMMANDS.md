@@ -104,3 +104,8 @@ When you ask **"Make this building/vehicle/scene into separate usable sprites,"*
 ## Reject and exclude artwork
 
 “Reject this workshop version” means **move that exact generated candidate to revoked and ignore it** during future art generation, not merely add a note about the defect. “Show current generated artwork” excludes rejected/revoked versions. “Generate from the approved mockup” must use only the approved reference, never the last failed sprite. All actions are handled internally, without asking the user to move files or edit JSON.
+
+
+## Check a production bundle before approving
+
+Users can simply say **“Validate this asset package”** or **“Check the separate sprites are actually clean.”** The agent checks the current approved mockup, the exact non-revoked candidate, independently reviewed silhouette masks, cleaned static parent, animation frames, measured atlas and source hashes; it visually reviews composition and suspected missing objects too. **“Approve this version”** must synchronize the entire bundle's status and then run the lifecycle audit; it cannot leave the blueprint or QA saying pending. Explicitly accepted unknown/hidden details stay marked inferred, and Godot remains untested until actually checked.
