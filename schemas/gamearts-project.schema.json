@@ -62,6 +62,10 @@
         "pixel_density": {
           "type": "string",
           "description": "Optional descriptive native art pixel-density policy"
+        },
+        "ui_camera": {
+          "type": "string",
+          "description": "Optional approved UI illustration/screen camera, independent of world.object_camera."
         }
       }
     },
@@ -110,6 +114,10 @@
         "construction_snap_m": {
           "type": "number",
           "exclusiveMinimum": 0
+        },
+        "ground_camera": {
+          "type": "string",
+          "description": "Optional approved terrain/square-grid camera, distinct from raised world object camera."
         }
       }
     },
