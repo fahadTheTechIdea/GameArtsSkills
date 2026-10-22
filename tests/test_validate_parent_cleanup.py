@@ -34,9 +34,15 @@ def example(folder, style="illustrated"):
         isolated = Image.new("RGBA", (8, 8), PINK)
         isolated.putpixel((3, 3), color)
         isolated.save(folder / (identifier + ".png"))
+        stencil = Image.new("L", isolated.size, 0)
+        stencil.putpixel((3, 3), 255)
+        stencil.save(folder / (identifier + ".silhouette.png"))
         components.append({"id": identifier, "kind": "removable",
                            "sprite": identifier + ".png",
-                           "removal_mask": identifier + ".mask.png"})
+                           "removal_mask": identifier + ".mask.png",
+                           "sprite_silhouette_mask": identifier + ".silhouette.png",
+                           "silhouette_review": "approved",
+                           "silhouette_reference_id": identifier + "_source_review"})
     source.save(folder / "source.png")
     base.save(folder / "master.png")
     base.save(folder / "plate.png")
@@ -55,11 +61,41 @@ class ParentCleanupTests(unittest.TestCase):
         for style in ("pixel_art", "illustrated", "hand_painted",
                       "vector", "rendered_2d", "custom"):
             with self.subTest(style=style), tempfile.TemporaryDirectory() as folder:
-                result = mod.validate(example(folder, style))
+                result = mod.validate(example(folder, style), strict_props=True)
                 self.assertEqual(result["technical_status"], "passed")
+                self.assertEqual(result["sprite_isolation"]["status"], "passed")
                 self.assertEqual(result["visual_inventory_completeness"], "not_verified")
                 self.assertEqual(result["parent_pixels_unrestored_inside_masks"], 0)
                 self.assertEqual(len(result["components"]), 2)
+
+    def test_strict_isolation_detects_floor_patch_carried_with_prop(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = example(folder)
+            sprite_path = Path(folder) / "workbench.png"
+            image = Image.open(sprite_path)
+            image.putpixel((0, 0), (218, 205, 175, 255))
+            image.save(sprite_path)
+            with self.assertRaisesRegex(ValueError, "colored pixels outside approved mask"):
+                mod.validate(path, strict_props=True)
+
+    def test_strict_isolation_detects_mask_claiming_missing_art(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = example(folder)
+            mask_path = Path(folder) / "screw.silhouette.png"
+            image = Image.open(mask_path)
+            image.putpixel((0, 0), 255)
+            image.save(mask_path)
+            with self.assertRaisesRegex(ValueError, "missing inside"):
+                mod.validate(path, strict_props=True)
+
+    def test_strict_isolation_needs_independently_reviewed_mask(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = example(folder)
+            job = json.loads(path.read_text())
+            job["detached_components"][0]["silhouette_review"] = "pending"
+            path.write_text(json.dumps(job))
+            with self.assertRaisesRegex(ValueError, "approved silhouette"):
+                mod.validate(path, strict_props=True)
 
     def test_baked_in_workbench_is_rejected_even_if_exported_separately(self):
         with tempfile.TemporaryDirectory() as folder:
