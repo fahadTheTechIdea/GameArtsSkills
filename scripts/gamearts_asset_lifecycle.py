@@ -171,6 +171,26 @@ def audit_asset(game_root, item_id):
             sprite_status = body.get("isolated_props_background_masking")
             if isinstance(sprite_status, str) and "pending_user_review" in sprite_status:
                 issues.append(f"{report.name}: sprite review is still marked pending")
+    # Derive new-production visual-review requirement from generated bundle and
+    # blueprint metadata; a producer may not bypass it by omitting the manifest flag.
+    requires_review = False
+    for bundle_file in folder.glob("*.bundle.json"):
+        try:
+            bundle_info = json.loads(bundle_file.read_text(encoding="utf-8"))
+            if bundle_info.get("visual_review_protocol") == "review_packet_v1":
+                requires_review = True
+        except (OSError, json.JSONDecodeError):
+            issues.append(f"invalid bundle metadata: {bundle_file.name}")
+    for bp_file in folder.glob("*.blueprint.json"):
+        try:
+            bp_info = json.loads(bp_file.read_text(encoding="utf-8"))
+            evidence = bp_info.get("visual_review_evidence", {})
+            if isinstance(evidence, dict) and evidence.get("review_protocol") == "review_packet_v1":
+                requires_review = True
+        except (OSError, json.JSONDecodeError):
+            pass  # Already reported by the ordinary blueprint audit above.
+    if status == "approved" and requires_review and record.get("visual_review_protocol") != "review_packet_v1":
+        issues.append("new composite asset cannot omit mandatory visual-review protocol from approved manifest")
     # For NEW production using the visual-review protocol, a claim of approval
     # is invalid without the exact reviewed packet, explicit user decision and
     # unchanged source/art/mask/board hashes. Legacy approvals are not revoked
