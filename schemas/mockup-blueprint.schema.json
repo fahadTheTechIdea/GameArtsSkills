@@ -358,6 +358,25 @@
                   "needs_revision",
                   "rejected"
                 ]
+              },
+              "approved_source_mockup_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Exact approved mockup ID shown as authoritative review source."
+              },
+              "approved_source_mockup_revision": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Exact approved mockup revision shown as authoritative review source."
+              },
+              "approved_reference_crop_path": {
+                "type": "string",
+                "description": "Actual source-grounded approved mockup crop packaged with the current candidate."
+              },
+              "approved_reference_crop_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$",
+                "description": "Hash of the approved reference crop shown on the QA board."
               }
             }
           }
