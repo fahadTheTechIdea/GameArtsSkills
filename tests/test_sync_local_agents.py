@@ -94,6 +94,20 @@ class LocalAgentSyncTests(unittest.TestCase):
             self.assertEqual(len(backup_files), 1)
             self.assertEqual(backup_files[0].read_text(), "old installed framework\n")
 
+    def test_authorized_adoption_retires_prior_master_with_backup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source, game = self.fixture(Path(tmp))
+            old = game / "GAME_ARTS_MASTER_STANDARD_v7.6.md"
+            old.write_text("# Prior standard\n")
+            sync.sync(source, game, adopt=False)
+            self.assertTrue(old.exists())
+            sync.sync(source, game, adopt=True)
+            self.assertFalse(old.exists())
+            copies = list((game / ".gamearts/system/backups").rglob(old.name))
+            self.assertEqual(len(copies), 1)
+            self.assertEqual(copies[0].read_text(), "# Prior standard\n")
+            self.assertTrue((game / sync.MASTER).is_file())
+
     def test_hook_installation_is_idempotent_and_retains_other_hooks(self):
         with tempfile.TemporaryDirectory() as tmp:
             source, game = self.fixture(Path(tmp))
