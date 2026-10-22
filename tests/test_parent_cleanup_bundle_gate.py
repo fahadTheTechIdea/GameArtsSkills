@@ -32,7 +32,14 @@ def prepare_cleanup_evidence(root, config):
             composite.save(workspace / "source.png")
             shutil.copy2(parent_source, workspace / "master.png")
             shutil.copy2(parent_source, workspace / "plate.png")
-            Image.open(child_source).save(workspace / "child.png")
+            child = Image.open(child_source).convert("RGBA")
+            child.save(workspace / "child.png")
+            silhouette = Image.new("L", child.size, 0)
+            for py in range(child.height):
+                for px in range(child.width):
+                    if child.getpixel((px, py)) != PINK:
+                        silhouette.putpixel((px, py), 255)
+            silhouette.save(workspace / "child_silhouette.png")
             mask = Image.new("L", clean.size, 0)
             mask.putpixel((4, 4), 255)
             mask.save(workspace / "remove.mask.png")
@@ -43,7 +50,10 @@ def prepare_cleanup_evidence(root, config):
                 "clean_plate_review": "approved", "art_style_id": "illustrated",
                 "detached_components": [{
                     "id": child_id, "kind": "animated", "sprite": "child.png",
-                    "removal_mask": "remove.mask.png"
+                    "removal_mask": "remove.mask.png",
+                    "sprite_silhouette_mask": "child_silhouette.png",
+                    "silhouette_review": "approved",
+                    "silhouette_reference_id": child_id + "_observed_source"
                 }]
             }
             (workspace / "cleanup.json").write_text(json.dumps(job))
