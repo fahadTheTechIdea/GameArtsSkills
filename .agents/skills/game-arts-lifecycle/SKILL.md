@@ -65,3 +65,12 @@ Recognize the complete user-friendly command catalog in `docs/COMMANDS.md`, incl
 ## Approved-source crop provenance (integrated)
 
 During approval/import, record verifiable `mockup_id`, `revision`, `status: approved`, managed `file` and source `sha256` in the game's current `mockups.json`. On production requests, verify these records and use `scripts/prepare_reference_crop.py` to prepare the actual approved source crop **inside** the corresponding `assets/generated/<asset-revision>/reference/` directory. Keep the crop, prompt, packet and any truthful image-tool receipt with that candidate and link its provenance to the original mockup; do not create a new lifecycle or falsely mark the crop as approved artwork. The generated sprite/artwork and atlas must still receive their own approval. Reference crops preserve source colors; only new game-art PNG exports require pink masking.
+
+
+## Enforce clean-parent gate BEFORE APPROVED transition
+
+Production assets with ANY independently movable, removable, interactive, replaceable or animated child/prop **cannot be approved** simply because separate component PNGs exist. Check the analyzed complete `separation_inventory` and insist each separated object is **actually missing from the static parent artwork**. Keep candidate in `assets/generated` until this is verified.
+
+For a standalone structure with separate props, internally run `scripts/validate_parent_cleanup.py` on the candidate's original composite, clean parent, independently approved clean plate, per-object masks and sprite evidence. For nested/directional sprite bundles invoke `scripts/validate_component_bundle.py --approval-gate` (plain geometric checks are insufficient), requiring proof for every parent view/frame plus declared detached inventory IDs, tied to the actual atlas source-frame hashes. Missing proof, residual original objects, unapproved clean plate, inaccurate fill, duplicated components, or inconsistent static parent geometry **blocks final approval**, even if a prior user likes the concept mockup.
+
+Also require a **visual inventory completeness audit** because pixels alone cannot reveal undeclared objects. Never generate fake masks/clean backgrounds to game the gate; instead revise artwork with real approved references. Applies identically to any art style. Preserve evidence with the existing asset bundle during generated/approved/revoked transitions, no new top-level folders.
