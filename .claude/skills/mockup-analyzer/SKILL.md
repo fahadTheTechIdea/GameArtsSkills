@@ -28,3 +28,8 @@ For a static structure, define its ONE exact approved camera and prevent redraws
 
 ## Provide measured region selection for actual conditioned generation
 For every item authorized by an approved scene mockup, identify a source-image bounding rectangle in actual **source pixel coordinates**, and maintain the exact source image, approved revision and style/camera constraints. Record a measured region ID, [x,y,width,height], reasonable context padding, observed identity lock, material/camera notes and unknown hidden features. Feed this into the executable reference crop gate; never invent pixel bounds, refer to arbitrary neighboring objects, or treat tiny UI previews as authoritative world-camera art when a world crop exists.
+
+
+## Reusable crop-stage handoff
+
+When a user requests production from an approved mockup, return the existing blueprint's exact measured **source-pixel** crop (x,y,width,height), minimal context padding, observed visual identity lock, asset class/profile, approved mockup ID/revision and source image path/hash. The orchestrator uses these as inputs to the existing `scripts/prepare_reference_crop.py`, saving its crop/packet in the current asset candidate's `reference/` subfolder. Do not manually crop an altered color-key version, invent bounding boxes, or create a new lifecycle. UI/terrain/world assets use their individually selected camera and style settings.
