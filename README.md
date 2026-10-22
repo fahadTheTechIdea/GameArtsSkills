@@ -199,3 +199,12 @@ A technical pixel comparison cannot discover a prop omitted from the inventory, 
 ## Reject means revoked — never reuse rejected images
 
 Game Arts now provides an executable [asset lifecycle guard](scripts/gamearts_asset_lifecycle.py). It resolves production references **only from approved mockups/assets**, and continuation candidates **only from non-rejected generated revisions**. Rejected versions are moved to `revoked/` with complete files, reason, manifest backup and verified path changes; they are excluded from all subsequent generation/reference selection. The current generated revision is not approved merely because an earlier one was rejected. Users say “Reject this version”; Claude/Codex perform the transition internally.
+
+
+## Lessons validated by the Oilfield Days workshop production test
+
+The approved workshop v002 proved a much stricter workflow than “generate a nice building”: **reference-lock the actual mockup**, identify all independent parts, **remove those parts from static parent pixels**, recover/approve the exposed clean plate, extract **true silhouettes rather than rectangular crops**, generate real sprite sheets and measured JSON atlases, and review the composed result. Rejected v001 must never be a dependency of v002 or later versions.
+
+For **new** production, the existing [clean-parent validator](scripts/validate_parent_cleanup.py) now offers **strict detached-prop silhouette verification** (`--strict-props`): a separate, independently reviewed per-sprite binary foreground mask must match all colored pixels, catching floor/wall background patches. This works after aligned raster export for **all selected visual styles**, not only pixel art. Rigs enforce it through the [bundle approval gate](scripts/validate_component_bundle.py). Visual review is still necessary: a mask that was merely copied from a bad sprite cannot prove the sprite truly represents the object.
+
+The existing [lifecycle script](scripts/gamearts_asset_lifecycle.py) now includes an **asset audit** that blocks reuse of “approved” artwork when its blueprint or visual QA still says pending, its source mockup hash disagrees, or files are missing. Do not upgrade honest limitations such as untested Godot behavior or uncalibrated scale to passes. Previously user-approved artwork is not silently revoked by stricter future tests. All of this is integrated in the same master, scripts, user workflow and Claude/Codex skills; no additional master standards.
