@@ -41,8 +41,9 @@ def _id(record, kind):
     return record.get("asset_id" if kind == "assets" else "mockup_id", record.get("id"))
 
 
-def _record(rows, kind, item_id):
-    found = [r for r in rows if isinstance(r, dict) and _id(r, kind) == item_id]
+def _record(rows, kind, item_id, revision=None):
+    found = [r for r in rows if isinstance(r, dict) and _id(r, kind) == item_id
+             and (revision is None or r.get("revision", r.get("mockup_revision")) == revision)]
     if len(found) != 1:
         raise ValueError(f"Expected one exact {kind} record for {item_id!r}, got {len(found)}")
     return found[0]
@@ -75,11 +76,11 @@ def _storage_path(root, out, record, kind):
     return candidate
 
 
-def select(game_root, kind, stage, item_id=None):
+def select(game_root, kind, stage, item_id=None, revision=None):
     if stage not in ("approved", "generated"):
         raise ValueError("Only approved production references or generated candidates may be selected")
     root, out, file, data, rows = _read(game_root, kind)
-    choices = [_record(rows, kind, item_id)] if item_id else [r for r in rows if isinstance(r, dict)]
+    choices = [_record(rows, kind, item_id, revision)] if item_id else [r for r in rows if isinstance(r, dict)]
     eligible = []
     for record in choices:
         status = record.get(STATE_FIELD)
@@ -102,11 +103,11 @@ def select(game_root, kind, stage, item_id=None):
     return eligible
 
 
-def revoke(game_root, kind, item_id, reason):
+def revoke(game_root, kind, item_id, reason, revision=None):
     if not isinstance(reason, str) or not reason.strip():
         raise ValueError("Explicit nonempty rejection/revocation reason required")
     root, out, file, data, rows = _read(game_root, kind)
-    record = _record(rows, kind, item_id)
+    record = _record(rows, kind, item_id, revision)
     prior_state = record.get(STATE_FIELD)
     if prior_state == "revoked":
         raise ValueError("Item is already revoked; do not reprocess rejected artwork")
@@ -126,7 +127,8 @@ def revoke(game_root, kind, item_id, reason):
     backup_root = root / ".gamearts" / "system" / "backups"
     backup_root.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
-    backup = backup_root / f"{kind}_before_{item_id}_{timestamp}.json"
+    safe_name = "".join(char if char.isalnum() or char in "_-" else "_" for char in str(item_id))
+    backup = backup_root / f"{kind}_before_{safe_name}_{timestamp}.json"
     backup.write_bytes(file.read_bytes())
     previous_record = json.loads(json.dumps(record))
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -164,8 +166,10 @@ def main():
     choose = commands.add_parser("select")
     choose.add_argument("--stage", choices=("approved", "generated"), required=True)
     choose.add_argument("--id")
+    choose.add_argument("--revision", help="Specific mockup revision when ID is shared")
     deny = commands.add_parser("revoke")
     deny.add_argument("--id", required=True)
+    deny.add_argument("--revision", help="Exact mockup revision when ID is shared")
     deny.add_argument("--reason", required=True)
     for item in (choose, deny):
         item.add_argument("--game-root", type=Path, required=True)
@@ -173,9 +177,9 @@ def main():
     args = parser.parse_args()
     try:
         if args.operation == "select":
-            result = select(args.game_root, args.kind, args.stage, args.id)
+            result = select(args.game_root, args.kind, args.stage, args.id, args.revision)
         else:
-            result = revoke(args.game_root, args.kind, args.id, args.reason)
+            result = revoke(args.game_root, args.kind, args.id, args.reason, args.revision)
         print(json.dumps(result, indent=2))
         return 0
     except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
