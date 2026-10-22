@@ -78,7 +78,9 @@ def validate_approval_record(root, mockup_id, revision, source, source_hash):
         if rid == mockup_id and rev == revision and state == "approved":
             if not loc or resolve_under(root, loc) != source:
                 fail("Approved lifecycle record points to a different source image")
-            if expected and str(expected).lower() != source_hash.lower():
+            if not expected:
+                fail("Approved lifecycle record lacks source SHA256; compute it from the actual approved image before cropping")
+            if str(expected).lower() != source_hash.lower():
                 fail("Approved lifecycle record hash disagrees with actual image")
             return manifest_path
     fail("No matching explicitly approved mockup ID and revision in lifecycle manifest")
