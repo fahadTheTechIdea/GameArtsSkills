@@ -81,3 +81,13 @@ Before advancing, compare style, silhouette, geometry, camera, materials, colors
 ## Actual prompt inheritance from project configuration
 
 Before an image-generation tool call, the orchestrator resolves the current game's saved `art_style`, `world.object_camera`, reference imagery, visual detail rules, relevant instructions, asset profile/directions, animation preferences and chroma-pink export constraints. These are included as actual prompt instructions, with attached reference crops where supported. An agent must not substitute a generic art style or hardcoded perspective. Conflict or unknowns are surfaced and only essential missing choices are asked conversationally. After generation, compare output to resolved settings and approved visual references before advancing to master approval.
+
+## Automatic reference crop after mockup approval — integrated stage
+
+**Only when production is derived from an already approved visual**: the existing analyzer records the object/region and its exact source-pixel box; the existing lifecycle verifies its approved ID/revision, managed image path and source hash in `mockups.json`; the agent runs `scripts/prepare_reference_crop.py` internally to create a pixel-preserving reference crop, provenance packet and resolved style-aware prompt under the corresponding `assets/generated/<revision>/reference/` candidate subfolder. The crop is then passed as a real input image to a reference-capable tool; printing its file path in a prompt is not equivalent to attachment.
+
+**User-created mockups** are first imported through the existing approved/generated lifecycle. **Brand-new concepts** are still generated through the existing mockup creator; do not demand a registered approved crop before producing the first *mockup*. A crop is required before reference-locked *production*, not before mockup brainstorming.
+
+A recorded tool-call receipt with crop/image hashes supports traceability and basic file checks but does **not** prove the image provider conditioned on the crop or that the appearance matches. Review against the same crop and request approval of the master separately. Once locked, produce moving parts and real sprite/atlas files through existing specialist skills. If the framework helper, Pillow or image-conditioning access is absent, address availability internally or transparently report what could not be performed.
+
+UI artwork inherits the chosen UI camera; terrain uses the approved ground camera/grid; world structures use the approved object camera. The selected game project's settings are read before every production image prompt. Do not introduce a parallel file lifecycle or hardcoded game-specific viewpoint.
