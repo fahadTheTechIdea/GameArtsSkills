@@ -109,6 +109,10 @@ class ReferenceCropTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "SHA256"):
                 mod.prepare(root, job_file, root / "generated")
             job["approved_mockup"]["sha256"] = digest(src)
+            manifest = root / ".gamearts" / "outputs" / "manifests" / "mockups.json"
+            record = json.loads(manifest.read_text())
+            record["mockups"][0]["sha256"] = digest(src)
+            manifest.write_text(json.dumps(record))
             job["approved_camera"] = "isometric"
             job_file.write_text(json.dumps(job))
             with self.assertRaisesRegex(ValueError, "camera conflicts"):
@@ -170,6 +174,66 @@ class ReferenceCropTests(unittest.TestCase):
             receipt_file.write_text(json.dumps(receipt))
             with self.assertRaisesRegex(ValueError, "does not match"):
                 mod.verify(packet_file, receipt_file)
+
+
+    def test_static_uses_one_view_not_world_camera_as_direction(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _, _, _, job_file = self.fixture(root)
+            packet_file = mod.prepare(root, job_file, root / "generated")
+            packet = json.loads(packet_file.read_text())
+            self.assertEqual(packet["resolved_directions"], ["fixed"])
+            self.assertEqual(packet["resolved_camera"], "elevated orthographic oblique")
+
+    def test_ui_uses_ui_camera_not_world_camera(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _, settings_file, job, job_file = self.fixture(root)
+            config = json.loads(settings_file.read_text())
+            config["art_style"]["ui_camera"] = "flat front-facing card illustration"
+            settings_file.write_text(json.dumps(config))
+            job["asset_class"] = "ui_presentation"
+            job_file.write_text(json.dumps(job))
+            packet_file = mod.prepare(root, job_file, root / "generated")
+            packet = json.loads(packet_file.read_text())
+            self.assertEqual(packet["resolved_camera"], "flat front-facing card illustration")
+            self.assertEqual(packet["resolved_directions"], ["ui"])
+            self.assertIn("flat front-facing card illustration",
+                          Path(packet["prompt_path"]).read_text())
+            self.assertNotIn("EXACT CAMERA FROM SAVED GAME SETTINGS: elevated orthographic oblique",
+                             Path(packet["prompt_path"]).read_text())
+
+    def test_terrain_uses_ground_grid_not_world_object_camera(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _, _, job, job_file = self.fixture(root)
+            job["asset_class"] = "terrain"
+            job_file.write_text(json.dumps(job))
+            packet_file = mod.prepare(root, job_file, root / "generated")
+            packet = json.loads(packet_file.read_text())
+            self.assertEqual(packet["resolved_camera"], "orthogonal_ground_grid")
+            self.assertEqual(packet["resolved_directions"], ["tile"])
+
+    def test_mobile_keeps_game_configured_direction_set(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _, _, job, job_file = self.fixture(root)
+            job["asset_class"] = "mobile_directional"
+            job_file.write_text(json.dumps(job))
+            packet_file = mod.prepare(root, job_file, root / "generated")
+            packet = json.loads(packet_file.read_text())
+            self.assertEqual(packet["resolved_directions"],
+                             ["S", "SW", "W", "NW", "N", "NE", "E", "SE"])
+
+    def test_manifest_tamper_invalidates_prepared_packet(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _, _, _, job_file = self.fixture(root)
+            packet_file = mod.prepare(root, job_file, root / "generated")
+            manifest = root / ".gamearts" / "outputs" / "manifests" / "mockups.json"
+            manifest.write_text('{"mockups": []}')
+            with self.assertRaisesRegex(ValueError, "SHA256 changed"):
+                mod.verify(packet_file, root / "missing_receipt.json")
 
     def test_valid_receipt_still_requires_visual_review(self):
         with tempfile.TemporaryDirectory() as td:
