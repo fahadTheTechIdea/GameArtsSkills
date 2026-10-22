@@ -98,3 +98,10 @@ Install the existing `scripts/validate_parent_cleanup.py` with the rest of Game 
 The helper compares original composite PNG, final static-parent PNG, independently reviewed clean plate, component ownership masks, and exported component sprites. For nested/multi-view component bundles, use the current builder with packaged cleanup evidence and the existing validator's `--approval-gate` before promoting to approved. For a stand-alone structure with detached props but no animation bundle, run `validate_parent_cleanup.py` directly. These scripts are run internally by Claude/Codex, not by the user.
 
 All styles (pixel, painted, vector, illustrated, rendered-to-2D, custom) share this ownership rule. Exact raster comparison requires **pixel-aligned exported layers**, but does not dictate the style's visible edge quality. If aligned source art, masks, or reviewed clean plates are unavailable, the gate stays pending and approval is blocked. Do not fabricate compliance evidence.
+
+
+## Updated acceptance gates for new production packages
+
+The complete GameArtsSkills install now includes the existing `validate_parent_cleanup.py`, `validate_component_bundle.py`, and `gamearts_asset_lifecycle.py` scripts and both agent skill trees. New prop/animation output must have a source-grounded reviewed silhouette mask for each separate sprite; run the parent checker with `--strict-props` or the component bundle checker with `--approval-gate`. This prevents apparently valid sheet/atlas exports from carrying source floor/wall rectangles inside individual sprites.
+
+After an explicit user artwork approval, run the existing lifecycle script's `audit` operation to confirm that approved manifest, bundled blueprint, QA review, file existence and original approved mockup source hashes agree. The audit checks record integrity only; it cannot certify visual fidelity or Godot playback. It must not overwrite or silently reject previously approved artwork merely because a stronger checker was later installed. Your optional trusted auto-updater will synchronize these modified scripts and both Claude/Codex skill trees at the next local session start.
