@@ -56,3 +56,8 @@ Before approving a component system, check each parent/direction/frame with `val
 
 ## Frame and parent-source integrity after the workshop test
 Produce animation frames from locked master/component art; validate every frame is distinguishable where motion is expected and attachments remain fixed or keyframed in the declared coordinate space. An independently animated door cannot remain painted in the parent shell; similarly independent tools cannot be duplicated in the floor. The source master, exclusion masks and all approved frame/atlas files must come from the **current** revision, with no implicit imports from a revoked predecessor. The animation preview is for visual QA, not a substitute for real sheet/atlas tests or engine testing. A clean background inferred behind a moving part must be marked and reviewed before final art approval.
+
+
+## Visually review composite moving components before locking them
+
+Even with valid frame dimensions and static-pixel masks, independently moving doors/arms/wheels can be incomplete or incorrectly segmented. For each relevant parent/action/direction, include the separated source object, actual independent pose, clean background, attachment alignment and any reconstructed surfaces in the visual review evidence. Use the existing `scripts/visual_review_cleanup.py` on cleanup manifests (group panels when appropriate), then present the review to the user before approving the assembled component package. Do not equate a successful component transform matrix with correct foreground segmentation or occlusion.
