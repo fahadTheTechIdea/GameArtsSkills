@@ -117,7 +117,7 @@ def run():
     data={
       "schema_version":"1.0",
       "project_id":project_id,
-      "master_standard":"GAME_ARTS_MASTER_STANDARD_v7.2.md",
+      "master_standard":"GAME_ARTS_MASTER_STANDARD_v7.7.md",
       "configured_at_utc":datetime.now(timezone.utc).isoformat(),
       "art_style":{"id":style,"reference":style_reference},
       "world":{"grid":grid,"object_camera":camera,"logical_tile_m":[tw,th],
