@@ -138,8 +138,8 @@ def sync(source, game, *, adopt=False, rev=None):
         dest = game / rel
         raw = (source / rel).read_bytes()
         hash_new = sha(raw)
-        if dest.is_symlink():
-            changes["conflicts"].append(key + " (symlink)")
+        if dest.is_symlink() or (dest.exists() and not dest.is_file()):
+            changes["conflicts"].append(key + " (symlink or non-file path)")
             continue
         if dest.exists():
             hash_current = sha(dest.read_bytes())
@@ -159,6 +159,17 @@ def sync(source, game, *, adopt=False, rev=None):
             changes["new"].append(key)
         atom(dest, raw)
         tracked[key] = hash_new
+    # One-time adoption also retires redundant prior framework master copies,
+    # always backing them up first. Routine updates never delete user files.
+    if adopt:
+        for obsolete in game.glob("GAME_ARTS_MASTER_STANDARD_v7.*.md"):
+            if obsolete.name == MASTER or not obsolete.is_file() or obsolete.is_symlink():
+                continue
+            preserved = backup / obsolete.name
+            preserved.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(obsolete, preserved)
+            obsolete.unlink()
+            changes["updated"].append(obsolete.name + " (retired with backup)")
     current_rev = rev or revision(source)
     for name in ("AGENTS.md", "CLAUDE.md"):
         try:
