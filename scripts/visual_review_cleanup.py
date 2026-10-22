@@ -362,6 +362,7 @@ def verify(packet_file, decision_file):
         "accepted_uncertainties": packet["uncertain_region_ids"],
         "approved_mockup_id": packet["approved_reference"]["mockup_id"],
         "approved_mockup_revision": packet["approved_reference"]["revision"],
+        "approved_mockup_source_sha256": packet["approved_reference"]["source_sha256"],
         "approval_source_verification": "agent_recorded_not_host_attested",
         "semantic_recognition": "not_automated",
         "engine_validation": "not_tested"
