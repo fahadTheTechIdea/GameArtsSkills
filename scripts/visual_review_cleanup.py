@@ -24,6 +24,10 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def pixels(image):
+    return image.get_flattened_data() if hasattr(image, "get_flattened_data") else image.getdata()
+
+
 def read(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
@@ -77,7 +81,7 @@ def matte(image):
     image = image.convert("RGBA")
     background = checker(image.size).convert("RGBA")
     visible = Image.new("L", image.size)
-    visible.putdata([0 if rgba == PINK else 255 for rgba in image.getdata()])
+    visible.putdata([0 if rgba == PINK else 255 for rgba in pixels(image)])
     background.paste(image, (0, 0), visible)
     return background.convert("RGB")
 
@@ -194,7 +198,7 @@ def prepare(cleanup_file, review_spec_file, output_dir):
 
         # Exact comparison to chroma pink, independent of color-space/luma rounding.
         ink = Image.new("L", sprite.size)
-        ink.putdata([0 if rgba == PINK else 255 for rgba in sprite.getdata()])
+        ink.putdata([0 if rgba == PINK else 255 for rgba in pixels(sprite)])
         if ImageChops.difference(ink, stencil).getbbox():
             raise ValueError(f"{ident}: independent silhouette mask differs from sprite pixels")
         prop_panels.extend([(ident + " / original context",
@@ -235,7 +239,7 @@ def prepare(cleanup_file, review_spec_file, output_dir):
 
     delta = ImageChops.difference(original.convert("RGB"), parent.convert("RGB"))
     delta_mask = Image.new("L", size)
-    delta_mask.putdata([255 if rgb != (0, 0, 0) else 0 for rgb in delta.getdata()])
+    delta_mask.putdata([255 if rgb != (0, 0, 0) else 0 for rgb in pixels(delta)])
     panels = [
         ("0 / Approved original mockup crop", approved_reference_art),
         ("A / Original reference composite", original),
