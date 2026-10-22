@@ -94,3 +94,8 @@ This is part of the existing lifecycle and skills; users never edit crop jobs, J
 ## Keep installed Claude/Codex skills current
 
 Say **“Enable automatic Game Arts updates for both Claude and Codex in this game.”** The locally connected agent enrolls that workspace, checks both current skill trees and merges trusted session-start hooks. Once enrolled, each agent session checks for framework updates and synchronizes both agents; no recurring manual copying is needed. Changes made to GitHub are not pushed to PCs while offline. For an immediate refresh inside a currently open local session, say **“Update my installed Game Arts skills now.”** The agent must run the installed updater and verify results, never claim local success from a GitHub commit alone.
+
+
+## Automatic static-parent cleanup before approval
+
+When you ask **"Make this building/vehicle/scene into separate usable sprites,"** Game Arts now removes all independently moving, removable, interactive, replaceable or animated elements **from the base sprite** while exporting the pieces separately. For example, a workshop is created without the workbench, screws or spanners baked into its interior. This rule applies to every art style, not only pixel art. The agent automatically verifies actual removal before approval, and flags missing evidence or incomplete visual inventory rather than claiming completion. No extra command or manual setup is necessary.
