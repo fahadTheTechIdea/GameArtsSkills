@@ -81,3 +81,8 @@ For every asset, record `asset_class`, `view_policy`, `directions`, `approved_vi
 
 ## Correct image prompting (permanent)
 For each image creation/edit call, **actually apply** the reference-conditioned prompt packet and templates in the canonical master section `Mandatory reference-controlled image prompting`. Always pass the real approved reference crop if the tool supports it; do not invent hidden details or prompt a standalone generic substitute. Generate one master or component/key pose per controlled step, compare against approved style/identity/view, and reject errors. Never ask image generation to draw a complete fake sprite sheet or atlas JSON. Use deterministic builders for real sheets and atlases.
+
+
+## Built-in approved-image conditioning for all installed projects
+
+On requests to generate production art from an already approved mockup, automatically use the existing `mockup-analyzer`, `art-profile` and `game-arts-lifecycle` skills plus the installed `scripts/prepare_reference_crop.py` helper. Verify the actual registered approved source and hash, measure the appropriate region, create a real PNG crop under `<game>/.gamearts/outputs/assets/generated/<asset-revision>/reference/`, load selected style/camera/custom instructions, and **attach that crop as an actual image input** when the image tool supports it. Preserve the user's existing generated/approved/revoked folder system; never introduce a parallel image-type workflow. If image conditioning or helper execution is unavailable, explain the limitation rather than substituting generic art. Receipts only provide agent-reported provenance; the candidate still requires visual review before master approval. No user-run commands.
