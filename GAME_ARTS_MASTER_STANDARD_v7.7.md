@@ -1503,3 +1503,23 @@ For animation, compare a shared unchanged-pixel mask against the approved static
 ### Mandatory response to failed prompt validation
 
 Do not deliver an invalid image as completed game art. Report the specific failure, classify candidate as rejected/needs-revision, preserve the prior approved master, and revise the **prompt packet or source constraints** before using image generation again. Repeating the same broad prompt is prohibited. Never silently promote a review image to an approved asset.
+
+
+## Mandatory saved-settings resolution for EVERY image prompt
+
+**The selected project's actual settings are authoritative inputs, not examples.** Before composing **each image-generation or image-edit call**, load the target game's `.gamearts/project.json`, applicable active `.gamearts/instructions/*.md`, approved mockup/asset manifests, art-style reference, and asset-specific profile/locked master if one exists. Read and resolve values; do not merely mention the settings files in a prompt.
+
+Resolve the effective values **in this order** (lower-priority sources cannot silently override higher-priority constraints):
+1. Framework's nonnegotiable output/safety invariants (exact opaque #FF00FF, honesty, approval/measurement).
+2. Explicit user request for **this output** and already approved image/master identity (if a change conflicts with approved identity, request revised approval instead of silently replacing).
+3. Applicable active game-specific custom instructions and asset/scene-specific approved profiles.
+4. The **selected** project settings in `.gamearts/project.json`, including `art_style.id`, optional `art_style.reference`, `world.object_camera`, grid/scale `world.*`, `directions`, `animation.preferred_method`, and `export.*`.
+5. Framework defaults **only for genuinely absent settings**. Never present a fallback as an explicitly selected style.
+
+**Prompt packet must carry resolved actual values:** `game_id`, `settings_source`, `art_style_id`, actual style reference/crop, `camera`, visual medium, scale, art-specific detail and outlining, chosen directional policy, animation technique, background/export rule, locked identity, permitted modification, and provenance. Apply medium-appropriate rendering: crisp deliberate clusters for pixel art; controlled natural brushwork for painted art; smooth edge policy for vector/illustrated art; rendered-source constraints for 3D-to-2D. **Never hardcode pixel art, Oilfield Days colors, top-down oblique, 8 directions, or isometric exclusions across all projects.** The special Oilfield Days camera/style applies only when its actual selected game profile or approved image calls for it.
+
+**Mismatch handling:** If `project.json` requests one style/viewpoint while an approved mockup requires another, flag the conflict, preserve both sources and use the explicitly approved asset reference for the existing asset until the user approves a change. If no approved style exists and style selection is essential, use the short conversational project-settings wizard; otherwise form a clearly identified provisional concept from the profile defaults. A prompt must not silently invent nonexistent project settings.
+
+**Pre-call check:** compare resolved packet to the specific image tool prompt. Assert the *same* selected style, approved camera, reference attachments, view policy, geometry/scale rules, and correct isolated output target appear as actual instructions. Do not submit an unrelated generic image prompt. After generation, compare output to the resolved packet and mark mismatches rejected or unverified.
+
+**Important:** Project-wide settings describe a default. Component-specific approved constraints and actual visible source artwork can narrow them, but the model may not secretly switch artistic style or camera to improve aesthetics. The user should not need to restate saved selections or run configuration commands.
