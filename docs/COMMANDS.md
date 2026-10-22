@@ -82,3 +82,10 @@ For assets with moving parts, Claude/Codex calls `scripts/build_component_bundle
 ## Godot runtime component support (v7.7)
 
 For approved nested moving-part bundles, use the reusable `godot/addons/gamearts/game_arts_component.gd`, `.tscn` and `chroma_key.gdshader` in the target game's `res://addons/gamearts/` folder where integration is requested. Internally invoke `scripts/generate_godot_scene.py` to produce a native `.tscn` referencing the built bundle, and verify all file paths when the candidate is later approved/moved. The runtime supports per-direction component atlas regions, animated parent mounts, normalized playback and nested Node2D inheritance; actual Godot execution, physics, navigation, light/occlusion, and visual regression remain unverified until performed. See `docs/GODOT_COMPONENT_RUNTIME.md`. Keep the user-facing workflow conversational.
+
+
+## From an approved image to a real asset — nothing special to learn
+
+For **any** game and any selected style, you can say: **“Generate the workshop/vehicle/prop from this approved mockup.”** The framework automatically finds the approved source and its actual image pixels, measures the object's region, creates an internal reference crop, resolves saved style/camera settings, and passes that real crop to the connected image tool when available. A generated master is reviewed against the source before components, sheets and measured atlases are attempted.
+
+This is part of the existing lifecycle and skills; users never edit crop jobs, JSON, pixels or prompts manually. If the image provider cannot accept a reference image, the agent reports that production is blocked rather than returning unrelated art.
