@@ -24,3 +24,7 @@ Only after mockup approval for definitive asset breakdown. The separate `game-ar
 After analyzing the approved mockup, supply a concise **reference-conditioned prompt packet** per individual asset: actual source image/region, approved revision, observable identity features, unobserved/unknown details, style/camera, asset class and exact view policy, materials and proportions, components and motion candidates, locked elements, allowed changes, output constraints, and validation checks. **Observations must not be silently promoted to inferred hidden geometry.**
 
 For a static structure, define its ONE exact approved camera and prevent redraws of walls/roof during component animation. For mobile assets, list all eight required directions where gameplay requires and describe identical model geometry across directions. Never treat UI icons as interchangeable with world views.
+
+
+## Provide measured region selection for actual conditioned generation
+For every item authorized by an approved scene mockup, identify a source-image bounding rectangle in actual **source pixel coordinates**, and maintain the exact source image, approved revision and style/camera constraints. Record a measured region ID, [x,y,width,height], reasonable context padding, observed identity lock, material/camera notes and unknown hidden features. Feed this into the executable reference crop gate; never invent pixel bounds, refer to arbitrary neighboring objects, or treat tiny UI previews as authoritative world-camera art when a world crop exists.
