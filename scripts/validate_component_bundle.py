@@ -162,7 +162,7 @@ def validate(bundle_dir, approval_gate=False):
                         issues.append(f"missing cleanup manifest for {key}")
                         continue
                     try:
-                        report = checked_report(manifest_path)
+                        report = checked_report(manifest_path, strict_props=True)
                         if report["technical_status"] != "passed":
                             issues.extend(f"{key}: {message}" for message in report["failures"])
                         cleanup = json.loads(manifest_path.read_text(encoding="utf-8"))
