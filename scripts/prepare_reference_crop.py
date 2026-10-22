@@ -116,9 +116,22 @@ def prepare(game_root, job_file, out):
     world = settings.get("world", {})
     if not isinstance(style, dict) or not style.get("id"):
         fail("Project art_style.id is missing")
-    if not isinstance(world, dict) or not world.get("object_camera"):
-        fail("Project world.object_camera is missing; confirm the selected game camera")
-    if job.get("approved_camera") and job["approved_camera"] != world["object_camera"]:
+    if not isinstance(world, dict):
+        fail("Project world settings must be an object")
+    # UI artwork is screen-space; it must not inherit the world object's camera.
+    # Terrain follows the project ground grid, not the elevated object camera.
+    if cls == "ui_presentation":
+        configured_camera = style.get("ui_camera")
+        camera = configured_camera or job.get("approved_camera") or "approved_ui_reference"
+    elif cls == "terrain":
+        configured_camera = world.get("ground_camera")
+        camera = configured_camera or job.get("approved_camera") or "orthogonal_ground_grid"
+    else:
+        configured_camera = world.get("object_camera")
+        camera = configured_camera or job.get("approved_camera")
+        if not camera:
+            fail("Selected world camera missing; confirm project camera or approved asset view")
+    if job.get("approved_camera") and configured_camera and job["approved_camera"] != configured_camera:
         fail("Approved camera conflicts with project settings; resolve before generation")
     region = job.get("region", {})
     if not isinstance(region, dict):
@@ -135,9 +148,15 @@ def prepare(game_root, job_file, out):
         fail("padding_px must be an integer in 0..256")
     directions = job.get("directions")
     if directions is None:
-        directions = ([world["object_camera"]] if cls in
-                      {"static_structure", "fixed_machinery", "ui_presentation", "terrain", "prop", "effect"}
-                      else settings.get("directions", []))
+        if cls == "mobile_directional":
+            directions = settings.get("directions", [])
+        elif cls == "ui_presentation":
+            directions = ["ui"]
+        elif cls == "terrain":
+            directions = ["tile"]
+        else:
+            directions = ["fixed"]
+
     if not isinstance(directions, list) or not directions or not all(
         isinstance(v, str) and v for v in directions
     ) or len(set(directions)) != len(directions):
@@ -180,9 +199,9 @@ def prepare(game_root, job_file, out):
         f"MANDATORY IMAGE INPUT: Attach the actual image file: {crop_path.resolve()}",
         f"APPROVED SOURCE: mockup {mockup_id}, revision {revision}; region {region_id}; sha256 {source_hash}.",
         f"STYLE FROM SAVED GAME SETTINGS: {style_desc}.",
-        f"EXACT CAMERA FROM SAVED GAME SETTINGS: {world['object_camera']}.",
+        f"RESOLVED CAMERA FROM SELECTED GAME SETTINGS / APPROVED REFERENCE: {camera}.",
         f"ALLOWED VIEWS/DIRECTIONS: {', '.join(directions)}.",
-        f"GAME SCALE: {world.get('pixels_per_meter', 'unspecified')} world pixels/meter (subject to approved asset profile).",
+        f"GAME SCALE: {world.get('pixels_per_meter', 'unspecified')} world pixels/meter when applicable; UI is in screen pixels.",
         "IDENTITY LOCK — observed visible features: " + ("; ".join(detail) or "preserve all visible details from the image"),
         "CUSTOM INSTRUCTIONS: " + ("; ".join(rules) or "none applicable"),
         "Use the ATTACHED crop as the authority, not a generic style description.",
@@ -208,7 +227,7 @@ def prepare(game_root, job_file, out):
         "settings_file": str(settings_file.resolve()),
         "settings_sha256": sha(settings_file),
         "resolved_style": style,
-        "resolved_camera": world["object_camera"],
+        "resolved_camera": camera,
         "resolved_directions": directions,
         "identity_lock": detail,
         "applicable_custom_instructions": rules,
@@ -281,14 +300,16 @@ def main():
     p = sub.add_parser("prepare")
     p.add_argument("--game-root", type=Path, required=True)
     p.add_argument("--job", type=Path, required=True)
-    p.add_argument("--output-dir", type=Path, required=True)
+    p.add_argument("--output-dir", type=Path, help="Candidate reference directory; defaults to .gamearts/outputs/assets/generated/<asset_id>/reference")
     v = sub.add_parser("verify")
     v.add_argument("--packet", type=Path, required=True)
     v.add_argument("--receipt", type=Path, required=True)
     args = parser.parse_args()
     try:
         if args.command == "prepare":
-            print("PREPARED", prepare(args.game_root, args.job, args.output_dir))
+            job = read_json(args.job)
+            default = args.game_root / ".gamearts" / "outputs" / "assets" / "generated" / str(job.get("asset_id", "candidate")) / "reference"
+            print("PREPARED", prepare(args.game_root, args.job, args.output_dir or default))
             print("Image tool must receive the actual reference crop as image input.")
         else:
             print(json.dumps(verify(args.packet, args.receipt), indent=2))
