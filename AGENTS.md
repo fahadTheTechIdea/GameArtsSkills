@@ -77,3 +77,7 @@ For every asset, record `asset_class`, `view_policy`, `directions`, `approved_vi
 
 
 **Master documentation maintenance:** Keep only the canonical `GAME_ARTS_MASTER_STANDARD_v7.7.md`; never create additional numbered master copies. On future specification changes, update the existing canonical file in place and synchronize relevant instructions and guides. Avoid modifying independent guides merely to duplicate entire master content.
+
+
+## Correct image prompting (permanent)
+For each image creation/edit call, **actually apply** the reference-conditioned prompt packet and templates in the canonical master section `Mandatory reference-controlled image prompting`. Always pass the real approved reference crop if the tool supports it; do not invent hidden details or prompt a standalone generic substitute. Generate one master or component/key pose per controlled step, compare against approved style/identity/view, and reject errors. Never ask image generation to draw a complete fake sprite sheet or atlas JSON. Use deterministic builders for real sheets and atlases.
