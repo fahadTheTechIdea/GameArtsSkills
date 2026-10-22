@@ -89,3 +89,26 @@ In the real Oilfield Days workshop test, v002 was correctly moved to `approved/`
 On explicit approval of the **exact revision**, capture user-approved scope and reconstruction caveats, promote the complete original bundle and update **all** its internal approval fields consistently (manifest, blueprint, clean-plate, visual QA, validated file references). Back up prior metadata. Run the existing `scripts/gamearts_asset_lifecycle.py audit --game-root <game> --id <asset_id>` internally; its selection gate blocks reusable approved art until contradictory status fields or missing approved source files are reconciled. It does not pretend to test Godot.
 
 Newly produced assets with independently detached props must have a separately reviewed **sprite-local silhouette mask** in their cleanup evidence; use `validate_parent_cleanup.py --strict-props` or `validate_component_bundle.py --approval-gate`. A previously user-approved asset with accepted caveats is **not automatically revoked** just because future verification becomes stricter. Keep independent version histories: v001 revoked, v002 approved with its real limitations.
+
+
+## Hash-bound visual review before new composite production approval
+
+After clean-parent and strict silhouette pixel validation, an agent independently audits the original mockup for all separable objects and unknown hidden areas. It runs `scripts/visual_review_cleanup.py prepare` to produce two inspection boards and a hash-bound packet **inside the existing generated asset revision bundle**. The human user reviews the displayed silhouettes and clean/background reconstruction and explicitly approves or rejects the exact revision. Record their actual decision only after user interaction; independently list all approved component IDs and acknowledged inferred regions.
+
+For **new** assets using the protocol, store these asset-manifest fields:
+
+```json
+{
+  "visual_review_protocol": "review_packet_v1",
+  "visual_reviews": [
+    {
+      "packet": "visual_review/visual_review.packet.json",
+      "decision": "visual_review/decision.json"
+    }
+  ]
+}
+```
+
+Those are **paths relative to the current asset bundle**, so source/mask/board hashes remain valid when the complete bundle moves to approved. The lifecycle `audit` verifies every declared packet/decision, actual source files, review-board bytes and exact accepted asset ID/revision. A modified sprite or plate after user approval requires renewed visual acceptance. If the packet is missing/invalid, keep new production in generated and do not call it approved.
+
+Historical artwork already approved under the prior process is not silently revoked solely because these new files don't exist; its engine/scale/semantic limitations remain honest. The review receipt is agent-recorded, **not proof that the host authenticated the user's message**.
