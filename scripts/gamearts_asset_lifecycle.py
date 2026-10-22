@@ -143,6 +143,18 @@ def audit_asset(game_root, item_id):
                     issues.append("approved source mockup image bytes have changed")
             except (OSError, ValueError) as exc:
                 issues.append(f"approved source unavailable: {exc}")
+    checksums = record.get("artifact_hashes")
+    if checksums is not None:
+        if not isinstance(checksums, dict) or not checksums:
+            issues.append("approved asset has invalid artifact hashes")
+        else:
+            for rel, expected in checksums.items():
+                if not isinstance(rel, str) or not isinstance(expected, str):
+                    issues.append("invalid artifact hash record")
+                    continue
+                file = (folder / rel).resolve()
+                if not _within(file, folder) or not file.is_file() or hashlib.sha256(file.read_bytes()).hexdigest() != expected:
+                    issues.append(f"approved artifact bytes changed since acceptance: {rel}")
     for bp in folder.glob("*.blueprint.json"):
         try:
             body = json.loads(bp.read_text(encoding="utf-8"))
@@ -284,6 +296,165 @@ def select(game_root, kind, stage, item_id=None, revision=None):
     return eligible
 
 
+def approve_asset(game_root, item_id, user_approval_reference, review_records=None):
+    """Promote ONE exact generated asset after integrity checks and genuine user review.
+
+    The user's actual message/consent cannot be host-attested by a JSON file.
+    Agents MUST call this only after observing the user's explicit acceptance.
+    """
+    if not isinstance(user_approval_reference, str) or not user_approval_reference.strip():
+        raise ValueError("Explicit user approval message reference is required")
+    root, out, manifest_path, manifest, records = _read(game_root, "assets")
+    record = _record(records, "assets", item_id)
+    if record.get("status") != "generated":
+        raise ValueError("Only a generated non-rejected asset can be approved")
+    if record.get("visual_review") == "rejected" or record.get("approval") == "rejected":
+        raise ValueError("Rejected artwork cannot be approved without a new candidate")
+    src = _storage_path(root, out, record, "assets")
+    if not src.is_dir():
+        raise ValueError("Expected complete generated asset bundle folder")
+    destination = out / "assets" / "approved" / src.name
+    if destination.exists():
+        raise FileExistsError("Target approved asset revision already exists")
+    required = record.get("files", [])
+    if not isinstance(required, list) or not required:
+        raise ValueError("Asset must declare required production files")
+    for name in required:
+        if not isinstance(name, str) or not name.strip() or not _within(src / name, src) or not (src / name).is_file():
+            raise ValueError("Required generated bundle file is missing or unsafe: " + str(name))
+
+    # The builder or blueprint can mandate review independently of the manifest.
+    needs_packet = record.get("visual_review_protocol") == "review_packet_v1"
+    for item in src.glob("*.bundle.json"):
+        bundle = json.loads(item.read_text(encoding="utf-8"))
+        if bundle.get("visual_review_protocol") == "review_packet_v1":
+            needs_packet = True
+    for item in src.glob("*.blueprint.json"):
+        blueprint = json.loads(item.read_text(encoding="utf-8"))
+        proof = blueprint.get("visual_review_evidence", {})
+        if isinstance(proof, dict) and proof.get("review_protocol") == "review_packet_v1":
+            needs_packet = True
+    selections = review_records if review_records is not None else record.get("visual_reviews", [])
+    if not isinstance(selections, list):
+        raise ValueError("Review records must be an array")
+    if needs_packet and not selections:
+        raise ValueError("Mandatory visual acceptance packet missing for new composite asset")
+    if selections:
+        from visual_review_cleanup import verify as verify_visual
+        for slot in selections:
+            if not isinstance(slot, dict):
+                raise ValueError("Invalid visual-review slot")
+            links = {}
+            for key in ("packet", "decision"):
+                rel = slot.get(key)
+                if not isinstance(rel, str) or not rel or not _within(src / rel, src):
+                    raise ValueError("Visual-review paths must stay inside the current asset bundle")
+                links[key] = (src / rel).resolve()
+            checked = verify_visual(links["packet"], links["decision"])
+            if checked.get("asset_id") != item_id:
+                raise ValueError("Visual acceptance reviewed another asset")
+            if record.get("revision") and checked.get("revision") != record["revision"]:
+                raise ValueError("Visual acceptance reviewed a different revision")
+            decision = json.loads(links["decision"].read_text(encoding="utf-8"))
+            if decision.get("user_approval_reference") != user_approval_reference:
+                raise ValueError("User acceptance reference disagrees with actual recorded decision")
+    elif needs_packet:
+        raise ValueError("New composite asset requires review packet and explicit decision")
+
+    # Before moving, store reversible originals and update only known approval
+    # fields. Preserve untested Godot/scale and accepted artistic caveats.
+    old_manifest = manifest_path.read_bytes()
+    original_record = json.loads(json.dumps(record))
+    changed = {}
+    backups = root / ".gamearts" / "system" / "backups"
+    backups.mkdir(parents=True, exist_ok=True)
+    moment = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    safe = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in str(item_id))
+    backup_file = backups / f"assets_pre_approval_{safe}_{moment}.json"
+    backup_file.write_bytes(old_manifest)
+
+    def update_json(path, transform):
+        raw = path.read_bytes()
+        body = json.loads(raw.decode("utf-8"))
+        transform(body)
+        changed[path.relative_to(src).as_posix()] = raw
+        path.write_text(json.dumps(body, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    def approve_blueprint(body):
+        body["status"] = "approved_artwork_not_engine_verified"
+        body["production_approval"] = "granted_by_user"
+        body["user_visual_approval"] = {
+            "status": "approved", "user_reference": user_approval_reference
+        }
+        if selections:
+            body["approved_clean_plate"] = True
+            body["clean_plate_approval"] = "approved_by_user"
+            visual = body.setdefault("visual_review_evidence", {})
+            if isinstance(visual, dict):
+                visual["review_protocol"] = "review_packet_v1"
+                visual["review_status"] = "user_visual_approval_recorded"
+
+    def approve_validation(body):
+        if body.get("status") not in ("failed", "rejected"):
+            body["status"] = "approved_artwork_not_engine_verified"
+        if selections:
+            body["isolated_props_background_masking"] = "user_approved"
+            body["visual_review"] = "approved"
+
+    try:
+        for bp in src.glob("*.blueprint.json"):
+            update_json(bp, approve_blueprint)
+        for qa in src.glob("*.validation.json"):
+            update_json(qa, approve_validation)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(src), str(destination))
+        record["status"] = "approved"
+        record["approval"] = "user_granted"
+        record["visual_review"] = "approved"
+        record["approved_at_utc"] = datetime.now(timezone.utc).isoformat()
+        record["approval_reference"] = user_approval_reference
+        record["bundle_path"] = str(destination.relative_to(root)).replace(os.sep, "/")
+        if needs_packet:
+            record["visual_review_protocol"] = "review_packet_v1"
+            record["visual_reviews"] = selections
+        # Hash the exact immutable approved bundle, including boards, atlases,
+        # components and accepted QA metadata. The verification gate can detect
+        # later mutation without confusing it with engine readiness.
+        record["artifact_hashes"] = {
+            file.relative_to(destination).as_posix(): hashlib.sha256(file.read_bytes()).hexdigest()
+            for file in sorted(destination.rglob("*")) if file.is_file()
+        }
+        pending = manifest_path.with_name(manifest_path.name + ".pending")
+        try:
+            pending.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            os.replace(pending, manifest_path)
+        finally:
+            pending.unlink(missing_ok=True)
+        problems = audit_asset(root, item_id)
+        if problems:
+            raise ValueError("Post-approval asset audit failed: " + "; ".join(problems))
+    except Exception:
+        record.clear()
+        record.update(original_record)
+        if destination.exists() and not src.exists():
+            shutil.move(str(destination), str(src))
+        if src.exists():
+            for rel, raw in changed.items():
+                (src / rel).write_bytes(raw)
+        # Preserve the original manifest even if a late audit failed.
+        pending = manifest_path.with_name(manifest_path.name + ".pending")
+        try:
+            pending.write_bytes(old_manifest)
+            os.replace(pending, manifest_path)
+        finally:
+            pending.unlink(missing_ok=True)
+        raise
+    return {"asset_id": item_id, "status": "approved",
+            "path": str(destination), "manifest_backup": str(backup_file),
+            "visual_review_protocol": record.get("visual_review_protocol"),
+            "godot_runtime": "not_assessed_by_approval"}
+
+
 def revoke(game_root, kind, item_id, reason, revision=None):
     if not isinstance(reason, str) or not reason.strip():
         raise ValueError("Explicit nonempty rejection/revocation reason required")
@@ -351,6 +522,11 @@ def main():
     check = commands.add_parser("audit")
     check.add_argument("--id", required=True)
     check.add_argument("--game-root", type=Path, required=True)
+    accept = commands.add_parser("approve")
+    accept.add_argument("--id", required=True)
+    accept.add_argument("--game-root", type=Path, required=True)
+    accept.add_argument("--user-approval-ref", required=True,
+                        help="Reference to actual user approval message; never invent")
     deny = commands.add_parser("revoke")
     deny.add_argument("--id", required=True)
     deny.add_argument("--revision", help="Exact mockup revision when ID is shared")
@@ -362,6 +538,8 @@ def main():
     try:
         if args.operation == "select":
             result = select(args.game_root, args.kind, args.stage, args.id, args.revision)
+        elif args.operation == "approve":
+            result = approve_asset(args.game_root, args.id, args.user_approval_ref)
         elif args.operation == "audit":
             issues = audit_asset(args.game_root, args.id)
             result = {"asset_id": args.id, "status": "blocked" if issues else "consistent",
