@@ -123,6 +123,18 @@ class LifecycleGuardTests(unittest.TestCase):
             self.assertTrue(any("source mockup hash disagrees" in s for s in
                                 mod.audit_asset(root, "workshop_v001")))
 
+    def test_manifest_cannot_omit_visual_review_required_by_new_bundle(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            out, bp, qa = self.approved_fixture(root)
+            bundle = out / "assets/approved/workshop_v001"
+            (bundle / "workshop_v001.bundle.json").write_text(json.dumps({
+                "asset_id": "workshop_v001",
+                "visual_review_protocol": "review_packet_v1"
+            }))
+            issues = mod.audit_asset(root, "workshop_v001")
+            self.assertTrue(any("cannot omit mandatory visual-review protocol" in s for s in issues))
+
     def test_new_review_protocol_blocks_approval_without_visual_packet(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
