@@ -13,7 +13,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageChops
 
 PINK = (255, 0, 255, 255)
 KINDS = {"movable", "removable", "interactive", "replaceable", "animated", "independent_prop"}
@@ -93,7 +93,7 @@ def checked_report(manifest_path):
         part_file = require_path(directory, part.get("sprite"), f"{identifier}.sprite")
         mask_file = require_path(directory, part.get("removal_mask"), f"{identifier}.removal_mask")
         component = rgba(part_file, f"{identifier}.sprite")
-        if not any(px != PINK for px in component.getdata()):
+        if ImageChops.difference(component, Image.new("RGBA", component.size, PINK)).getbbox() is None:
             raise ValueError(f"{identifier}: detached sprite contains no non-pink artwork")
         mask = mask_image(mask_file, src.size, f"{identifier}.removal_mask").tobytes()
         area = 0
