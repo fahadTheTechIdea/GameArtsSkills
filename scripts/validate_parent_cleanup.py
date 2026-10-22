@@ -52,7 +52,7 @@ def mask_image(path, size, label):
     return image
 
 
-def checked_report(manifest_path):
+def checked_report(manifest_path, strict_props=False):
     manifest_path = Path(manifest_path).resolve()
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
     if not isinstance(data, dict) or data.get("schema_version") != "1.0":
@@ -81,6 +81,7 @@ def checked_report(manifest_path):
     counts = {}
     hashes = {str(source): digest(source), str(parent): digest(parent), str(plate): digest(plate)}
     masks = {}
+    silhouettes = {}
     for part in parts:
         if not isinstance(part, dict):
             raise ValueError("Each detached component must be an object")
@@ -93,6 +94,25 @@ def checked_report(manifest_path):
         part_file = require_path(directory, part.get("sprite"), f"{identifier}.sprite")
         mask_file = require_path(directory, part.get("removal_mask"), f"{identifier}.removal_mask")
         component = rgba(part_file, f"{identifier}.sprite")
+        if strict_props:
+            # A foreground stencil must be independently checked against
+            # the approved source, not generated from the exported sprite.
+            if part.get("silhouette_review") != "approved" or not part.get("silhouette_reference_id"):
+                raise ValueError(f"{identifier}: independently approved silhouette reference required")
+            ink_mask = require_path(directory, part.get("sprite_silhouette_mask"),
+                                    f"{identifier}.sprite_silhouette_mask")
+            binary = mask_image(ink_mask, component.size, f"{identifier}.sprite_silhouette_mask")
+            ink = [pixel != PINK for pixel in component.getdata()]
+            expected = [v == 255 for v in binary.getdata()]
+            leaked = sum(1 for actual, allowed in zip(ink, expected) if actual and not allowed)
+            empty_expected = sum(1 for actual, allowed in zip(ink, expected) if allowed and not actual)
+            if leaked or empty_expected:
+                raise ValueError(f"{identifier}: detached sprite silhouette mismatch: "
+                                 f"{leaked} colored pixels outside approved mask, "
+                                 f"{empty_expected} missing inside")
+            silhouettes[identifier] = {"status": "passed", "ink_pixels": sum(ink),
+                                       "mask_sha256": digest(ink_mask)}
+            hashes[str(ink_mask)] = digest(ink_mask)
         if ImageChops.difference(component.convert("RGB"), Image.new("RGB", component.size, PINK[:3])).getbbox() is None:
             raise ValueError(f"{identifier}: detached sprite contains no non-pink artwork")
         mask = mask_image(mask_file, src.size, f"{identifier}.removal_mask").tobytes()
@@ -146,6 +166,8 @@ def checked_report(manifest_path):
         "visual_inventory_completeness": "not_verified",
         "independent_plate_visual_approval": "agent_declared_not_attested",
         "style": data.get("art_style_id", "selected_project_style"),
+        "sprite_isolation": {"status": "passed" if strict_props else "not_verified",
+                             "components": silhouettes},
         "image_size": list(src.size),
         "components": counts,
         "unchanged_pixels_altered_outside_masks": changed_outside,
@@ -156,8 +178,8 @@ def checked_report(manifest_path):
     }
 
 
-def validate(manifest_path):
-    result = checked_report(manifest_path)
+def validate(manifest_path, strict_props=False):
+    result = checked_report(manifest_path, strict_props=strict_props)
     if result["failures"]:
         raise ValueError("; ".join(result["failures"]))
     return result
@@ -167,9 +189,11 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("manifest", type=Path)
     p.add_argument("--report", type=Path)
+    p.add_argument("--strict-props", action="store_true",
+                   help="Require independently reviewed per-prop silhouette masks")
     args = p.parse_args()
     try:
-        result = checked_report(args.manifest)
+        result = checked_report(args.manifest, strict_props=args.strict_props)
         if args.report:
             args.report.parent.mkdir(parents=True, exist_ok=True)
             args.report.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
@@ -179,6 +203,8 @@ def main():
             return 1
         print("PASS: separated component artwork is absent from static parent inside declared masks")
         print("NOT VERIFIED: omitted objects or artistic validity of approved clean plate")
+        if not args.strict_props:
+            print("NOT VERIFIED: independent prop silhouettes (use --strict-props for new production)")
         return 0
     except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as err:
         print("BLOCKED", str(err))
