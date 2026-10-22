@@ -111,6 +111,14 @@ def rel(base, target):
     return os.path.relpath(str(target), str(base))
 
 
+def inside(file, directory):
+    try:
+        Path(file).resolve().relative_to(Path(directory).resolve())
+        return True
+    except ValueError:
+        return False
+
+
 def prepare(cleanup_file, review_spec_file, output_dir):
     cleanup_file = Path(cleanup_file).resolve()
     review_spec_file = Path(review_spec_file).resolve()
@@ -225,6 +233,12 @@ def prepare(cleanup_file, review_spec_file, output_dir):
         ("E / Hidden/reconstructed areas", overlay(parent, uncertain_union, (238, 185, 37), .68)),
         ("F / Changed pixels marked blue", overlay(original, delta_mask, (72, 140, 210))),
     ]
+    # All review evidence must come from the CURRENT candidate. This prevents
+    # hidden v001/revoked dependencies and keeps relative hashes valid if the
+    # complete v002+ bundle later moves from generated to approved.
+    candidate_root = output_dir.parent
+    if not all(inside(path, candidate_root) for path in dependencies):
+        raise ValueError("Visual review depends on files outside current asset candidate")
     if output_dir.exists() and any(output_dir.iterdir()):
         raise FileExistsError("Review output exists; use another candidate or revision")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -272,6 +286,8 @@ def verify(packet_file, decision_file):
     root = packet_file.parent
     for item in packet.get("source_files", []):
         path = (root / item["path"]).resolve()
+        if not inside(path, root.parent):
+            raise ValueError("Review source path escapes approved candidate bundle")
         if not path.is_file() or sha(path) != item["sha256"]:
             raise ValueError("Review source file changed after presentation: " + str(item.get("path")))
     for field in ("review_board", "props_board"):
