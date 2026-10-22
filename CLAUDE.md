@@ -104,3 +104,12 @@ Before generating a parent, pass the dynamically derived **excluded-object list*
 
 ## Mandatory rejection handling
 Before selecting production source artwork or resuming a candidate, use the exact approved/generated eligibility checks in `scripts/gamearts_asset_lifecycle.py`. **Rejected or revoked versions must be ignored and never used as input**; explicit user rejection triggers the helper's verified full-bundle move to `revoked` and manifest update with reason. Do not call a rejected candidate "generated" and continue work. Preserve other revisions and all approved reference mockups. Perform these internal operations before image generation, and do not claim a local lifecycle change unless completed.
+
+
+## Production QA learned from the approved workshop test (ALL visual styles)
+
+Before creating any asset from an approved mockup, enforce real source/camera/style locking and the complete independently separable-object inventory. Rectangular crops are not valid isolated sprites if wall/floor pixels remain. For **new** standalone assets with detached props, run `scripts/validate_parent_cleanup.py --strict-props` with a separately reviewed sprite-local foreground silhouette mask **per part** plus reviewed clean parent/backplate. For component bundles, run `scripts/validate_component_bundle.py --approval-gate` with all required parent frame/direction/prop masks. A pasted second props sheet does not remove the first copy from the parent. Validate all exported PNGs/atlases from actual current-version files and exclude every revoked predecessor.
+
+On explicit artwork approval, record the accepted composition, reconstructed/hidden geometry notes and clean-plate decision, then update the exact version's manifest, blueprint and validation/QA statuses together. Run `scripts/gamearts_asset_lifecycle.py audit` internally before selecting reusable approved artwork; it blocks stale `generated_needs_visual_review`, `production_approval: not_granted`, or pending sprite review inside an approved bundle. Never infer Godot/scale verification from art approval. User-approved legacy artwork is not silently revoked when newer checks become available.
+
+Universal across pixel, painted, illustrated, vector, rendered-to-2D and custom styles; binary masks are technical evidence after raster export, not a mandate to pixelate visible art. Follow the one existing master standard, no parallel files. If actual tool/validator execution is unavailable, clearly mark which gate did not run.
