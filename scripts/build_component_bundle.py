@@ -15,6 +15,7 @@ import tempfile
 from pathlib import Path
 
 from build_sheet_atlas import build as build_sheet
+from validate_parent_cleanup import validate as validate_cleanup
 
 VALID_ID = re.compile(r"^[A-Za-z0-9_-]+$")
 
@@ -154,8 +155,70 @@ def validate_structure(config):
     return directions, mapping, order
 
 
+def stage_cleanup_evidence(config, source_dir, stage):
+    """Package original/clean parent/clean plate + object sprites/masks in candidate.
+
+    Bundle remains self-contained after approval/revocation moves. Source files
+    are copied, never modified or deleted; this only proves declared masks.
+    """
+    supplied = config.get("parent_cleanup_evidence", [])
+    if not isinstance(supplied, list):
+        raise ValueError("parent_cleanup_evidence must be a list")
+    staged = []
+    for row in supplied:
+        if not isinstance(row, dict):
+            raise ValueError("parent_cleanup_evidence entries must be objects")
+        parent = row.get("parent_component")
+        direction = row.get("direction")
+        index = row.get("frame_index")
+        if not (isinstance(parent, str) and VALID_ID.fullmatch(parent) and
+                isinstance(direction, str) and VALID_ID.fullmatch(direction) and
+                type(index) is int and index >= 0):
+            raise ValueError("cleanup evidence must name valid parent/direction/frame_index")
+        origin_ref = row.get("manifest")
+        if not isinstance(origin_ref, str) or not origin_ref:
+            raise ValueError("cleanup evidence manifest must specify source path")
+        original = (Path(source_dir) / origin_ref).resolve()
+        if not original.is_file():
+            raise ValueError(f"Missing cleanup evidence job: {original}")
+        spec = json.loads(original.read_text(encoding="utf-8"))
+        folder = stage / "parent_cleanup" / f"{parent}_{direction}_{index}"
+        folder.mkdir(parents=True, exist_ok=False)
+        used = set()
+
+        def copy_art(reference, destination, label):
+            if not isinstance(reference, str):
+                raise ValueError(f"Invalid {label} cleanup image path")
+            file = (original.parent / reference).resolve()
+            if file.suffix.lower() != ".png" or not file.is_file():
+                raise ValueError(f"Missing PNG cleanup artifact: {file}")
+            if destination in used:
+                raise ValueError("Duplicate cleanup output path")
+            used.add(destination)
+            shutil.copy2(file, folder / destination)
+            return destination
+
+        for field in ("source_composite", "static_parent", "clean_plate"):
+            spec[field] = copy_art(spec.get(field), field + ".png", field)
+        for part in spec.get("detached_components", []):
+            identifier = part.get("id") if isinstance(part, dict) else None
+            if not isinstance(identifier, str) or not VALID_ID.fullmatch(identifier):
+                raise ValueError("Invalid detached component ID")
+            part["sprite"] = copy_art(part.get("sprite"), identifier + "_sprite.png", "sprite")
+            part["removal_mask"] = copy_art(part.get("removal_mask"), identifier + "_mask.png", "mask")
+        target = folder / "cleanup.json"
+        target.write_text(json.dumps(spec, indent=2) + "\n", encoding="utf-8")
+        # No false technical pass: an invalid clean master prevents publication.
+        validate_cleanup(target)
+        staged.append({"parent_component": parent, "direction": direction,
+                       "frame_index": index,
+                       "manifest": target.relative_to(stage).as_posix()})
+    return staged
+
+
 def build(config, output, source_dir):
     directions, parts, order = validate_structure(config)
+    source_dir = Path(source_dir).resolve()
     if output.exists():
         raise FileExistsError("Bundle output already exists; use a new revision name")
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -182,6 +245,7 @@ def build(config, output, source_dir):
                 png, atlas_file = build_sheet(job, stage)
                 atlas = json.loads(atlas_file.read_text(encoding="utf-8"))
                 sheets[pid][d] = atlas
+        packaged_cleanup = stage_cleanup_evidence(config, source_dir, stage)
         # Validate named parent mounts against each parent directional atlas.
         for pid in order:
             part = parts[pid]
@@ -245,11 +309,24 @@ def build(config, output, source_dir):
                                "atlases":{d:sheets[pid][d]["image"].replace(".png",".atlas.json") for d in directions}}
                               for pid in order],
                 "source_mockups":config.get("source_mockups",[]),
+                "parent_cleanup_evidence": packaged_cleanup,
+                "detached_inventory":config.get("detached_inventory",{}),
                 "sampled_poses":poses,
                 "validation":{"structure":"passed","direction_coverage":"passed",
                               "mount_references":"passed","frame_geometry":"generated",
+                              "parent_cleanup":"pending",
                               "artistic_alignment":"not_tested","godot_runtime":"not_tested"}}
-        (stage/(config["name"]+".bundle.json")).write_text(json.dumps(bundle,indent=2)+"\n",encoding="utf-8")
+        bundle_file = stage / (config["name"]+".bundle.json")
+        bundle_file.write_text(json.dumps(bundle, indent=2)+"\n", encoding="utf-8")
+        # Validate packaged evidence against actual source frames before publication.
+        # Missing evidence may remain generated, but it must never pass approval.
+        if packaged_cleanup:
+            from validate_component_bundle import validate as validate_bundle
+            problems = validate_bundle(stage, approval_gate=True)
+            if problems:
+                raise ValueError("Parent-cleanup approval gate: " + "; ".join(problems))
+            bundle["validation"]["parent_cleanup"] = "passed_declared_pixel_check"
+            bundle_file.write_text(json.dumps(bundle, indent=2)+"\n", encoding="utf-8")
         # Move as one directory; no partial publication of sheets if validation fails.
         shutil.move(str(stage),str(output))
     return output
