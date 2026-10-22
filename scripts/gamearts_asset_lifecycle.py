@@ -232,6 +232,15 @@ def audit_asset(game_root, item_id):
                     if (verified.get("approved_mockup_id"),
                         verified.get("approved_mockup_revision")) not in source_ids:
                         issues.append(f"visual review {index}: displayed mockup is not the asset's approved source")
+                    else:
+                        matched = next((m for m in record.get("source_mockups", [])
+                                        if isinstance(m, dict)
+                                        and m.get("mockup_id") == verified.get("approved_mockup_id")
+                                        and m.get("revision") == verified.get("approved_mockup_revision")), None)
+                        expected_sha = (matched or {}).get("reference_sha256",
+                                                          (matched or {}).get("sha256"))
+                        if not expected_sha or verified.get("approved_mockup_source_sha256") != expected_sha:
+                            issues.append(f"visual review {index}: displayed approved crop comes from different source image hash")
                 except (ImportError, OSError, ValueError, TypeError, KeyError,
                         json.JSONDecodeError) as err:
                     issues.append(f"visual review {index}: invalid approval evidence: {err}")
