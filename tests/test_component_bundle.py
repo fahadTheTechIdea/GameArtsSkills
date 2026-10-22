@@ -59,6 +59,7 @@ class ComponentTests(unittest.TestCase):
             self.assertEqual(len(list(out.glob("*.atlas.json"))),6)
             data=json.loads((out/"test_scene_machine_v001.bundle.json").read_text())
             self.assertEqual(data["component_order"],["base","joint","tip"])
+            self.assertEqual(data["visual_review_protocol"], "review_packet_v1")
             self.assertEqual(data["validation"]["godot_runtime"],"not_tested")
             poses={(p["direction"],p["normalized_time"]):p for p in data["sampled_poses"]}
             def pos(p,component):
