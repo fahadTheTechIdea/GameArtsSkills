@@ -60,3 +60,11 @@ See [master standard v7.3](../GAME_ARTS_MASTER_STANDARD_v7.7.md).
 **Bring your own mockup:** Upload or point the agent to artwork you created elsewhere. Game Arts imports a managed copy into the mockup lifecycle, preserves your original, and uses the approved version as its production reference—no unnecessary recreation.
 
 When the user supplies an existing external mockup, **import a copy rather than generating a replacement**. Respect explicit prior approval; if not approved, ask for approval of that actual revision. Keep source provenance and a traceable managed reference. Do not claim an import succeeded unless file access and write operations were completed. Follow the v7.5 external mockup intake rules and require detailed decomposition before final art production.
+
+## Reference crops stay inside existing asset candidates
+
+No new lifecycle or category-specific top-level image folders are created by source conditioning. The original approved mockup and its approved record stay under `mockups/approved/` and `manifests/mockups.json`. The **asset candidate** may contain `reference/<asset-id>_reference_crop.png`, `reference/reference.packet.json`, `reference/reference.prompt.txt` and, only after an actual image-tool call, a receipt describing what was attached. This support material remains tied to the generated asset's ID, revision, source mockup hash and measured source region. The candidate's actual PNG/sheet and atlas remain separate production files.
+
+A registered approved mockup entry includes `mockup_id` (or `id`), `revision`, `status: approved`, `file` (managed path), and `sha256` of the approved source. The agent obtains these from actual files, never invents them. The reference helper validates this record before creating crops. If a different manifest representation exists, the agent must adapt it consistently to the existing project rather than invent false approval metadata.
+
+Reference crops can preserve arbitrary original screenshot colors; they are **not delivered chroma-key game sprites**. Newly exported production PNGs still require fully opaque #FF00FF unused pixels and their own approval. A generated crop or positive technical receipt cannot upgrade an asset to approved.
