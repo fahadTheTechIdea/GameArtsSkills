@@ -35,3 +35,8 @@ Across ALL selected styles (pixel art, illustrated, painted, vector, 3D-rendered
 
 ## Style-neutral object silhouette and reconstruction QA
 After rasterizing source/layers at a consistent native scale (regardless of painted/vector/pixel/illustrated/rendered style), each exported independent object's **visible silhouette** must match an **independently approved foreground mask**; no wall/floor background patches may remain just because a rectangular crop included them. Use \`validate_parent_cleanup.py --strict-props\` on new standalone production and the bundle approval gate for rigs. Original anti-aliasing/style edge policies remain; the technical binary mask is evidence, not an instruction to pixelate the image. Label every newly reconstructed occluded region and seek visual approval without pretending inferred content was present in the original source.
+
+
+## Review-board presentation preserves chosen game style
+
+The shared visual review helper compares aligned raster exports from ANY selected art medium (pixel, painted, illustrated, vector, rendered-to-2D, custom). Select NEAREST inspection scaling for pixel art and suitable smooth review scaling for other styles; QA boards and annotations are only review artifacts, not delivered game sprites. Production PNGs remain fully opaque chroma pink. No algorithm or generated QA board can prove a reconstructed hidden surface is artistically plausible: the exact clean plate and object boundaries require explicit user review and accepted uncertainty notes.
