@@ -1523,3 +1523,35 @@ Resolve the effective values **in this order** (lower-priority sources cannot si
 **Pre-call check:** compare resolved packet to the specific image tool prompt. Assert the *same* selected style, approved camera, reference attachments, view policy, geometry/scale rules, and correct isolated output target appear as actual instructions. Do not submit an unrelated generic image prompt. After generation, compare output to the resolved packet and mark mismatches rejected or unverified.
 
 **Important:** Project-wide settings describe a default. Component-specific approved constraints and actual visible source artwork can narrow them, but the model may not secretly switch artistic style or camera to improve aesthetics. The user should not need to restate saved selections or run configuration commands.
+
+
+---
+
+## Executable approved-reference crop and conditioning gate
+
+**Preflight is mandatory for production artwork derived from approved images.** An image-generation prompt mentioning a reference is not evidence that the actual approved image was used. Use the executable helper at **scripts/prepare_reference_crop.py** (or verified equivalent tool integration), not a generic text-only reinterpretation.
+
+### Source preparation and image-tool attachment
+1. Resolve selected game settings (.gamearts/project.json), active applicable custom instructions, mockup and asset manifests, and the exact approved visual source and its SHA256.
+2. Confirm the target mockup's ID, revision, explicitly approved state, source file inside .gamearts/outputs/mockups/approved/ and matching record in .gamearts/outputs/manifests/mockups.json. Import previously approved outside mockups through the lifecycle before production cropping; do not bypass approval or claim an import was saved when it wasn't.
+3. Identify and measure an actual object region rectangle (x,y,width,height) inside the source image, with minimal context padding. Save this as the selected region and lock the observed perspective/identity. **Do not invent coordinates or swap another asset's crop.**
+4. The agent prepares an internal reference job using the approved mockup record, selected asset class, bounding rectangle, identity constraints and scoped custom rules; the helper creates an actual pixel-preserving PNG crop, reference.packet.json with the source/crop/settings hashes and selected style/camera/directions, and reference.prompt.txt containing resolved selected project settings. The screenshot crop is a *reference*, so preserve original source colors: do **not** recolor it chroma pink. Production PNG outputs still must have fully opaque exact #FF00FF backgrounds.
+5. **Pass the actual crop as an image input** to the image tool if it supports reference conditioning. A file path or textual phrase in the prompt alone is insufficient. If source-conditioned image input is not available, stop the production stage and disclose the limitation. Do not quietly generate an unrelated generic image.
+6. After a real image-tool call, record an invocation receipt containing actual tool invocation ID, attached reference path and SHA256, generated candidate PNG path and SHA256, and whether image input was attached. The helper's verify command checks file hashes, source/manifest/settings changes, declared input attachment, PNG opacity and pink key corners. **Agent-written receipts are not host/provider-side cryptographic evidence**; mark conditioning agent-reported and require actual visual review.
+7. Compare the candidate against the very same prepared crop for camera, silhouette, roof, openings, material/color/style, proportions, ground contact and visible details. A passing source/hash check does not prove visual fidelity. Mismatched production artwork remains generated or rejected, not approved.
+8. After the locked master is approved, independently build moving-component layers and approved poses; construct real sprite sheets and measured atlases deterministically.
+
+### Internal reference-job fields
+- asset_id: a descriptive versioned asset slug.
+- asset_class: static_structure, fixed_machinery, mobile_directional, ui_presentation, terrain, prop, or effect.
+- approved_mockup: object with id, revision, approval_status = approved, file under the game's approved mockups directory, sha256 from the actual file.
+- region: object with id, rect = [x,y,width,height] measured in **source pixels**, optional padding_px.
+- identity_lock and applicable_custom_instructions: lists of observed details and resolved user rules.
+- approved_camera/directions/rotation_policy: optional approved asset-specific overrides, subject to conflict checking.
+
+The source manifest must contain an approved record matching the ID, revision, path and hash. The helper intentionally refuses to fabricate image references or approve a candidate. It cannot prove the provider consumed a referenced image, compare art fidelity by itself, infer physical hinges or certify engine readiness.
+
+### Universal view behavior
+Selected project art style/camera are mandatory inputs. Fixed structures and installed machinery use one approved view unless explicit placement rotations are approved. Mobile freely facing assets require eight coherent direction variants when their game profile calls for them, but the image model must generate one controlled directional master at a time. UI portraits are independent of world-camera packages. Never hardcode one game's oblique style or a generic isometric viewpoint into another project's prompts.
+
+**No additional master document:** Update this existing canonical standard and its specialist skills in place.
