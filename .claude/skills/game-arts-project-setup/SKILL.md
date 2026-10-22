@@ -56,3 +56,9 @@ After saving the basic game profile, mention once that the user can say **“Add
 
 ## When to launch
 Use this conversational wizard when the user requests project setup/changes or a truly necessary project-wide setting is unknown. **Do not require setup before creating an initial mockup.** On first normal art request, the orchestrator may use established defaults and route to game-arts-mockup-creator instead.
+
+
+## Selected game settings drive prompt generation (mandatory)
+Before **every** image-generation/edit call, read `<game-root>/.gamearts/project.json`, applicable active custom instructions, approved mockup crop/locked master and asset-specific profile. Resolve the exact selected `art_style.id`, `art_style.reference`, style appearance settings (palette/outline/shading/texture/pixel density if present), `world.object_camera`, scale, asset-specific directions, `animation.preferred_method` and `export.*`. **Insert these actual resolved values into the tool prompt, not merely into commentary.** Use the hierarchy and conflict-resolution guidance under "Mandatory saved-settings resolution for EVERY image prompt" in the one canonical master.
+
+Never hardcode Oilfield Days, pixel-art style, oblique projection, an isometric ban, or a direction count in generic prompts. Oilfield Days is a project-specific example, only applicable when that project/style is selected. If settings are missing, use verified approved references, then plainly marked defaults; ask the friendly wizard only for an essential missing choice. Never secretly replace a saved style. Check the actual prompt matches resolved values before sending it, and review the resulting image against the exact project-specific constraints afterward.
