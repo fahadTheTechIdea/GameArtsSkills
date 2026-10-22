@@ -26,6 +26,7 @@ def fixture(root):
     parent.save(folder / "parent.png")
     parent.save(folder / "plate.png")
     original.save(folder / "original.png")
+    original.save(Path(root) / "approved_mockup_crop.png")
     source_mask.save(folder / "workbench.mask.png")
     sprite = Image.new("RGBA", (18, 16), PINK)
     mask = Image.new("L", sprite.size, 0)
@@ -55,6 +56,11 @@ def fixture(root):
     cleanup_file.write_text(json.dumps(cleanup))
     review = {
         "asset_id": "test_workshop", "revision": "v002",
+        "approved_reference": {
+            "file": "approved_mockup_crop.png",
+            "sha256": mod.sha(Path(root) / "approved_mockup_crop.png"),
+            "mockup_id": "approved_test_scene", "mockup_revision": "v001"
+        },
         "expected_component_ids": ["workbench"],
         "inventory_audit": "complete_for_visible_reference",
         "occlusion_audit": "completed",
@@ -135,6 +141,14 @@ class VisualReviewTests(unittest.TestCase):
             image.save(folder / "parent.png")
             with self.assertRaisesRegex(ValueError, "Review source file changed"):
                 mod.verify(packet, vote)
+
+    def test_approved_mockup_reference_crop_must_match_hash(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cleanup, review, _ = fixture(root)
+            (root / "approved_mockup_crop.png").write_bytes(b"changed")
+            with self.assertRaisesRegex(ValueError, "reference crop hash"):
+                mod.prepare(cleanup, review, root / "review")
 
     def test_bad_silhouette_mask_blocks_board(self):
         with tempfile.TemporaryDirectory() as td:
