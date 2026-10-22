@@ -85,3 +85,7 @@ Also require a **visual inventory completeness audit** because pixels alone cann
 A different generated revision awaiting approval is **not automatically rejected** because an earlier revision was rejected. It stays in `generated`, never silently becomes `approved`. Do not continue toward final assets if a required master/clean plate has been rejected or remains unapproved.
 
 The agent performs lifecycle actions using tools and verifies files; no user CLI or manual JSON required. If filesystem access is missing or errors occur, report the rejection intent and unsuccessful transition; do not claim that a revocation was persisted.
+
+
+## Learned from approved workshop: reconcile every file after approval
+Before treating any user-approved asset as reusable, run the bundled lifecycle audit against the actual approved asset. Match manifest status, blueprint status/production approval/clean-plate approval, validation visual-review status, physical folder and exact approved source mockup hashes. Inferred-but-accepted hidden geometry remains labeled inferred. If any file still says `generated_needs_visual_review`, `not_granted` or `pending_user_review`, reconcile it through the real user approval event with safe backups before selecting the asset again. Do not change `godot: not_tested` or scale calibration to passed. A clean mechanical/PNG check and a user visual approval are distinct gates. New production also uses reviewed local silhouettes rather than background-filled rectangular prop crops.
