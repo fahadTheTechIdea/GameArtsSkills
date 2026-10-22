@@ -165,3 +165,10 @@ Game Arts now uses actual approved mockups and **task-specific prompt packets**,
 **Generation is staged:** approved crop → one locked master → master review → isolated moving components → approved key poses → deterministic animation and actual measured atlas generation. **No image-generated contact sheets, text/diagram labels or fake JSON in production PNGs.** Static structures receive one approved world view by default; mobile objects use the required directional set. Oilfield Days' world view is elevated 3/4 top-down oblique, not isometric.
 
 The actual approved image must be passed to the image tool if reference-image conditioning is supported. A textual mention of the mockup alone is not proof that it was used. Artistic review and script validation are separate gates. A failure must be reported, not silently approved.
+
+
+## Selected project style controls every image prompt
+
+Game Arts builds the **actual image-tool prompt** from the current game's `.gamearts/project.json` before every image request: selected `art_style.id` and style reference, `world.object_camera`, project scale, chosen asset view policy, animation method and export requirements. Applicable per-game custom instructions and exact approved mockup/locked-master references also apply. The agent must pass actual source images when supported and cannot substitute a generic “pixel-art/isometric” prompt for a different selected style.
+
+**Priority:** universal output requirements → explicit approved user changes/locked asset identity → relevant custom and asset-specific rules → saved game settings → carefully labeled defaults. Conflicts are surfaced; the agent never silently changes a previously approved camera or style. The system supports pixel art, painted, illustrated, vector, rendered-to-2D and custom styles. See the [existing project settings guide](docs/PROJECT_SETTINGS.md) and [canonical master](GAME_ARTS_MASTER_STANDARD_v7.7.md).
