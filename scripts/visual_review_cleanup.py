@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import sys
 from PIL import Image, ImageDraw, ImageFont, ImageChops
+from validate_parent_cleanup import checked_report
 
 PINK = (255, 0, 255, 255)
 
@@ -130,6 +131,11 @@ def prepare(cleanup_file, review_spec_file, output_dir):
     manifest, spec = read(cleanup_file), read(review_spec_file)
     if not isinstance(manifest, dict) or not isinstance(spec, dict):
         raise ValueError("Expected cleanup manifest and review specification objects")
+    # Hard requirement: independent clean-plate review, actual parent removal
+    # and independently approved sprite-local silhouette masks must pass.
+    technical = checked_report(cleanup_file, strict_props=True)
+    if technical["technical_status"] != "passed":
+        raise ValueError("Strict parent cleanup gate failed: " + "; ".join(technical["failures"]))
     parts = manifest.get("detached_components", [])
     if not isinstance(parts, list) or not parts:
         raise ValueError("No detached components to review")
@@ -154,6 +160,19 @@ def prepare(cleanup_file, review_spec_file, output_dir):
     approved_reference_file = asset(review_spec_file, reference["file"], "approved mockup reference crop")
     if sha(approved_reference_file) != reference["sha256"]:
         raise ValueError("Approved mockup reference crop hash differs from registered source")
+    # A crop path + claimed mockup ID by themselves are not proof the crop
+    # originated in the approved source. Bind it to the existing crop packet.
+    crop_packet_file = asset(review_spec_file, reference.get("crop_packet"),
+                             "approved reference preparation packet")
+    crop_packet = read(crop_packet_file)
+    original_meta = crop_packet.get("approved_mockup", {})
+    if (original_meta.get("id") != reference["mockup_id"] or
+            original_meta.get("revision") != reference["mockup_revision"] or
+            crop_packet.get("reference_crop_sha256") != reference["sha256"] or
+            Path(crop_packet.get("reference_crop", "")).resolve() != approved_reference_file):
+        raise ValueError("Approved crop provenance differs from prepared reference packet")
+    if not isinstance(original_meta.get("sha256"), str) or not original_meta["sha256"]:
+        raise ValueError("Prepared crop packet lacks approved mockup source hash")
     approved_reference_art = rgba(approved_reference_file)
     identity, revision = spec.get("asset_id"), spec.get("revision")
     if not all(isinstance(v, str) and v.strip() for v in (identity, revision)):
@@ -171,7 +190,7 @@ def prepare(cleanup_file, review_spec_file, output_dir):
     size = original.size
     mask_union = Image.new("L", size, 0)
     dependencies = [cleanup_file, review_spec_file, original_file, parent_file, plate_file,
-                    approved_reference_file]
+                    approved_reference_file, crop_packet_file]
     prop_panels = []
     bounds = {}
     original_bytes, parent_bytes, plate_bytes = original.tobytes(), parent.tobytes(), plate.tobytes()
@@ -276,7 +295,9 @@ def prepare(cleanup_file, review_spec_file, output_dir):
         "approved_reference": {"mockup_id": reference["mockup_id"],
                                "revision": reference["mockup_revision"],
                                "path": rel(output_dir, approved_reference_file),
-                               "sha256": reference["sha256"]},
+                               "sha256": reference["sha256"],
+                               "source_sha256": original_meta["sha256"],
+                               "crop_packet": rel(output_dir, crop_packet_file)},
         "source_files": tracked,
         "art_style_id": art_style,
         "review_board": {"path": main_board.name, "sha256": sha(main_board)},
