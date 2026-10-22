@@ -60,3 +60,8 @@ A user may supply an existing mockup created outside Game Arts. **Do not regener
 ## Everyday user commands (natural language)
 
 Recognize the complete user-friendly command catalog in `docs/COMMANDS.md`, including: **set up / show / change game settings; add / show custom instructions; create world/scene/character/UI mockups; import an outside mockup; import an already approved mockup; revise / approve / reject mockups; generate production sprites, component animations, and measured atlases; approve / reject / restore assets; show generated/approved/revoked artwork; validate in Godot.** Do not require slash commands or special trigger keywords. Infer intent and invoke the correct skill(s), respecting exact revision identity. An already-approved imported mockup is not regenerated. Ask for approval only when a real new mockup or final asset needs it. Do not claim actions completed without successful tool execution.
+
+
+## Approved-source crop provenance (integrated)
+
+During approval/import, record verifiable `mockup_id`, `revision`, `status: approved`, managed `file` and source `sha256` in the game's current `mockups.json`. On production requests, verify these records and use `scripts/prepare_reference_crop.py` to prepare the actual approved source crop **inside** the corresponding `assets/generated/<asset-revision>/reference/` directory. Keep the crop, prompt, packet and any truthful image-tool receipt with that candidate and link its provenance to the original mockup; do not create a new lifecycle or falsely mark the crop as approved artwork. The generated sprite/artwork and atlas must still receive their own approval. Reference crops preserve source colors; only new game-art PNG exports require pink masking.
