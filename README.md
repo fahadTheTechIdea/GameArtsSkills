@@ -156,3 +156,12 @@ Static structures and fixed machinery have **one approved world view by default*
 
 
 **Single canonical master:** Only [GAME_ARTS_MASTER_STANDARD_v7.7.md](GAME_ARTS_MASTER_STANDARD_v7.7.md) is maintained; older numbered copies have been retired. Future revisions update this existing file in place, rather than adding another master document. Distinct technical guides and Claude/Codex skills remain separate because they serve different purposes.
+
+
+## Reference-controlled image prompts — mandatory
+
+Game Arts now uses actual approved mockups and **task-specific prompt packets**, not generic requests for an attractive picture. The [single canonical master standard](GAME_ARTS_MASTER_STANDARD_v7.7.md) contains prompt templates for static structures, fixed machinery, mobile directional masters, moving parts, key poses, UI portraits, terrain, effects and corrective edits.
+
+**Generation is staged:** approved crop → one locked master → master review → isolated moving components → approved key poses → deterministic animation and actual measured atlas generation. **No image-generated contact sheets, text/diagram labels or fake JSON in production PNGs.** Static structures receive one approved world view by default; mobile objects use the required directional set. Oilfield Days' world view is elevated 3/4 top-down oblique, not isometric.
+
+The actual approved image must be passed to the image tool if reference-image conditioning is supported. A textual mention of the mockup alone is not proof that it was used. Artistic review and script validation are separate gates. A failure must be reported, not silently approved.
