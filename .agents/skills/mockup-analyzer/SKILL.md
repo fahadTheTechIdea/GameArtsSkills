@@ -33,3 +33,10 @@ For every item authorized by an approved scene mockup, identify a source-image b
 ## Reusable crop-stage handoff
 
 When a user requests production from an approved mockup, return the existing blueprint's exact measured **source-pixel** crop (x,y,width,height), minimal context padding, observed visual identity lock, asset class/profile, approved mockup ID/revision and source image path/hash. The orchestrator uses these as inputs to the existing `scripts/prepare_reference_crop.py`, saving its crop/packet in the current asset candidate's `reference/` subfolder. Do not manually crop an altered color-key version, invent bounding boxes, or create a new lifecycle. UI/terrain/world assets use their individually selected camera and style settings.
+
+
+## Universal ownership inventory — every independent object
+
+In each approved mockup, classify major AND tiny details as permanent/inseparable parent artwork versus **movable, removable, interactive, replaceable or animated components**. Furniture, workbenches, individual tools, screws, cabinets and props can be separate even if they have no moving animation; similarly for vehicle doors/wheels and industrial machinery. Do not exclude small elements due to perceived insignificance.
+
+Before master generation, produce the complete `separation_inventory` and `parent_cleanup` blueprint evidence fields: each component's ID, classification, observed source position, intended independent sprite, owned removal-mask region, and the background/inner surface revealed when removed. The **static master prompt excludes each such component**. The producer then verifies none remains baked into the parent. Treat undisclosed hidden backgrounds as unknown pending separate reference/review. Do not mark decomposition complete solely because a separate object sprite was produced.
