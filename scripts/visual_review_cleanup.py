@@ -141,6 +141,16 @@ def prepare(cleanup_file, review_spec_file, output_dir):
         raise ValueError("Analyzer must declare a completed visible-object inventory audit")
     if spec.get("occlusion_audit") != "completed":
         raise ValueError("Occlusion audit must be explicitly completed")
+    reference = spec.get("approved_reference")
+    if not isinstance(reference, dict) or any(
+        not isinstance(reference.get(field), str) or not reference[field].strip()
+        for field in ("file", "sha256", "mockup_id", "mockup_revision")
+    ):
+        raise ValueError("Exact approved reference crop, hash, mockup ID and revision required")
+    approved_reference_file = asset(review_spec_file, reference["file"], "approved mockup reference crop")
+    if sha(approved_reference_file) != reference["sha256"]:
+        raise ValueError("Approved mockup reference crop hash differs from registered source")
+    approved_reference_art = rgba(approved_reference_file)
     identity, revision = spec.get("asset_id"), spec.get("revision")
     if not all(isinstance(v, str) and v.strip() for v in (identity, revision)):
         raise ValueError("Asset identity and exact revision are required")
@@ -156,7 +166,8 @@ def prepare(cleanup_file, review_spec_file, output_dir):
         raise ValueError("Review requires aligned original/clean/plate raster sizes")
     size = original.size
     mask_union = Image.new("L", size, 0)
-    dependencies = [cleanup_file, review_spec_file, original_file, parent_file, plate_file]
+    dependencies = [cleanup_file, review_spec_file, original_file, parent_file, plate_file,
+                    approved_reference_file]
     prop_panels = []
     bounds = {}
     original_bytes, parent_bytes, plate_bytes = original.tobytes(), parent.tobytes(), plate.tobytes()
@@ -226,6 +237,7 @@ def prepare(cleanup_file, review_spec_file, output_dir):
     delta_mask = Image.new("L", size)
     delta_mask.putdata([255 if rgb != (0, 0, 0) else 0 for rgb in delta.getdata()])
     panels = [
+        ("0 / Approved original mockup crop", approved_reference_art),
         ("A / Original reference composite", original),
         ("B / Static parent after cleanup", parent),
         ("C / Proposed clean background plate", plate),
@@ -257,6 +269,10 @@ def prepare(cleanup_file, review_spec_file, output_dir):
         "review_status": "pending_user_visual_review",
         "cleanup_manifest": rel(output_dir, cleanup_file),
         "review_spec": rel(output_dir, review_spec_file),
+        "approved_reference": {"mockup_id": reference["mockup_id"],
+                               "revision": reference["mockup_revision"],
+                               "path": rel(output_dir, approved_reference_file),
+                               "sha256": reference["sha256"]},
         "source_files": tracked,
         "art_style_id": art_style,
         "review_board": {"path": main_board.name, "sha256": sha(main_board)},
@@ -319,6 +335,8 @@ def verify(packet_file, decision_file):
         "decision_sha256": sha(decision_file),
         "accepted_components": packet["component_ids"],
         "accepted_uncertainties": packet["uncertain_region_ids"],
+        "approved_mockup_id": packet["approved_reference"]["mockup_id"],
+        "approved_mockup_revision": packet["approved_reference"]["revision"],
         "approval_source_verification": "agent_recorded_not_host_attested",
         "semantic_recognition": "not_automated",
         "engine_validation": "not_tested"
