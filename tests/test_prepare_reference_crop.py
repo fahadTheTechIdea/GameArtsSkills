@@ -126,6 +126,17 @@ class ReferenceCropTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "lifecycle manifest"):
                 mod.prepare(root, job_file, root / "generated")
 
+    def test_rejects_approved_record_without_source_hash(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _, _, _, job_file = self.fixture(root)
+            manifest = root / ".gamearts" / "outputs" / "manifests" / "mockups.json"
+            entry = json.loads(manifest.read_text())
+            del entry["mockups"][0]["sha256"]
+            manifest.write_text(json.dumps(entry))
+            with self.assertRaisesRegex(ValueError, "lacks source SHA256"):
+                mod.prepare(root, job_file, root / "generated")
+
     def test_rejects_mismatching_approval_manifest(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
