@@ -53,6 +53,37 @@ def read_json(path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def validate_approval_record(root, mockup_id, revision, source, source_hash):
+    """Cross-check explicit approved lifecycle record, not just a job assertion."""
+    manifest_path = root / ".gamearts" / "outputs" / "manifests" / "mockups.json"
+    if not manifest_path.is_file():
+        fail("Missing mockups.json lifecycle manifest; first register the explicitly approved mockup")
+    manifest = read_json(manifest_path)
+    if isinstance(manifest, list):
+        entries = manifest
+    elif isinstance(manifest, dict):
+        entries = manifest.get("mockups", manifest.get("entries", []))
+    else:
+        entries = []
+    if not isinstance(entries, list):
+        fail("Approved mockup manifest must contain a list of records")
+    for record in entries:
+        if not isinstance(record, dict):
+            continue
+        rid = record.get("mockup_id", record.get("id"))
+        rev = record.get("revision", record.get("mockup_revision"))
+        state = record.get("status", record.get("approval_status"))
+        loc = record.get("file", record.get("path", record.get("approved_reference_file")))
+        expected = record.get("sha256", record.get("source_sha256"))
+        if rid == mockup_id and rev == revision and state == "approved":
+            if not loc or resolve_under(root, loc) != source:
+                fail("Approved lifecycle record points to a different source image")
+            if expected and str(expected).lower() != source_hash.lower():
+                fail("Approved lifecycle record hash disagrees with actual image")
+            return manifest_path
+    fail("No matching explicitly approved mockup ID and revision in lifecycle manifest")
+
+
 def prepare(game_root, job_file, out):
     root = game_root.resolve()
     job = read_json(job_file)
@@ -76,6 +107,7 @@ def prepare(game_root, job_file, out):
     source_hash = sha(source)
     if source_hash.lower() != str(mockup["sha256"]).lower():
         fail("Approved mockup image SHA256 differs from registered expected value")
+    approval_manifest = validate_approval_record(root, mockup_id, revision, source, source_hash)
     settings_file = root / ".gamearts" / "project.json"
     if not settings_file.is_file():
         fail("Missing saved project settings; run conversational Game Arts project setup")
@@ -123,6 +155,12 @@ def prepare(game_root, job_file, out):
         box = [max(0, x-padding), max(0, y-padding),
                min(sw, x+w+padding), min(sh, y+h+padding)]
         crop = image.convert("RGB").crop(tuple(box))
+    detail = job.get("identity_lock", [])
+    if not isinstance(detail, list) or not all(isinstance(v, str) for v in detail):
+        fail("identity_lock must be a list of observed appearance constraints")
+    rules = job.get("applicable_custom_instructions", [])
+    if not isinstance(rules, list) or not all(isinstance(v, str) for v in rules):
+        fail("applicable_custom_instructions must be an array of resolved instructions")
     if out.exists() and any(out.iterdir()):
         fail("Output folder is not empty; use a new descriptive candidate revision")
     out.mkdir(parents=True, exist_ok=True)
@@ -137,12 +175,6 @@ def prepare(game_root, job_file, out):
     style_desc = "; ".join(f"{key}={style[key]}" for key in (
         "id", "reference", "palette_reference", "outline_policy",
         "shading_policy", "texture_policy", "pixel_density") if style.get(key))
-    detail = job.get("identity_lock", [])
-    if not isinstance(detail, list) or not all(isinstance(v, str) for v in detail):
-        fail("identity_lock must be a list of observed appearance constraints")
-    rules = job.get("applicable_custom_instructions", [])
-    if not isinstance(rules, list) or not all(isinstance(v, str) for v in rules):
-        fail("applicable_custom_instructions must be an array of resolved instructions")
     prompt = "\n".join([
         f"TASK: Produce exactly ONE {cls} master candidate for {asset}; not a sprite sheet.",
         f"MANDATORY IMAGE INPUT: Attach the actual image file: {crop_path.resolve()}",
@@ -165,7 +197,9 @@ def prepare(game_root, job_file, out):
         "asset_id": asset,
         "asset_class": cls,
         "approved_mockup": {"id": mockup_id, "revision": revision,
-                            "image": str(source), "sha256": source_hash},
+                            "image": str(source), "sha256": source_hash,
+                            "lifecycle_manifest": str(approval_manifest),
+                            "lifecycle_manifest_sha256": sha(approval_manifest)},
         "region": {"id": region_id, "rect": rect, "actual_crop_box": box},
         "source_image_size": [sw, sh],
         "reference_crop": str(crop_path.resolve()),
@@ -198,7 +232,9 @@ def verify(packet_file, receipt_file):
     for path, expected in (
         (crop_path, packet["reference_crop_sha256"]),
         (settings_file, packet["settings_sha256"]),
-        (original, packet["approved_mockup"]["sha256"])
+        (original, packet["approved_mockup"]["sha256"]),
+        (Path(packet["approved_mockup"]["lifecycle_manifest"]),
+         packet["approved_mockup"]["lifecycle_manifest_sha256"])
     ):
         if not path.is_file() or sha(path).lower() != str(expected).lower():
             fail(f"File or SHA256 changed since preparation: {path}")
