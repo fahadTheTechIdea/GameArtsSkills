@@ -1416,3 +1416,6 @@ For every asset, record `asset_class`, `view_policy`, `directions`, `approved_vi
 **Oilfield Days defaults:** workshop, cabins, warehouses, fuel farm, separators, pumpjacks and flare stacks use a single approved top-down-oblique world angle (with independent door/linkage/flame animation); freely moving trucks, forklifts and mobile construction equipment use eight direction masters and applicable action sheets; fleet thumbnails, build-menu icons and dispatch portraits are separate UI presentation resources.
 
 **Repository maintenance rule:** Update the current existing canonical master standard **in place** and update existing README, skills, instructions, validator contracts and documentation as needed. **Do not create another version-numbered master document or duplicate guidance file for routine changes.** Preserve previous sections and amend the current file rather than producing a parallel version.
+
+
+**Consolidated mockup scope principle:** `Identify mockup scope → analyze every meaningful visible detail at that scope → descend into nested blueprints as needed → plan static and animated production assets → validate reconstruction against the approved mockup.`
