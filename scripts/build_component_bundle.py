@@ -314,6 +314,10 @@ def build(config, output, source_dir):
                 "source_mockups":config.get("source_mockups",[]),
                 "parent_cleanup_evidence": packaged_cleanup,
                 "detached_inventory":config.get("detached_inventory",{}),
+                # NEW modular assets must carry visual-review protocol forward
+                # even if a later manifest writer forgets to declare it.
+                "visual_review_protocol": "review_packet_v1" if len(parts) > 1 or
+                  bool(config.get("detached_inventory")) else None,
                 "sampled_poses":poses,
                 "validation":{"structure":"passed","direction_coverage":"passed",
                               "mount_references":"passed","frame_geometry":"generated",
