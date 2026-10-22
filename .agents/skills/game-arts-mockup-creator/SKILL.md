@@ -38,3 +38,17 @@ A user may supply an existing mockup created outside Game Arts. **Do not regener
 ## Everyday user commands (natural language)
 
 Recognize the complete user-friendly command catalog in `docs/COMMANDS.md`, including: **set up / show / change game settings; add / show custom instructions; create world/scene/character/UI mockups; import an outside mockup; import an already approved mockup; revise / approve / reject mockups; generate production sprites, component animations, and measured atlases; approve / reject / restore assets; show generated/approved/revoked artwork; validate in Godot.** Do not require slash commands or special trigger keywords. Infer intent and invoke the correct skill(s), respecting exact revision identity. An already-approved imported mockup is not regenerated. Ask for approval only when a real new mockup or final asset needs it. Do not claim actions completed without successful tool execution.
+
+
+## Mandatory actual image prompts — use canonical master prompt packet
+
+Before any image generation or source-conditioned edit, read the **Mandatory reference-controlled image prompting** section of \`GAME_ARTS_MASTER_STANDARD_v7.7.md\`. Compose a precise actual tool prompt from the target approved/draft reference, project style, camera, asset class, identity invariants, allowed change and solid opaque pink export. **Pass the actual source image/crop as image conditioning if supported**; do not pretend written descriptions replace actual image attachments.
+
+For a mockup request, generate a visual *mockup*, not production components. For production based on approved mockups: do not replace the mockup with an unrelated generic visual. If only a large mockup screenshot exists, select/inspect its target region first. If the exact crop can't be made or passed to the tool, explicitly flag diminished reference fidelity rather than asserting the reference was used.
+
+**User-approved mockup import remains authoritative**: do not regenerate it. If already approved, carry the original into approved workflow with provenance.
+
+### Prompt to send for a structure master
+"Use the ATTACHED approved mockup crop depicting [specific structure] as the authoritative appearance. Generate ONE fixed-view master only. Match the project's approved camera [projection with explicit NOT-isometric for Oilfield Days], same building silhouette, roof, walls, doors, cladding, colors and pixel-detail scale. No other viewing angle; no door-animation frames, multi-part charts, labels, grids, or example JSON. Exact solid opaque #FF00FF elsewhere."
+
+**Gate:** compare resulting silhouette, approved camera, positions/materials and overall identity before presenting for master approval. Do not proceed to separately animated components until this gate passes. A visually attractive different building fails.
