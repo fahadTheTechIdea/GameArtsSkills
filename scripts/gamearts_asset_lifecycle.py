@@ -206,6 +206,12 @@ def audit_asset(game_root, item_id):
                         issues.append(f"visual review {index}: approved different asset ID")
                     if record.get("revision") and verified["revision"] != record["revision"]:
                         issues.append(f"visual review {index}: approved different revision")
+                    source_ids = {(m.get("mockup_id"), m.get("revision"))
+                                  for m in record.get("source_mockups", [])
+                                  if isinstance(m, dict)}
+                    if (verified.get("approved_mockup_id"),
+                        verified.get("approved_mockup_revision")) not in source_ids:
+                        issues.append(f"visual review {index}: displayed mockup is not the asset's approved source")
                 except (ImportError, OSError, ValueError, TypeError, KeyError,
                         json.JSONDecodeError) as err:
                     issues.append(f"visual review {index}: invalid approval evidence: {err}")
