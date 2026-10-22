@@ -76,3 +76,8 @@ When an approved mockup is the reference, create a **source-conditioned prompt p
 For static buildings/fixed machinery, generate **one fixed camera master first**, with separate moving components only after the master has been visually checked and approved. For freely moving objects with directional gameplay, generate and approve a coherent eight-view locked master prior to separate action animations. For UI illustration, use independent UI-appropriate art/view rules. Do not ask image generation to produce a complete annotated animation sheet, companion JSON or mechanically accurate attachment measurements; assemble verified sheets and metadata with the executable tools.
 
 Before advancing, compare style, silhouette, geometry, camera, materials, colors, perspective, moving-part mounts, static unchanged pixels and expected #FF00FF export. A deviation means reject/revise the candidate. Never claim image conditioning or technical verification unless performed.
+
+
+## Actual prompt inheritance from project configuration
+
+Before an image-generation tool call, the orchestrator resolves the current game's saved `art_style`, `world.object_camera`, reference imagery, visual detail rules, relevant instructions, asset profile/directions, animation preferences and chroma-pink export constraints. These are included as actual prompt instructions, with attached reference crops where supported. An agent must not substitute a generic art style or hardcoded perspective. Conflict or unknowns are surfaced and only essential missing choices are asked conversationally. After generation, compare output to resolved settings and approved visual references before advancing to master approval.
