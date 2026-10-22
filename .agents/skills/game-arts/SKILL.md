@@ -115,3 +115,14 @@ This stage is **part of the existing asset workflow** and runs automatically for
 6. Continue the **existing** stages: locked master → components/key poses → actual PNG sheets/atlas JSON → separate production approval. Keep all dependencies linked to the same candidate.
 
 Net-new conceptual mockups go through mockup creation and approval first; this approved-source gate must not block initial concept previews.
+
+
+## Mandatory universal clean static-parent generation and verification
+
+After mockup approval and exhaustive decomposition, **before producing a static/master image**, classify every visible independently movable, removable, interactive, replaceable and animated element. Include small furniture, workshop tools, screws, spanners, wheels, doors, swappable equipment, and other independent props when present. This applies to **all selected art media**, never just pixel art.
+
+In the **actual image/editing tool prompt**, explicitly enumerate all blueprint-derived detached objects and instruct that **none may appear in the clean parent image**, even when each object also has a separate PNG. Produce/review the empty/clean background plate behind each object, without holes or arbitrary repainting. A static parent must consist solely of approved permanent/nonseparable art. Child assets are generated separately and must not be duplicated in the parent.
+
+Before **final production approval**, run `scripts/validate_parent_cleanup.py` for each relevant standalone static parent, or `scripts/validate_component_bundle.py --approval-gate` for every composite rig. The existing bundle builder accepts `detached_inventory` and `parent_cleanup_evidence`; candidates without proof remain `pending`. Validate every parent/frame/direction and real atlas source-frame hash; include independently packaged props in the inventory. Also visually review inventory completeness, clean plate and approved camera/style. **Technical pixel checking cannot find objects absent from the declared inventory**, so never claim automatic artistic certification.
+
+If the gate fails, reject/revise the static master; generating an extra sprite sheet is NOT remediation when the same objects remain painted inside it. Follow the canonical master section "Permanent universal parent-artwork cleanup and separation gate".
