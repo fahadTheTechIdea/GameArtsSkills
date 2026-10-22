@@ -110,3 +110,12 @@ Before completing production: for each generated parent view/frame, run `scripts
 ## Rejected versions are ignored
 
 At the beginning of a task, the agent consults the actual lifecycle manifest through the bundled eligibility check. **Only an approved mockup/reference** can drive production; **only an eligible generated candidate** can be continued. Explicit rejection triggers immediate revocation of the exact version: move its whole bundle into `revoked/`, update its status and reason, verify manifest and files, and never use that revision again unless an explicit restoration/reapproval flow succeeds. Do not continue work on rejected artwork. Preserve other pending or approved versions independently.
+
+
+## Acceptance gates learned from a real workshop extraction
+
+A faithful composite workflow separates **visual design, measurable geometry, and runtime readiness**. For a supplied approved reference, first lock the exact source/camera and remove every independent item from the structural base. A screenshot rectangle or naive bounding-box crop alone is **not** an isolated sprite; independent props must use a source-grounded foreground silhouette, preserving the selected art style and rendering edges. Preview each tiny part at native size and nearest/appropriate enlarged view; inspect for floor patches, compressed JPEG fringes, shadows of unrelated objects or incomplete hidden edges.
+
+When removing an object reveals unobserved background (floor, hidden cabinet side, tabletop), record separately which pixels are **source-observed** and **reconstructed**; obtain visual approval of the resulting clean plate. User approval may explicitly accept known limitations. Preserve those exact caveats in the record and do **not** keep the blueprint marked pending.
+
+Require the deterministic PNG/atlas checks **plus** `scripts/validate_parent_cleanup.py --strict-props` for newly generated standalone assets or the component bundle's `--approval-gate` for modular assets. Strict masks are an additional approved source-segmentation input, not an automatically reliable image-semantic detector. Revoked predecessors must be excluded from every build and validation dependency. After a real approval move, run `scripts/gamearts_asset_lifecycle.py audit` internally: all manifest, blueprint, clean-plate and QA statuses must agree, while `Godot: not_tested` and scale not calibrated remain honest limitations. Revisions are independent; don't automatically reject already approved legacy art under a newly introduced checker.
