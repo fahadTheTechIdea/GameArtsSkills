@@ -74,3 +74,6 @@ For every asset, record `asset_class`, `view_policy`, `directions`, `approved_vi
 **Oilfield Days defaults:** workshop, cabins, warehouses, fuel farm, separators, pumpjacks and flare stacks use a single approved top-down-oblique world angle (with independent door/linkage/flame animation); freely moving trucks, forklifts and mobile construction equipment use eight direction masters and applicable action sheets; fleet thumbnails, build-menu icons and dispatch portraits are separate UI presentation resources.
 
 **Repository maintenance rule:** Update the current existing canonical master standard **in place** and update existing README, skills, instructions, validator contracts and documentation as needed. **Do not create another version-numbered master document or duplicate guidance file for routine changes.** Preserve previous sections and amend the current file rather than producing a parallel version.
+
+
+**Master documentation maintenance:** Keep only the canonical `GAME_ARTS_MASTER_STANDARD_v7.7.md`; never create additional numbered master copies. On future specification changes, update the existing canonical file in place and synchronize relevant instructions and guides. Avoid modifying independent guides merely to duplicate entire master content.
