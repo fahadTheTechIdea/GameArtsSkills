@@ -414,7 +414,7 @@ def approve_asset(game_root, item_id, user_approval_reference, review_records=No
         record["approved_at_utc"] = datetime.now(timezone.utc).isoformat()
         record["approval_reference"] = user_approval_reference
         record["bundle_path"] = str(destination.relative_to(root)).replace(os.sep, "/")
-        if needs_packet:
+        if needs_packet or selections:
             record["visual_review_protocol"] = "review_packet_v1"
             record["visual_reviews"] = selections
         # Hash the exact immutable approved bundle, including boards, atlases,
