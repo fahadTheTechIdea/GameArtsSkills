@@ -67,3 +67,8 @@ When a user has supplied/approved a mockup and requests production art, first se
 ## Production references versus concept mockups
 
 Creating a **new concept mockup** does not require a pre-existing approved crop. After the user has approved a generated or imported mockup, however, production from that source must use the approved registered image's actual pixels. Use the existing analyzer → `scripts/prepare_reference_crop.py` → image-tool attachment sequence before one locked asset master is generated. The crop must be a real PNG attached as an image, not merely an instruction saying “based on the mockup.” If the tool cannot accept conditioning, report a production limitation. The crop and receipt remain inside the existing `assets/generated/<asset-revision>/reference/` candidate; do not create a parallel mockup folder.
+
+
+## Clean parent generation excludes separated objects, all styles
+
+Concept/mockup images may depict movable furniture, loose workshop tools, replaceable equipment, mobile mechanisms and interactive props in place. During production from an approved mockup, derive the complete object-exclusion inventory from the current analyzer; include it as explicit **REMOVE FROM STATIC PARENT** instructions to the actual source-conditioned image edit/generation tool. The resulting static master must omit every independently movable, removable, interactive, replaceable or animated element—not merely produce additional copies on a second sheet. Restore/review the exposed clean floor/wall/backplate; export separated components individually. Keep exactly the project's selected style and camera. Apply `scripts/validate_parent_cleanup.py` before final approval. A generated reference concept is not itself verified production artwork.
