@@ -99,3 +99,8 @@ Say **“Enable automatic Game Arts updates for both Claude and Codex in this ga
 ## Automatic static-parent cleanup before approval
 
 When you ask **"Make this building/vehicle/scene into separate usable sprites,"** Game Arts now removes all independently moving, removable, interactive, replaceable or animated elements **from the base sprite** while exporting the pieces separately. For example, a workshop is created without the workbench, screws or spanners baked into its interior. This rule applies to every art style, not only pixel art. The agent automatically verifies actual removal before approval, and flags missing evidence or incomplete visual inventory rather than claiming completion. No extra command or manual setup is necessary.
+
+
+## Reject and exclude artwork
+
+“Reject this workshop version” means **move that exact generated candidate to revoked and ignore it** during future art generation, not merely add a note about the defect. “Show current generated artwork” excludes rejected/revoked versions. “Generate from the approved mockup” must use only the approved reference, never the last failed sprite. All actions are handled internally, without asking the user to move files or edit JSON.
