@@ -223,3 +223,8 @@ After an **explicit user approval of the exact revision**, the agent records the
 The internal visual-review spec must include `approved_reference` with the actual approved source crop's `file`, `sha256`, `mockup_id` and `mockup_revision`. This cropped image is prepared through the existing approved-reference crop gate, kept with the **current** asset candidate, and displayed as the first panel on the QA board. A mask-only comparison of a newly redrawn source is insufficient: the reviewer must see the original authoritative mockup too. The lifecycle audit compares that approved mockup ID/revision to the asset's actual registered `source_mockups` so a different source cannot be silently substituted.
 
 The new-protocol bundle builder marks new modular assets with `visual_review_protocol: "review_packet_v1"` automatically. The lifecycle audit derives the requirement from the bundle or blueprint metadata even if an asset-manifest writer accidentally omits the flag, then blocks approved reuse until the actual exact-user review is complete. This requirement does not retroactively revoke existing approved revisions.
+
+
+### Executable approval, not just a file move
+
+The existing [asset lifecycle helper](scripts/gamearts_asset_lifecycle.py) now supports `approve` after an actual user decision. It re-verifies hash-bound visual review evidence when required by new composite artwork, synchronizes blueprint and QA visual approval fields, moves the complete generated revision to approved, hashes its files and immediately audits the resulting bundle. Inconsistencies cause a rollback attempt, not a false approval. Runtime/physical-scale status stays unverified until genuinely tested. The agent runs this internally; no user command is required.
