@@ -114,3 +114,8 @@ Users can simply say **“Validate this asset package”** or **“Check the sep
 ## Review the actual cutouts (built into the existing workflow)
 
 Say **“Show me the clean workshop and all its separate parts”**, **“Check whether any background leaked into the sprites”**, or **“Review the hidden areas before approving.”** Game Arts automatically prepares two comparison boards: original/cleaned structure, affected background and uncertain surfaces; then each source object next to its independently exported sprite. It asks for one approval/revision decision when the artwork is ready. If you approve, it binds the decision to those exact images and files so later changes cannot silently reuse your earlier approval. No manual masks, JSON, command syntax, duplicate workflow or extra master document.
+
+
+## Final approval now checks the real package
+
+Say **“Approve this version”** after actually reviewing the current generated images. Game Arts uses your approval for exactly that revision, verifies its visual review files, updates the existing blueprint/QA and asset manifest together, moves the full sprite/atlas package to approved and immediately runs the lifecycle integrity audit. Changed artwork, missing review files or conflicting statuses block completion. You do not run Python or edit JSON yourself.
