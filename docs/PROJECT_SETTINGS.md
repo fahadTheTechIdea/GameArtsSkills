@@ -63,3 +63,9 @@ Every image or image-edit request reads this game's existing `.gamearts/project.
 Supported selected styles include `pixel_art`, `hand_painted`, `illustrated`, `vector`, `rendered_2d` and `custom`. Optional style fields include `reference`, `palette_reference`, `outline_policy`, `shading_policy`, `texture_policy` and `pixel_density`. The world `object_camera` is project-specific. Optional `prompting` settings can record reference/camera locks and additional constraints. Existing game configuration remains valid without these optional fields.
 
 User-approved source artwork and explicit changes outrank fallback defaults. If a saved style or viewpoint conflicts with an approved master, the agent flags it rather than silently changing existing art. Framework defaults are used only for genuinely missing values; Oilfield Days' oblique look is **not** a universal camera setting for all games.
+
+## Selected style-aware reference crops
+
+The built-in reference helper reads the existing per-game `art_style` and `world.object_camera`; an optional `art_style.ui_camera` sets a separate UI illustration view, while optional `world.ground_camera` describes terrain instead of rotating world objects. Existing configurations remain valid without the optional camera fields. Image prompts must use the resolved selected values, current approved visual reference and active scoped custom instructions.
+
+In an existing approved mockup → production request, the agent automatically selects and crops the real reference image through the framework's `scripts/prepare_reference_crop.py` before calling an image tool. The normal user does not create crop JSON, enter pixel coordinates or run scripts. Do not reset saved project preferences to install this stage.
