@@ -1662,3 +1662,34 @@ The lifecycle exclusion rule is now implemented by `scripts/gamearts_asset_lifec
 - An existing record with `visual_review: rejected` or `approval: rejected` is ineligible even if a buggy producer left its physical files under `generated`. The agent must reconcile that inconsistency before proceeding.
 - Approved source mockups are hash-checked before selection; candidates with physical paths contradicting manifest lifecycle status are blocked.
 - User-facing commands are conversational (“Reject this version”, “Continue with current generated candidate”); agent executes the checker internally. Existing asset lifecycle storage and all visual style policies are unchanged. No new master document is created.
+
+
+---
+
+## Proven Oilfield Days workshop acceptance lessons — universal production gates
+
+The initial Oilfield Days workshop production exposed failures that must not recur in **any** Game Arts style or asset category. These are permanent requirements of the *existing* mockup → master → component → atlas → approval pipeline, not another workflow or master document.
+
+### 1. Reference pixels and camera are locked
+Prefer faithful extraction/editing of an actual approved source region over unconditioned full-object generative redraws when the goal is matching a supplied small game mockup. A visually attractive unrelated angle fails. Classify fixed structures as single-view unless explicitly required otherwise. Art reconstructed from a JPEG source must retain provenance and may have compression-adjacent fringe artifacts; compare resulting silhouettes against source and validate actual opaque-pink export.
+
+### 2. A prop is not isolated until its exact silhouette is isolated
+Do not equate a rectangular crop or bounding box with an independent sprite. For every movable/removable/interactive/replaceable/animated item, record a reviewed foreground ownership/silhouette mask; remove source-floor, neighboring walls, shadows from other objects, and unrelated rectangle pixels. Distinguish separate workbench, cabinet, tool, nut, bolt, and other item identities where gameplay requires independent placement. Keep every exported item fully opaque pink in unused regions. Use **scripts/validate_parent_cleanup.py --strict-props** for new production, alongside the reviewed clean-parent plate and source removal masks. Strict checking must require an **independently reviewed** sprite-local binary silhouette mask, not a mask merely derived from the exported sprite to make the checker pass. The validator checks mask/pixel agreement but cannot establish visual semantics by itself.
+
+For rig/component bundles, **scripts/validate_component_bundle.py --approval-gate** now includes this strict sprite-silhouette requirement; the builder packages the reviewed local masks with its existing parent-cleanup evidence. Earlier user-approved artwork need not be automatically revoked solely because a later stronger quality gate was introduced; mark any new verification as pending until rechecked. This rule is medium-independent after aligned raster export and must preserve painterly/vector edge policies in the visible art.
+
+### 3. Clean plate and occluded-region inference are distinct
+When a detachable element hides floor, wall, tabletop or mechanical mounting geometry, reconstruct the exposed background in a **separately reviewed clean plate**. Label pixels as observed/extracted versus inferred/reconstructed and record any accepted caveats (e.g. a tabletop patched under a toolbox or a cabinet edge outside the source view). Never call inferred geometry source-verified. User may approve a candidate **with explicit known caveats**; record the approval scope, caveats and tool/engine checks not run, rather than repeatedly asking the same question.
+
+### 4. Rejection, self-containment and version selection
+An explicitly rejected candidate is moved to the existing revoked lifecycle, excluded from any production source lookup, and never loaded by a validator for a newer version. Builders and QA must be **self-contained**: use only files from the current candidate plus exact approved source references and validated companion atlases. Inspect actual file paths and source SHA256, not previous version numbers or recent filenames. Preserve revoked files for audit, but never use them as a hidden dependency.
+
+### 5. Approval cannot leave contradictory records
+After an explicit user visual approval and permitted lifecycle promotion, **every manifest and bundled metadata file must agree**. Do not leave a blueprint marked \`generated_needs_visual_review\`, \`production_approval: not_granted\`, or \`approved_clean_plate: false\` while its asset manifest claims approved; do not retain obsolete \`pending_user_review\` in QA/validation after the user accepted that visual element. Conversely, don't rewrite legitimate remaining limitations (Godot not tested, physical scale uncalibrated, occluded geometry unknown) as passes.
+
+The existing **scripts/gamearts_asset_lifecycle.py audit** now checks selected approved assets' registered source revision/hash, declared bundle files, physical status path, blueprint approval and stale visual QA fields, and blocks inconsistent approved-asset reuse until those records are reconciled. Approval/revocation actions should verify and reconcile metadata in the existing bundle and back up prior manifests, rather than silently claiming success based on a folder move alone.
+
+### 6. Validation grades and file deliverables
+Separate three outcomes: **(a)** mechanical/PNG/atlas/mask correctness, **(b)** visual quality and explicit acceptance of clean/background/inferred parts, **(c)** engine, collision, lighting and world-scale testing. Passing (a) does not confer (b) or (c). Every production PNG/sprite sheet has an actual measured JSON atlas where applicable. Show real composed master and motion previews in addition to individual files; keep delivered files individual, no ZIP. Never fabricate an image-generation attempt, a test run or user approval.
+
+These are **universal** principles for all selected Game Arts profiles; the workshop is an observed test case, not a hardcoded default art style or object type.
