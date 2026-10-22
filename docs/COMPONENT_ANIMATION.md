@@ -102,3 +102,45 @@ For every asset, record `asset_class`, `view_policy`, `directions`, `approved_vi
 **Oilfield Days defaults:** workshop, cabins, warehouses, fuel farm, separators, pumpjacks and flare stacks use a single approved top-down-oblique world angle (with independent door/linkage/flame animation); freely moving trucks, forklifts and mobile construction equipment use eight direction masters and applicable action sheets; fleet thumbnails, build-menu icons and dispatch portraits are separate UI presentation resources.
 
 **Repository maintenance rule:** Update the current existing canonical master standard **in place** and update existing README, skills, instructions, validator contracts and documentation as needed. **Do not create another version-numbered master document or duplicate guidance file for routine changes.** Preserve previous sections and amend the current file rather than producing a parallel version.
+
+
+## Mandatory clean-parent proof before production approval
+
+Game Arts **must not** export separate objects while leaving their copies painted inside the parent image. The separation inventory includes **movable, removable, interactive, replaceable and animated** objects, whether or not each has its own animation. This applies to buildings, vehicles, fixed machinery, characters, composite props and UI/world assets, **for every visual style**.
+
+The existing `scripts/validate_parent_cleanup.py` checks rasterized ownership evidence. The internal cleanup manifest in a generated asset candidate has this shape:
+
+```json
+{
+  "schema_version": "1.0",
+  "method": "pixel_exact",
+  "source_composite": "parent_before_cleanup.png",
+  "static_parent": "static_parent_clean.png",
+  "clean_plate": "approved_background_without_props.png",
+  "clean_plate_review": "approved",
+  "clean_plate_reference_id": "approved_review_reference_id",
+  "art_style_id": "selected_project_style",
+  "detached_components": [
+    {"id":"independent_object_id","kind":"removable",
+     "sprite":"object.png","removal_mask":"object_ownership_mask.png"}
+  ]
+}
+```
+
+The referenced full-size source/cleaned-parent/clean-plate files must share the same pixel geometry; **mask pixels are binary 0/255** and cover the original object's actual footprint. They are authoring evidence, not a change to the game's visual medium. Detached sprites must contain actual artwork, be opaque, and leave unused pixels exact #FF00FF. The clean plate is a separately reviewed file, NOT a self-asserted guarantee that hidden geometry was correctly painted. The script validates *declared* objects and cannot automatically find missing inventory entries.
+
+For modular bundles, the existing build manifest may contain `detached_inventory` (mapping of parent component ID to required child/prop IDs) and `parent_cleanup_evidence` entries for every required parent+direction+frame:
+
+```json
+{
+  "detached_inventory": {"workshop_body": ["workbench", "spanner", "screw"]},
+  "parent_cleanup_evidence": [
+    {"parent_component": "workshop_body", "direction": "fixed",
+     "frame_index": 0, "manifest": "proof/workshop_body_fixed_0/cleanup.json"}
+  ]
+}
+```
+
+The builder copies each manifest and its images into the **existing** generated asset bundle and validates them, without changing the originals. The production approval check (the existing `validate_component_bundle.py --approval-gate`) demands the listed evidence cover every relevant parent frame/direction, all actual child components and every extra detached inventory ID; the verified clean parent must hash-match the exact source frame recorded by the atlas. With no cleanup evidence a candidate may still be built for review, but its `validation.parent_cleanup` stays `pending` and it **cannot be approved**.
+
+Standalone one-view parents that export independent furniture/tools separately without building a modular animation bundle must run the same `validate_parent_cleanup.py` technical check, then undergo explicit visual review before approval. Always reject duplicated detached artwork and missing/incorrect clean backgrounds. An image generator must produce the **clean shell without any separated objects** rather than a second prop sheet only.
