@@ -89,3 +89,8 @@ For approved nested moving-part bundles, use the reusable `godot/addons/gamearts
 For **any** game and any selected style, you can say: **“Generate the workshop/vehicle/prop from this approved mockup.”** The framework automatically finds the approved source and its actual image pixels, measures the object's region, creates an internal reference crop, resolves saved style/camera settings, and passes that real crop to the connected image tool when available. A generated master is reviewed against the source before components, sheets and measured atlases are attempted.
 
 This is part of the existing lifecycle and skills; users never edit crop jobs, JSON, pixels or prompts manually. If the image provider cannot accept a reference image, the agent reports that production is blocked rather than returning unrelated art.
+
+
+## Keep installed Claude/Codex skills current
+
+Say **“Enable automatic Game Arts updates for both Claude and Codex in this game.”** The locally connected agent enrolls that workspace, checks both current skill trees and merges trusted session-start hooks. Once enrolled, each agent session checks for framework updates and synchronizes both agents; no recurring manual copying is needed. Changes made to GitHub are not pushed to PCs while offline. For an immediate refresh inside a currently open local session, say **“Update my installed Game Arts skills now.”** The agent must run the installed updater and verify results, never claim local success from a GitHub commit alone.
