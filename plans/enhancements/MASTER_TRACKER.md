@@ -30,8 +30,7 @@ too low, regenerated, and withdrew the first with an honest reason (V-14). Neith
 both only as a reviewer. My reading of them is in V-13/V-14; the entrance's second picture fixes the camera height but leans
 isometric where the game's saved camera is orthogonal.
 
-Still open and not claimed: **hosted CI** (cannot run without a push; the ubuntu job of the 3.11 / Pillow 9.5.0 leg has not run
-either), **the interactive hook trust review in Claude Code, Codex's session start** and long, messy conversations, **production art from an approved mockup with a real image model** (the sprite, atlas and cleanup
+Hosted CI: the push of `bb9c68f` ran all five jobs of `atlas-tests.yml` green (ubuntu 3.11 / Pillow latest, ubuntu 3.11 / Pillow 9.5.0, ubuntu 3.14, windows 3.11, windows 3.14); the first push `ec6075d` had failed on the three Linux jobs for the reasons in V-25, now fixed. Still open and not claimed: **the interactive hook trust review in Claude Code, Codex's session start** and long, messy conversations, **production art from an approved mockup with a real image model** (the sprite, atlas and cleanup
 stages ran only on synthetic art because no mockup has been approved yet), the deletion of the bridge file, release, a real
 update of an enrolled game, and independent review. Review type: self-review.
 
@@ -180,7 +179,7 @@ Full detail and resolution paths: [plan §8](ENHANCEMENT_FIX_PLAN.md#8-open-veri
 | --- | --- | --- | --- |
 | U-1 | `register()` under a real concurrent race on POSIX | Resolved: baseline failure observed (E-22), fix verified on Linux (V-2, V-4) | done |
 | U-2 | Updater false conflicts after an aborted run | Resolved: observed (E-21), fixed and tested | done |
-| U-3 | Hosted CI result | Open: red before this work (E-23); the rewritten workflow has not run. Local Windows run of the 3.11 / Pillow 9.5.0 leg: V-15 | owner pushes; logs if it fails |
+| U-3 | Hosted CI result | Resolved for the test suite: `bb9c68f` green on all five jobs, including Linux with Python 3.11 / Pillow 9.5.0 (the first push, `ec6075d`, failed on Linux and was fixed, V-25). Read from the public run and job conclusions, not the logs | none |
 | U-4 | Live Claude Code and Codex behavior (storyboard, import, reduced skills, image generator) | Partly resolved: ten Claude agent runs and four Codex sessions (V-11, V-13, V-14, V-17); Claude Code's headless session start ran (V-16); the interactive trust review, Codex's session start and long conversations not run | owner step 5 |
 | U-5 | Engine-side export facts | Open, out of scope (D-2); handed over in ENGINE_HANDOFF.md | the runtime's next owner |
 | U-6 | Claude Code and Codex hook/settings semantics | Resolved by V-5 and V-16 (on Windows, Claude Code runs hook commands under Git Bash) | done |
