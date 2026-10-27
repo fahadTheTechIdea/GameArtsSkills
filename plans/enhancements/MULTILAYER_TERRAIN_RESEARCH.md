@@ -72,14 +72,32 @@ The overlay scheme needs **(N-1) x 15 ground tiles for N terrains** (inferred), 
 | Step | Adopt | Adapt | Avoid |
 | --- | --- | --- | --- |
 | Align the picture to a grid | the framework's pixel-grid snapper and the approved scale | detect the cell size from the mockup's stated tile size | guessing a grid from a painting |
-| Terrain label per cell | **nearest palette colour in Lab on each cell's median**, against the colours of the approved terrain art (measured 99.5% on a clean synthetic scene) | a segmenter's masks where terrain colours overlap or textures are rich | a blind k-means with no named palette (works, but needs the naming step) |
+| Terrain label per cell | **nearest palette colour in Lab on each cell's median**, against the colours of the approved terrain art (measured 99.5% on a clean synthetic scene, in Pillow and the standard library alone, 3.3) | a segmenter's masks where terrain colours overlap or textures are rich | a blind k-means with no named palette (works, but needs the naming step) |
 | Cleanup | **area opening with a small minimum** on the label grid; report what changed | none | a 3x3 majority filter: measured to erase thin real features (§5) |
 | Terrain art | overlay dual-grid, 15 tiles per terrain, checked by the existing shared-side validator | Wang-style variants for large interiors | one blob set per terrain pair |
 | Object separation | the mockup analysis's measured regions as **prompts**, a segmenter for the exact mask (external tool, validated here) | colour-contrast detection only for high-contrast objects | blind detection (measured weak, §5) |
 | Object placement (to extend or fill) | Bridson Poisson-disk, radius from the object's footprint, density from a terrain mask | variable radius per class | uniform random (measured overlap, §5) |
 | Extending beyond the scene | noise-based labels for the base, then the same overlays | overlapping-model WFC only if a sample must be matched | WFC as the first choice: contradiction handling and global-structure limits are documented |
 
-### 3.3 Contract and tasks (proposed, none built)
+### 3.3 Dependencies, for a framework other people download
+
+The owner's rule: use the libraries the work needs, but remember that other people install this. Two measurements decide it (both mine, 2026-10-27):
+
+- **The core reader needs no new library.** A Pillow-and-standard-library version of the cell reader (per-cell median colour, nearest palette colour in Lab with the framework's own palette module, then a breadth-first area opening) labelled the synthetic scenes **99.45% correct, against 99.49% for the numpy version**, in **0.35 s for a 1024 x 768 scene** and **5.75 s for a 4096 x 3072 scene at 64 px cells**. That is a one-off analysis step, so the time is acceptable. The expensive things are image segmentation and machine learning, not the terrain reader.
+- **What the optional libraries cost a downloader.** Wheels fetched for Python 3.12: numpy 2.5.4 is 12.6 MB on Windows and numpy 2.2.6 is 16.5 MB on Linux (licence BSD-3-Clause, plus the permissive licences it bundles); opencv-python-headless 5.0.0.93 is 43.8 MB on Windows and 56.6 MB on Linux (its metadata says Apache 2.0; older PyPI pages say its wheels ship FFmpeg under the LGPL-2.1, which I did not re-check for this release). A segmenter such as SAM adds a deep-learning runtime and model weights; mirrors of the official repository state Apache 2.0 for the model, the checkpoints are hundreds of megabytes to a few gigabytes (my memory, not verified here), and its dataset has a separate research licence.
+
+So the policy proposed, in tiers:
+
+| Tier | What | Rule |
+| --- | --- | --- |
+| Core | Pillow and `jsonschema`, as today | Everything the framework must do, including the label reader, area opening, overlays, validators and Poisson-disk placement, runs here. The CI matrix keeps its oldest-Pillow leg |
+| Optional speed-up | numpy | Used only when installed, with **identical results** (a test runs both paths and compares); never required. If it is absent nothing is skipped or reported as a pass: the Pillow path runs |
+| External tools | A segmenter, an image generator | **Never bundled and never required.** They are tools the agent or the owner runs, like the image generator: the framework asks for masks as files and validates them (same size as the picture, one label or object per mask, no overlap beyond a stated tolerance), and says plainly when none was supplied. Their licence and weight size go in the install guide before any is recommended |
+| Avoid | OpenCV | Large wheels and an extra licence question for no gain the core path needs |
+
+Rules for anything a downloader installs: wheels only (no compiler), Python 3.11 and 3.14 as today, a minimum version stated and tested in a CI leg, no network use at run time, no model weights or large binaries in the repository, licences listed in `README_INSTALL.md`, and the doctor reports which optional pieces are present in plain words. A missing optional piece is never an error; a missing required one stays a hard failure, as the install guide already says for `jsonschema`.
+
+### 3.4 Contract and tasks (proposed, none built)
 
 A new `layered_map` description (a JSON contract, engine-neutral): the grid and cell size; the terrain list with priorities and tile sets; the label grid per terrain; the objects with footprint, ground anchor, sort anchor and collision; layer roles and order; everything referenced by hash. The framework would **validate** it (labels cover the grid, overlays and sets exist, every object sprite exists, footprints do not overlap unless declared, sort anchors sit inside the sprite) and export it with the existing Tiled path and the runtime export. A Godot importer that builds `TileSet` and `TileMapLayer` nodes belongs to the game project (the engine handoff note), written against the observed behaviour below.
 
@@ -93,6 +111,7 @@ A new `layered_map` description (a JSON contract, engine-neutral): the grid and 
 | P16.5 | Placement: Poisson-disk with density masks, deterministic by seed | a test that the minimum distance holds and the result is reproducible |
 | P16.6 | Godot observations with the installed 4.7.2 headless build, like the existing profile checks: a terrain-connect call on an overlay layer, y-sorted atlas objects, scene tiles under y-sort, baked navigation | recorded command, exit status and observed result per mapping; a mapping that cannot be shown is marked `needs_custom` |
 | P16.7 | Skill and docs routing; the engine handoff note | the docs guard passes; no engine named in shipped text |
+| P16.8 | Optional-dependency policy (3.3): the doctor lists optional pieces, a CI leg runs without them, a test compares the Pillow path with the numpy path, the licence list in the install guide | the matrix stays green without numpy; the two paths give identical labels on the synthetic scenes |
 
 ## 4. What is not known
 
@@ -100,7 +119,7 @@ A new `layered_map` description (a JSON contract, engine-neutral): the grid and 
 - **U-M2** Whether the overlay layers draw correctly in Godot with y-sorted objects and mixed layers (the documented facts conflict in forum reports). P16.6.
 - **U-M3** Dual-grid and overlay behaviour on isometric and hexagonal grids (the pipeline's tileset note already says diamonds are unverified).
 - **U-M4** Quality of overlay transitions with real art: sources describe the technique but not its look for painted styles; soft edges would use the matte.
-- **U-M5** Whether adding numpy or an image library for the label reader is acceptable, or the reader should stay in Pillow and the standard library (a median over 16 x 16 cells is feasible in Pillow, only slower). A decision for the owner.
+- **U-M5** Whether a library may be added. **Decided by the owner on 2026-10-27: libraries may be used, but the framework is downloaded and used by other people, so the choice must suit them** (see 3.3).
 
 ## 5. Experiment (measured; synthetic data, seeded, reproducible)
 
@@ -119,11 +138,13 @@ A 64 x 48 cell scene with five terrains (water, sand, grass, forest floor, rock)
 | Objects touching (overlap allowed) | about one merged component per scene | merging is real but smaller than detection failure |
 | Placement: uniform random vs Bridson (radius 24 px, 400 x 300 px) | minimum gap **5.4 px** vs **24.1 px** (guaranteed); 120 vs 136 points; 0.09 s | Poisson-disk is the right default for non-overlapping repeated objects |
 
+Pillow-only version of the same reader (3.3): 99.45% raw and 98.63% after area opening, 0.35 s for a 1024 x 768 scene, 5.75 s for 4096 x 3072 at 64 px cells; the numpy version gave 99.49% and 98.67%.
+
 What this supports: classify cells against the approved palette, clean conservatively and report it, use overlays so tile demand is bounded, place with Poisson-disk, and **do not rely on colour tests for objects**. What it does not support: any claim about real mockups, a segmenter's accuracy, Godot rendering, or performance in an engine.
 
 ## 6. Recommended next step
 
-Do P16.0 first: it needs the owner's approved mockups and a chosen segmenter, and every later task depends on what it finds. Until then the sensible, low-risk work is P16.1 (multi-terrain overlays on the existing tileset class), P16.3 and P16.5, which do not depend on the segmenter. No engine code goes in this repository; P16.6 produces observations, and the importer is the game project's.
+Do P16.0 first: it needs the owner's approved mockups and a chosen segmenter (an external tool, per 3.3), and every later task depends on what it finds. Until then the sensible, low-risk work is P16.1 (multi-terrain overlays on the existing tileset class), P16.3 and P16.5, which do not depend on the segmenter. No engine code goes in this repository; P16.6 produces observations, and the importer is the game project's.
 
 ## Sources (checked 2026-10-27)
 
