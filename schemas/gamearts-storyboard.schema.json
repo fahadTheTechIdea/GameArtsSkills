@@ -157,6 +157,10 @@
               "content_sha256": {
                 "type": "string",
                 "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "owner": {
+                "type": "string",
+                "description": "The external owner that approved this scene, when one owns the storyboard."
               }
             }
           }
@@ -196,6 +200,9 @@
               "minLength": 1
             },
             "at_utc": {
+              "type": "string"
+            },
+            "owner": {
               "type": "string"
             }
           }
@@ -253,6 +260,24 @@
           }
         }
       }
+    },
+    "external_owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "adopted_at_utc"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "adopted_at_utc": {
+          "type": "string"
+        }
+      },
+      "description": "Set when another tool owns the scenes (their identity, order and approval). Game Arts then only makes pictures for them: it never writes, approves or rejects them itself."
     }
   },
   "additionalProperties": false

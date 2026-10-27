@@ -208,13 +208,16 @@ def _settings_warnings(settings):
     return warnings
 
 
-def confirm_settings(game_root, confirmed_by, confirmation_reference):
+def confirm_settings(game_root, confirmed_by, confirmation_reference, presented_version=None):
     """Record the owner's confirmation of the saved settings: the real time, who, and the owner's words. Nothing else in the file changes."""
     if not (confirmed_by or "").strip() or not (confirmation_reference or "").strip():
         raise ValueError("Say who confirmed (--by) and quote the owner's words (--user-confirmation-ref); a confirmation is never invented")
     root = Path(game_root).resolve()
     settings, _, _ = common.load_project_settings(root, require_confirmed=False)
     chosen = setup_wizard.setup_problems(settings)
+    shown = setup_wizard.version((settings.get("setup") or {}).get("answers") or {})
+    if not chosen and presented_version != shown:  # the owner confirms exactly the settings they were shown, not whatever the file says now
+        chosen = [f"the version shown to the owner ({presented_version or 'none given'}) is not the version of these settings ({shown}); show the owner the written summary and its version"]
     if chosen:  # every setting is the owner's own pick: nothing is confirmed while one was filled in for them
         raise ValueError("These settings cannot be confirmed yet: " + "; ".join(chosen) + ". Run the setup wizard (gamearts_setup.py next) and ask each question")
     settings.update({"settings_status": "owner_confirmed", "confirmed_at": _now(), "confirmed_by": confirmed_by.strip(),
@@ -231,7 +234,8 @@ def check_settings(game_root):
     return {"status": "valid", "settings_status": settings.get("settings_status", "unset"),
             "owner_confirmed": settings.get("settings_status") == "owner_confirmed", "material_settings_sha256": canonical,
             "warnings": _settings_warnings(settings),
-            "setup": {"complete": not setup_wizard.setup_problems(settings), "problems": setup_wizard.setup_problems(settings)},
+            "setup": {"complete": not setup_wizard.setup_problems(settings), "problems": setup_wizard.setup_problems(settings),
+                      "version": setup_wizard.version((settings.get("setup") or {}).get("answers") or {})},
             "image_generation": settings.get("image_generation"), "world_kind": common.world_kind(settings),
             "directions": common.resolve_directions(settings), "screen": settings.get("screen"),
             "engine_target": engine, "style_preset": presets.resolve_style_preset(settings), "style_anchor": _anchor_summary(root, settings),
@@ -1546,6 +1550,7 @@ def main():
     sub = op("confirm-settings")
     sub.add_argument("--by", required=True, help="Who confirmed: the owner or an authorized role")
     sub.add_argument("--user-confirmation-ref", required=True, help="The owner's own words confirming the settings; never invent")
+    sub.add_argument("--presented-version", required=True, help="The version printed by finish or check-settings, as shown to the owner")
     sub = op("select")
     sub.add_argument("--stage", choices=("approved", "generated"), required=True)
     sub.add_argument("--kind", choices=KINDS, required=True)
@@ -1645,7 +1650,7 @@ def main():
         if name == "check-settings":
             result = check_settings(args.game_root)
         elif name == "confirm-settings":
-            result = confirm_settings(args.game_root, args.by, args.user_confirmation_ref)
+            result = confirm_settings(args.game_root, args.by, args.user_confirmation_ref, args.presented_version)
         elif name == "select":
             result = select(args.game_root, args.kind, args.stage, args.id, args.revision, report=True)
         elif name == "list":

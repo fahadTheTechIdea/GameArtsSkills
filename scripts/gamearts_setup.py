@@ -3,7 +3,7 @@
 
   python scripts/gamearts_setup.py show   --game-root GAME                      # the whole wizard: every question, its prompt, its options, what is answered
   python scripts/gamearts_setup.py next   --game-root GAME                      # the next unanswered question, ready to show
-  python scripts/gamearts_setup.py answer --game-root GAME --id QUESTION --value OPTION [--text WORDS]
+  python scripts/gamearts_setup.py answer --game-root GAME --id QUESTION --value OPTION --said "<the owner's own words>" [--text WORDS]
   python scripts/gamearts_setup.py status --game-root GAME                      # answered, unanswered, complete or not
   python scripts/gamearts_setup.py finish --game-root GAME                    # write project.json from the answers (complete wizards only)
 
@@ -15,6 +15,7 @@ the screen), so answering it again resets only the questions that depend on it. 
 """
 import argparse
 import functools
+import hashlib
 import json
 import sys
 from datetime import datetime, timezone
@@ -81,9 +82,13 @@ LAYER_STACKS = {
 PALETTE = [("words", "Describe it in words", "For example: warm earth tones, at most 32 colours. You will be asked for the description."),
            ("picture", "Use a palette picture", "A picture of your colours; you will be asked for its path and the colours are read from it."),
            ("none", "No fixed palette", "Recorded as your choice, so it is never an oversight.")]
-ORDER = ["project_name", "world_kind", "look", "viewpoint", "tile_size", "scale", "layers", "screen_size", "screen_scaling", "directions", "animation",
+SOFT_EDGES = [("hard", "Keep the delivered edges hard", "Soft coverage is kept separately wherever your image tool can return true alpha, so nothing is lost silently."),
+              ("matte", "Deliver a soft-edge companion", "A matte picture beside each sheet; needs an image tool that returns true alpha. The runtime export turns it into real soft alpha.")]
+SOFT_EDGE_RULES = {"hard": "Soft edges: delivered pictures keep hard edges; any soft coverage is kept separately and never claimed to be recovered from the key colour.",
+                   "matte": "Soft edges: deliver a companion matte (<name>.matte.png) beside each key sheet where the image tool returns true alpha."}
+ORDER = ["project_name", "world_kind", "look", "soft_edges", "viewpoint", "tile_size", "scale", "layers", "screen_size", "screen_scaling", "directions", "animation",
          "image_generator", "engine", "palette"]
-DEPENDS = {"look": {"world_kind"}, "viewpoint": {"world_kind"}, "tile_size": {"world_kind", "viewpoint"}, "scale": {"world_kind", "viewpoint"},
+DEPENDS = {"look": {"world_kind"}, "soft_edges": {"look"}, "viewpoint": {"world_kind"}, "tile_size": {"world_kind", "viewpoint"}, "scale": {"world_kind", "viewpoint"},
            "layers": {"world_kind"}, "screen_size": {"world_kind"}, "screen_scaling": {"world_kind"}, "directions": {"world_kind"}}
 
 
@@ -116,6 +121,14 @@ def _look_options(answers):
     return _opts(found) + [{"value": OTHER, "label": "Something else", "description": "Describe the look in your own words; you will be asked for it."}]
 
 
+def _soft(answers):
+    """Whether the chosen look has soft edges: a look of the owner's own words is asked too, because nothing says it has none."""
+    chosen = _value(answers, "look")
+    if chosen is None:
+        return False
+    return chosen == OTHER or bool(_styles()[chosen].get("soft_edges"))
+
+
 def question(name, answers):
     """The question with this id as the wizard shows it now, or None when this game's answers make it not apply."""
     kind = _kind(answers)
@@ -129,6 +142,9 @@ def question(name, answers):
         return None
     if name == "look":
         return {"id": name, "header": "Look", "prompt": "Which look do you want for the art?", "options": _look_options(answers)}
+    if name == "soft_edges" and _soft(answers):
+        return {"id": name, "header": "Soft edges", "prompt": "Your look has soft painted edges, and the opaque magenta-keyed pictures Game Arts delivers cannot store them. What should happen to the softness?",
+                "options": _opts(SOFT_EDGES)}
     if name == "viewpoint" and has_ground:
         keys = ["side", "oblique", "top_down"] if kind == "layered_scene" else list(VIEWS)
         options = _opts((key, VIEWS[key][2], VIEWS[key][3]) for key in keys)
@@ -219,14 +235,18 @@ def load_answers(root):
     return common.read_json(path)["answers"] if path.is_file() else {}
 
 
-def answer(root, name, value, text=None):
-    """Record the owner's choice and reset the later questions that depend on it. Returns the new status."""
+def answer(root, name, value, text=None, said=None):
+    """Record the owner's choice with their own words, and reset the later questions that depend on it. Returns the new status."""
+    if not (said or "").strip():
+        raise ValueError("Record the owner's own words behind this pick (--said); a choice is never made for them")
     answers = load_answers(root)
     check_answer(answers, name, value, text)
     same = (answers.get(name) or {}).get("value") == value and (answers.get(name) or {}).get("text") == ((text or "").strip() or None)
-    if same:  # choosing the same thing again changes nothing, so the questions that depend on it keep their answers
+    if same:  # choosing the same thing again changes no pick, so the questions that depend on it keep their answers; the owner's words are still recorded
+        answers[name]["said"] = said.strip()
+        common.atomic_write_json(state_path(root), {"schema_version": "1.0", "answers": answers})
         return status(root)
-    answers[name] = {"value": value, "answered_at": datetime.now(timezone.utc).isoformat(), **({"text": text.strip()} if text and text.strip() else {})}
+    answers[name] = {"value": value, "said": said.strip(), "answered_at": datetime.now(timezone.utc).isoformat(), **({"text": text.strip()} if text and text.strip() else {})}
     for dependent, needs in DEPENDS.items():
         if name in needs and dependent in answers and dependent != name:
             del answers[dependent]
@@ -236,10 +256,24 @@ def answer(root, name, value, text=None):
     return status(root)
 
 
+def version(answers):
+    """A short citable version of the picks (12 hex characters): the values and the owner's typed details, not the words or the times, so showing it to the
+    owner and confirming it later tie the confirmation to exactly these settings."""
+    picks = {key: {"value": item["value"], **({"text": item["text"]} if item.get("text") else {})} for key, item in sorted(answers.items())}
+    return hashlib.sha256(json.dumps(picks, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:12]
+
+
+TRIGGERS = {"project_name": "always", "world_kind": "always", "look": "after the world kind", "soft_edges": "when the chosen look has soft edges, or is your own words",
+            "viewpoint": "for a tile map, free movement or scrolling layers", "tile_size": "for a tile map, after the viewpoint",
+            "scale": "for free movement or scrolling layers, after the viewpoint", "layers": "for scrolling layers", "screen_size": "for a screen-only game",
+            "screen_scaling": "for a screen-only game", "directions": "for every game with a world", "animation": "always", "image_generator": "always",
+            "engine": "always", "palette": "always"}
+
+
 def status(root):
     answers = load_answers(root)
     open_questions = unanswered(answers)
-    return {"complete": not open_questions, "answered": [key for key in ORDER if key in answers], "unanswered": open_questions}
+    return {"complete": not open_questions, "answered": [key for key in ORDER if key in answers], "unanswered": open_questions, "version": version(answers)}
 
 
 def _existing(root):
@@ -284,7 +318,8 @@ def describe(root, asked):
 
 def show(root):
     answers = load_answers(root)
-    return {"questions": [dict(describe(root, q), answered=answers.get(q["id"])) for q in applicable(answers)], **status(root)}
+    return {"questions": [dict(describe(root, q), answered=answers.get(q["id"])) for q in applicable(answers)], **status(root),
+            "possible": [{"id": name, "appears": TRIGGERS[name]} for name in ORDER]}
 
 
 def next_question(root):
@@ -358,8 +393,43 @@ def build_settings(answers, root, existing=None):
     settings["image_generation"] = {"tool": tool["value"], **({"tool_name": tool["text"]} if tool["value"] == "connected_tool" else {})}
     engine = answers["engine"]
     settings["engine_target"] = {"profile": (engine["text"].strip().lower() if engine["value"] == OTHER else engine["value"])}
+    prompting = dict(settings.get("prompting") or {})
+    constraints = [c for c in prompting.get("additional_constraints", []) if c not in SOFT_EDGE_RULES.values()]
+    if "soft_edges" in answers:
+        constraints.append(SOFT_EDGE_RULES[answers["soft_edges"]["value"]])
+    if constraints:
+        prompting["additional_constraints"] = constraints
+    else:
+        prompting.pop("additional_constraints", None)
+    if prompting:
+        settings["prompting"] = prompting
+    else:
+        settings.pop("prompting", None)
     settings["setup"] = {"answers": {key: value for key, value in answers.items()}}
     return settings
+
+
+def _label(name, answers):
+    asked = question(name, answers)
+    value = answers[name]["value"]
+    option = next((o for o in asked["options"] if o["value"] == value), None)
+    return (option["label"] if option else value) + (f" ({answers[name]['text']})" if answers[name].get("text") else "")
+
+
+def summary(answers):
+    """The owner's picks in plain words and what each one means for the work, to show them the written settings before they confirm."""
+    lines = [f"{question(name, answers)['header']}: {_label(name, answers)}" for name in ORDER if name in answers]
+    tool = answers["image_generator"]["value"]
+    lines.append({"user_supplied": "Consequence: Game Arts generates no pictures; it prepares requests and imports the files you make.",
+                  "built_in_image_gen": "Consequence: every picture is made with your agent's own image tool; the agent never substitutes another.",
+                  "cli_image_gen": "Consequence: every picture is made with Codex's command-line image tool, which needs an OpenAI API key.",
+                  "connected_tool": "Consequence: every picture is made with the connected tool you named, which may charge for each picture."}[tool])
+    engine = answers["engine"]["value"]
+    lines.append("Consequence: plain guidance for any engine, and no automatic engine-ready copies." if engine == "generic"
+                 else "Consequence: import advice and default engine-ready copies come from the engine's profile where one is installed.")
+    if "soft_edges" in answers:
+        lines.append("Consequence: " + SOFT_EDGE_RULES[answers["soft_edges"]["value"]])
+    return lines
 
 
 def finish(root):
@@ -384,7 +454,7 @@ def finish(root):
         settings.pop("confirmed_by", None)
     common.validate_schema(settings, "gamearts-project")
     common.atomic_write_json(root / ".gamearts" / "project.json", settings)
-    return {"written": ".gamearts/project.json", "settings_status": settings["settings_status"],
+    return {"written": ".gamearts/project.json", "settings_status": settings["settings_status"], "version": version(answers), "summary": summary(answers),
             "next": "Show the owner a plain summary and ask them to confirm; then run confirm-settings with their words." if settings["settings_status"] != "owner_confirmed"
             else "The settings are unchanged, so the owner's earlier confirmation stands."}
 
@@ -394,7 +464,7 @@ def setup_problems(settings):
     answers = (settings.get("setup") or {}).get("answers")
     if answers is None:
         return ["these settings were not chosen through the setup wizard (gamearts_setup.py); the owner has not answered the questions one by one"]
-    return [f"setting not answered: {name}" for name in unanswered(answers)]
+    return [f"setting not answered: {name}" for name in unanswered(answers)] + [f"no owner words recorded for: {name}" for name, item in answers.items() if not item.get("said")]
 
 
 def main():
@@ -407,6 +477,7 @@ def main():
             sub.add_argument("--id", required=True)
             sub.add_argument("--value", required=True)
             sub.add_argument("--text")
+            sub.add_argument("--said", required=True, help="The owner's own words behind this pick; never invent")
     args = parser.parse_args()
     try:
         if args.operation == "show":
@@ -416,7 +487,7 @@ def main():
         elif args.operation == "status":
             result = status(args.game_root)
         elif args.operation == "answer":
-            result = answer(args.game_root, args.id, args.value, args.text)
+            result = answer(args.game_root, args.id, args.value, args.text, args.said)
         else:
             result = finish(args.game_root)
         print(json.dumps(result, indent=2, ensure_ascii=False))

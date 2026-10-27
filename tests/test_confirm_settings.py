@@ -25,20 +25,24 @@ class GameCase(unittest.TestCase):
         return common.read_json(self.root / ".gamearts" / "project.json")
 
 
-ANSWERS = [("project_name", "name", "Demo"), ("world_kind", "screen_space", None), ("look", "flat_vector", None), ("screen_size", "1920x1080", None), ("screen_scaling", "fit", None),
+ANSWERS = [("project_name", "name", "Demo"), ("world_kind", "screen_space", None), ("look", "flat_vector", None), ("soft_edges", "hard", None), ("screen_size", "1920x1080", None), ("screen_scaling", "fit", None),
            ("animation", "hybrid", None), ("image_generator", "user_supplied", None), ("engine", "generic", None), ("palette", "none", None)]
+
+
+def confirm(root, who, words):
+    return life.confirm_settings(root, who, words, wizard.version(common.read_json(Path(root) / ".gamearts" / "project.json")["setup"]["answers"]))
 
 
 class ConfirmTests(GameCase):
     def setUp(self):
         super().setUp()
         for name, value, text in ANSWERS:  # settings the wizard wrote: confirming needs every one chosen by the owner
-            wizard.answer(self.root, name, value, text)
+            wizard.answer(self.root, name, value, text, "the owner's own words")
         wizard.finish(self.root)
 
     def test_the_confirmation_is_stamped_with_the_real_time_and_the_owners_words(self):
         with mock.patch.object(life, "_now", return_value="2031-02-03T04:05:06.000007+00:00"):
-            result = life.confirm_settings(self.root, "owner", "yes, save those")
+            result = confirm(self.root, "owner", "yes, save those")
         saved = self.saved()
         self.assertEqual((saved["settings_status"], saved["confirmed_by"], saved["confirmation_ref"]), ("owner_confirmed", "owner", "yes, save those"))
         self.assertEqual(saved["confirmed_at"], "2031-02-03T04:05:06.000007+00:00")  # the framework's clock, not a typed value
@@ -46,13 +50,13 @@ class ConfirmTests(GameCase):
 
     def test_nothing_else_in_the_settings_changes(self):
         before = common.canonical_settings_hash(self.saved())
-        life.confirm_settings(self.root, "owner", "yes")
+        confirm(self.root, "owner", "yes")
         self.assertEqual(common.canonical_settings_hash(self.saved()), before)
 
     def test_a_confirmation_needs_a_name_and_the_owners_words(self):
         for who, words in (("", "yes"), ("owner", ""), ("  ", "yes"), ("owner", None)):
             with self.subTest(who=who, words=words), self.assertRaisesRegex(ValueError, "never invented"):
-                life.confirm_settings(self.root, who, words)
+                life.confirm_settings(self.root, who, words, "000000000000")
         self.assertEqual(self.saved()["settings_status"], "inferred")
 
     def test_a_game_with_no_settings_is_refused_and_nothing_is_created(self):

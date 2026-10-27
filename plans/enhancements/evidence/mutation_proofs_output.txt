@@ -13,6 +13,7 @@ BASELINE test_gamearts_common.py: ok (OK)
 BASELINE test_gamearts_storyboard.py: ok (OK)
 BASELINE test_import_asset.py: ok (OK)
 BASELINE test_lifecycle_operations.py: ok (OK)
+BASELINE test_matte.py: ok (OK)
 BASELINE test_next_steps.py: ok (OK)
 BASELINE test_palette.py: ok (OK)
 BASELINE test_plan_card.py: ok (OK)
@@ -21,7 +22,9 @@ BASELINE test_presets.py: ok (OK)
 BASELINE test_project_schema.py: ok (OK)
 BASELINE test_render_preview.py: ok (OK)
 BASELINE test_report.py: ok (OK)
+BASELINE test_setup_wizard.py: ok (OK)
 BASELINE test_snap_to_pixel_grid.py: ok (OK)
+BASELINE test_storyboard_external.py: ok (OK)
 BASELINE test_style_anchor.py: ok (OK)
 BASELINE test_style_conformance.py: ok (OK)
 BASELINE test_sync_local_agents.py: ok (OK)
@@ -76,47 +79,47 @@ M08 caught  F-007 project.json not validated: test_gamearts_common.py fails (FAI
     ValueError: mockup ID must be a nonempty filename-safe ID
 M09 caught  F-009 two mockup id rules: test_prepare_reference_crop.py fails (FAILED (errors=1))
     ERROR: test_a_receipt_missing_required_fields_is_a_contract_failure (test_prepare_reference_crop.ReferenceCropTests.test_a_receipt_missing_required_fields_is_a_contract_failure)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp_3moeq7c\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp_3moeq7c\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmply0a3pre\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmply0a3pre\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
     ERROR: test_dotted_mockup_ids_share_the_lifecycle_rule (test_prepare_reference_crop.ReferenceCropTests.test_dotted_mockup_ids_share_the_lifecycle_rule)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpldz7ckuv\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpldz7ckuv\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpa9biugxe\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpa9biugxe\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
     ERROR: test_full_bleed_class_accepts_a_candidate_with_no_key_pixels (test_prepare_reference_crop.ReferenceCropTests.test_full_bleed_class_accepts_a_candidate_with_no_key_pixels)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpaclloj98\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpaclloj98\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpjoy0_3aw\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpjoy0_3aw\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
     ERROR: test_manifest_tamper_invalidates_prepared_packet (test_prepare_reference_crop.ReferenceCropTests.test_manifest_tamper_invalidates_prepared_packet)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmptw_ivovr\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmptw_ivovr\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpo9wkkbgt\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpo9wkkbgt\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
     ERROR: test_mobile_keeps_game_configured_direction_set (test_prepare_reference_crop.ReferenceCropTests.test_mobile_keeps_game_configured_direction_set)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpkr2lm0qc\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpkr2lm0qc\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmptyetxxa0\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmptyetxxa0\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
     ERROR: test_packet_holds_no_absolute_path_and_survives_moving_the_game (test_prepare_reference_crop.ReferenceCropTests.test_packet_holds_no_absolute_path_and_survives_moving_the_game)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp8nyx1hcw\\game\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp8nyx1hcw\\game\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpkdkweotd\\game\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpkdkweotd\\game\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
     ERROR: test_real_crop_and_selected_settings_in_prompt (test_prepare_reference_crop.ReferenceCropTests.test_real_crop_and_selected_settings_in_prompt)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpac77vr4s\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpac77vr4s\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpn5faxauq\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpn5faxauq\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
     ERROR: test_static_uses_one_view_not_world_camera_as_direction (test_prepare_reference_crop.ReferenceCropTests.test_static_uses_one_view_not_world_camera_as_direction)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp2n5rkgn1\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp2n5rkgn1\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpiev3wkxg\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpiev3wkxg\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
     ERROR: test_terrain_uses_ground_grid_not_world_object_camera (test_prepare_reference_crop.ReferenceCropTests.test_terrain_uses_ground_grid_not_world_object_camera)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpzf_apmj0\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpzf_apmj0\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpi1ubrx3e\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpi1ubrx3e\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
     ERROR: test_ui_uses_ui_camera_not_world_camera (test_prepare_reference_crop.ReferenceCropTests.test_ui_uses_ui_camera_not_world_camera)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpr6uxj_sv\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpr6uxj_sv\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp6dtkl0a7\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp6dtkl0a7\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
     ERROR: test_valid_receipt_still_requires_visual_review (test_prepare_reference_crop.ReferenceCropTests.test_valid_receipt_still_requires_visual_review)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmplr5og_wd\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmplr5og_wd\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpod7z9uwu\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpod7z9uwu\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
     ERROR: test_verify_rejects_keyless_candidate_for_a_keyed_class (test_prepare_reference_crop.ReferenceCropTests.test_verify_rejects_keyless_candidate_for_a_keyed_class)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpjffwh3c1\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpjffwh3c1\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpvdu4umi0\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpvdu4umi0\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
     ERROR: test_verify_rejects_missing_or_false_tool_attachment (test_prepare_reference_crop.ReferenceCropTests.test_verify_rejects_missing_or_false_tool_attachment)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp1lkv7lco\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp1lkv7lco\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpakxjpdw7\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpakxjpdw7\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
     ERROR: test_verify_rejects_near_key_contamination (test_prepare_reference_crop.ReferenceCropTests.test_verify_rejects_near_key_contamination)
-    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp1mzm38ux\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
-    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp1mzm38ux\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    jsonschema.exceptions.ValidationError: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpthsj01ly\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
+    ValueError: gamearts-reference-packet contract violation at reference_crop: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpthsj01ly\\generated\\test_workshop_v001_reference_crop.png' does not match '^[^/\\\\:][^\\\\:]*$'
 M10 caught  F-012 absolute packet paths: test_prepare_reference_crop.py fails (FAILED (errors=14))
     ERROR: test_full_bleed_class_accepts_a_candidate_with_no_key_pixels (test_prepare_reference_crop.ReferenceCropTests.test_full_bleed_class_accepts_a_candidate_with_no_key_pixels)
     ValueError: Generated candidate lacks the exact #FF00FF background (under 1% key pixels)
@@ -128,7 +131,7 @@ M11 caught  F-003 full-bleed art rejected: test_prepare_reference_crop.py fails 
     AssertionError: ValueError not raised
 M12 caught  F-023 sprite not tied to the source pixels: test_validate_parent_cleanup.py fails (FAILED (failures=2))
     FAIL: test_parallel_registrations_lose_nothing (test_lifecycle_operations.ConcurrencyTests.test_parallel_registrations_lose_nothing)
-    AssertionError: Lists differ: [0, 0, 1, 1, 0] != [0, 0, 0, 0, 0]
+    AssertionError: Lists differ: ['scene-2'] != ['scene-0', 'scene-1', 'scene-2', 'scene-3', 'scene-4']
 M13 caught  F-020 manifest writes unlocked: test_lifecycle_operations.py fails (FAILED (failures=1))
     ERROR: test_approve_mockup_moves_image_metadata_and_approval_reference (test_gamearts_asset_lifecycle.MockupLifecycleGateTests.test_approve_mockup_moves_image_metadata_and_approval_reference)
     ValueError: Post-registration mockup audit failed: mockup was made under different material settings than the current owner-confirmed settings
@@ -200,13 +203,13 @@ M21 caught  storyboard approval not bound to content: test_gamearts_storyboard.p
 M22 caught  rollback restores files but not their content: test_lifecycle_operations.py fails (FAILED (failures=2))
     ERROR: test_a_move_that_hits_a_sharing_violation_is_retried_and_then_succeeds (test_gamearts_common.MoveRetryTests.test_a_move_that_hits_a_sharing_violation_is_retried_and_then_succeeds)
     PermissionError: [Errno 5] Access is denied
-    PermissionError: bundle could not be moved to tmplvs0s0ka/approved: another program on this computer (a virus scanner, a file indexer or a sync tool) is keeping it open. Nothing was changed; wait a moment and ask again.
+    PermissionError: bundle could not be moved to tmp7xgmxhr5/approved: another program on this computer (a virus scanner, a file indexer or a sync tool) is keeping it open. Nothing was changed; wait a moment and ask again.
     ERROR: test_replace_file_uses_the_same_retry_and_raises_a_persistent_violation_unchanged (test_gamearts_common.MoveRetryTests.test_replace_file_uses_the_same_retry_and_raises_a_persistent_violation_unchanged)
     PermissionError: [Errno 5] Access is denied
     ERROR: test_the_pauses_grow_and_the_total_wait_is_bounded (test_gamearts_common.MoveRetryTests.test_the_pauses_grow_and_the_total_wait_is_bounded)
     IndexError: list index out of range
     FAIL: test_concurrent_writers_never_share_a_temp_file (test_gamearts_common.AtomicWriteTests.test_concurrent_writers_never_share_a_temp_file)
-    AssertionError: Lists differ: [PermissionError(13, 'Access is denied'), [76 chars]ed')] != []
+    AssertionError: Lists differ: [PermissionError(13, 'Access is denied'), [117 chars]ed')] != []
 M23 caught  atomic replace without the sharing-violation retry: test_gamearts_common.py fails (FAILED (failures=1, errors=3))
     FAIL: test_a_missing_validator_package_is_reported_not_skipped (test_gamearts_common.SchemaTests.test_a_missing_validator_package_is_reported_not_skipped)
     AssertionError: DependencyMissing not raised
@@ -217,18 +220,18 @@ M24 caught  F-010 missing validator treated as a pass: test_gamearts_common.py f
     AssertionError: 'oilfield' unexpectedly found in '---\nname: art-profile\ndescription: resolve a game\'s art style, world or screen geometry, camera, scale and direction policy from its saved settings and approved references, and build the style lock for image prompts. use before any image-tool call
 M25 caught  doc guard: one game's rules in universal text: test_docs_guard.py fails (FAILED (failures=2))
     FAIL: test_both_skill_trees_hold_the_same_skills_with_identical_text (test_docs_guard.MirroredTreesTests.test_both_skill_trees_hold_the_same_skills_with_identical_text)
-    AssertionError: '---\[277 chars]lases\n\nPolicy: master *Sprite sheets, atlase[5792 chars]m.\n' != '---\[277 chars]lases (edited)\n\nPolicy: master *Sprite sheet[5801 chars]m.\n'
+    AssertionError: '---\[277 chars]lases\n\nPolicy: master *Sprite sheets, atlase[6015 chars]m.\n' != '---\[277 chars]lases (edited)\n\nPolicy: master *Sprite sheet[6024 chars]m.\n'
 M26 caught  doc guard: skill trees drift: test_docs_guard.py fails (FAILED (failures=1))
     FAIL: test_framework_text_carries_no_version_labels (test_docs_guard.NoVersionsTests.test_framework_text_carries_no_version_labels)
     AssertionError: <re.Match object; span=(32, 36), match='v7.8'> is not None : docs/COMMANDS.md has a version label: 'v7.8'
 M27 caught  doc guard: version label returns: test_docs_guard.py fails (FAILED (failures=1))
     FAIL: test_no_tabs_stray_escapes_or_literal_newlines_in_documents (test_docs_guard.CorruptedTextTests.test_no_tabs_stray_escapes_or_literal_newlines_in_documents)
-    AssertionError: '\t' unexpectedly found in '# Game Arts project settings\n\nYour game\'s visual preferences, set up inside Claude Code or Codex. No programming or command line is needed.\n\n## Start, review, change\nSay **"Set up Game Arts for this game."** The agent asks a few friendly questions: w
+    AssertionError: '\t' unexpectedly found in '# Game Arts project settings\n\nYour game\'s visual preferences, set up inside Claude Code or Codex. No programming or command line is needed.\n\n## Start, review, change\nSay **"Set up Game Arts for this game."** The agent shows you each question with its
 M28 caught  doc guard: corrupted TAB returns: test_docs_guard.py fails (FAILED (failures=1))
     FAIL: test_both_skill_trees_hold_the_same_skills_with_identical_text (test_docs_guard.MirroredTreesTests.test_both_skill_trees_hold_the_same_skills_with_identical_text)
     AssertionError: '---\[446 chars]cycle management*, *External and user-supplied[10005 chars]s.\n' != '---\[446 chars]cycle*, *External and user-supplied mockups*, [9994 chars]s.\n'
     FAIL: test_skills_and_docs_cite_real_master_headings (test_docs_guard.OneOwnerTests.test_skills_and_docs_cite_real_master_headings)
-    AssertionError: 'Asset and mockup lifecycle management' not found in {'Precedence and canonical production workflow', 'Art-style profiles', 'Reference crop and conditioning gate', 'Standard versus implementation', 'Sprite sheets, atlases and component bundles', 'Engine-neutral integration contract',
+    AssertionError: 'Asset and mockup lifecycle management' not found in {'Reference-controlled image prompting', 'World geometry, projection and scale', 'Animation candidates and modular components', 'Mandatory mockup-first approval gate', 'Storyboard and campaign planning', 'Masking and PNG export pol
 M29 caught  doc guard: citation of a heading that does not exist: test_docs_guard.py fails (FAILED (failures=2))
     FAIL: test_no_engine_and_no_vendor_is_named_outside_the_engine_profiles (test_docs_guard.NoEngineTests.test_no_engine_and_no_vendor_is_named_outside_the_engine_profiles)
     AssertionError: <re.Match object; span=(52, 57), match='godot'> is not None : scripts/gamearts_common.py names the engine 'godot': say "your engine"; engine facts belong in presets/engines
@@ -239,9 +242,9 @@ M30 caught  doc guard: engine file returns: test_docs_guard.py fails (FAILED (fa
     AssertionError: False is not true : README.md links to missing docs/COMMANDS_MISSING.md
 M31 caught  doc guard: broken link: test_docs_guard.py fails (FAILED (failures=1))
     ERROR: test_the_current_tree_installs_with_the_published_updater_and_hands_over_cleanly (test_sync_local_agents.LegacyCompatibilityTests.test_the_current_tree_installs_with_the_published_updater_and_hands_over_cleanly)
-    ValueError: Expected exactly one GAME_ARTS_MASTER_STANDARD*.md in C:\Users\f_ald\AppData\Local\Temp\tmpnl0_0oyc\framework, found 2
+    ValueError: Expected exactly one GAME_ARTS_MASTER_STANDARD*.md in C:\Users\f_ald\AppData\Local\Temp\tmp4h15_ty0\framework, found 2
     ERROR: test_a_bridge_under_the_old_name_beside_the_real_master_is_ignored_and_removed_from_games (test_sync_local_agents.MasterDiscoveryTests.test_a_bridge_under_the_old_name_beside_the_real_master_is_ignored_and_removed_from_games)
-    ValueError: Expected exactly one GAME_ARTS_MASTER_STANDARD*.md in C:\Users\f_ald\AppData\Local\Temp\tmpstu3rjsp\framework, found 2
+    ValueError: Expected exactly one GAME_ARTS_MASTER_STANDARD*.md in C:\Users\f_ald\AppData\Local\Temp\tmpv20w1o41\framework, found 2
 M32 caught  bridge name beats the real master: test_sync_local_agents.py fails (FAILED (errors=2))
     FAIL: test_the_master_is_unversioned_and_the_only_other_file_is_the_small_bridge (test_docs_guard.RepositoryHygieneTests.test_the_master_is_unversioned_and_the_only_other_file_is_the_small_bridge)
     AssertionError: ['## 1. Purpose'] is not false : the bridge carries no policy sections
@@ -284,7 +287,7 @@ M37 caught  import re-encodes a PNG: test_lifecycle_operations.py fails (FAILED 
     AssertionError: <re.Match object; span=(0, 17), match='README_INSTALL.md'> is not None : docs/COMMANDS.md links to ../README_INSTALL.md, which is not installed in a game
 M38 caught  doc guard: a shipped doc links to a file that is not installed: test_docs_guard.py fails (FAILED (failures=1))
     ERROR: test_bootstrap_keeps_the_system_folder_out_of_git_without_touching_gitignore (test_sync_local_agents.BootstrapCommandTests.test_bootstrap_keeps_the_system_folder_out_of_git_without_touching_gitignore)
-    FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp0yjh2nhh\\game\\.git\\info\\exclude'
+    FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpd8jv2t6i\\game\\.git\\info\\exclude'
     FAIL: test_without_a_git_directory_the_user_is_told (test_sync_local_agents.BootstrapCommandTests.test_without_a_git_directory_the_user_is_told)
     AssertionError: 'keep it out of version control' not found in 'excluded from git through .git/info/exclude'
 M39 caught  bootstrap claims the system folder is excluded without doing it: test_sync_local_agents.py fails (FAILED (failures=1, errors=1))
@@ -333,13 +336,13 @@ M49 caught  register-generated records some other text than the prompt that was 
     AssertionError: 'exec-1234.png' != 'test-project_scene_market_mockup_v001.png'
 M50 caught  register-generated keeps the tool's own file name: test_lifecycle_operations.py fails (FAILED (failures=1))
     ERROR: test_staging_never_leaves_the_game_folder (test_lifecycle_operations.RegisterGeneratedTests.test_staging_never_leaves_the_game_folder)
-    FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\no-such-temp-folder\\generated-ije861j9'
+    FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\no-such-temp-folder\\generated-lwgq9u1l'
 M51 caught  register-generated stages files in the operating system's temp folder: test_lifecycle_operations.py fails (FAILED (errors=1))
     ERROR: test_staging_never_leaves_the_game_folder (test_lifecycle_operations.RegisterGeneratedTests.test_staging_never_leaves_the_game_folder)
-    FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\no-such-temp-folder\\import-c3g8kuma'
+    FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\no-such-temp-folder\\import-b1mowbnq'
 M52 caught  import-mockup stages files in the operating system's temp folder: test_lifecycle_operations.py fails (FAILED (errors=1))
     FAIL: test_the_updater_never_ships_the_bridge_to_a_game (test_docs_guard.RepositoryHygieneTests.test_the_updater_never_ships_the_bridge_to_a_game)
-    AssertionError: 'GAME_ARTS_MASTER_STANDARD_v7.7.md' unexpectedly found in {'schemas/gamearts-reference-receipt.schema.json', 'docs/STORYBOARD.md', '.claude/skills/game-arts/SKILL.md', 'scripts/validate_blueprint.py', '.agents/skills/game-arts/SKILL.md', 'scripts/visual_review_cleanup.py', 'GAME_ARTS
+    AssertionError: 'GAME_ARTS_MASTER_STANDARD_v7.7.md' unexpectedly found in {'docs/USER_WORKFLOW.md', 'schemas/gamearts-component-job.schema.json', 'schemas/gamearts-review-spec.schema.json', 'schemas/mockup-blueprint.schema.json', 'scripts/export_runtime.py', '.agents/skills/mockup-analyzer/SKILL.md'
 M34 caught  updater ships the bridge to games: test_docs_guard.py fails (FAILED (failures=1))
     FAIL: test_existing_projects_keep_their_material_settings_hash (test_world_kinds.FrozenHashTests.test_existing_projects_keep_their_material_settings_hash)
     AssertionError: 'bfb7e6744ad4facaeee4dc4d115e9776830ca862603c0e4a3d27c777120151e5' != 'f96d00998cc0d8ea945564a850d1e70997529085628ff4591d13b088c31166bc'
@@ -395,7 +398,7 @@ M63 caught  S-15 an engine with no profile becomes an error: test_presets.py fai
     AssertionError: '657f3c968f4e620d618c02a1194528325c4d0726b121c8c368344addb4a4410b' != 'a043f837b68aa1b4975baf6a33ed363d8ab5b467d5ebad90df3f73fe64168086'
 M64 caught  S-15 changing the engine flags approved art: test_presets.py fails (FAILED (failures=2))
     ERROR: test_a_preset_file_the_user_edited_is_kept_and_reported (test_sync_local_agents.PresetShippingTests.test_a_preset_file_the_user_edited_is_kept_and_reported)
-    FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp0cfag2vu\\game\\presets\\styles\\pixel_mid.json'
+    FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpgwp7e572\\game\\presets\\styles\\pixel_mid.json'
     FAIL: test_presets_are_installed_updated_and_removed_with_the_framework (test_sync_local_agents.PresetShippingTests.test_presets_are_installed_updated_and_removed_with_the_framework)
     AssertionError: False is not true
 M65 caught  S-3 presets are not shipped to games: test_sync_local_agents.py fails (FAILED (failures=1, errors=1))
@@ -493,7 +496,7 @@ M73 caught  U-5 an unwritable folder is not reported: test_doctor.py fails (FAIL
     AssertionError: 'fail' != 'warn'
 M74 caught  U-5 a game with no settings is a block instead of a nudge: test_doctor.py fails (FAILED (failures=1))
     FAIL: test_a_ready_game_reports_ready_and_changes_nothing (test_doctor.DoctorTests.test_a_ready_game_reports_ready_and_changes_nothing)
-    AssertionError: Lists differ: ['.gamearts', '.gamearts/.doctor-write-test-59636', '.gamearts/project.json'] != ['.gamearts', '.gamearts/project.json']
+    AssertionError: Lists differ: ['.gamearts', '.gamearts/.doctor-write-test-43072', '.gamearts/project.json'] != ['.gamearts', '.gamearts/project.json']
 M75 caught  U-5 the doctor leaves a file behind in the game: test_doctor.py fails (FAILED (failures=1))
     FAIL: test_every_card_carries_exactly_the_status_its_record_holds (test_report.RecordsOnlyTests.test_every_card_carries_exactly_the_status_its_record_holds)
     AssertionError: {'moc[50 chars]1': 'approved', 'asset:workshop_v001:v001': 'g[40 chars]ved'} != {'moc[50 chars]1': 'generated', 'mockup:scene-c:v001': 'revok[40 chars]ted'}
@@ -937,11 +940,7 @@ M169 caught  S-8 every frame is called trimmed: test_atlas_depth.py fails (FAILE
     FAIL: test_animation_checks_agree_on_a_trimmed_sheet_and_an_untrimmed_one (test_atlas_depth.ConsumerTests.test_animation_checks_agree_on_a_trimmed_sheet_and_an_untrimmed_one)
     AssertionError: Lists differ: [('loop_seam', 'passed'), ('pivot_drift', 'passed'), ('clipping', 'passed')] != [('loop_seam', 'untested'), ('pivot_drift', 'passed'), ('clipping', 'passed')]
 M170 caught  S-8 animation checks compare cells of different sizes without aligning them: test_atlas_depth.py fails (FAILED (failures=2))
-    FAIL: test_animation_checks_agree_on_a_trimmed_sheet_and_an_untrimmed_one (test_atlas_depth.ConsumerTests.test_animation_checks_agree_on_a_trimmed_sheet_and_an_untrimmed_one)
-    AssertionError: Lists differ: [('loop_seam', 'passed'), ('pivot_drift', 'passed'), ('clipping', 'passed')] != [('loop_seam', 'failed'), ('pivot_drift', 'passed'), ('clipping', 'passed')]
-    FAIL: test_the_pixels_in_the_sheet_are_the_source_pixels_of_the_kept_box (test_atlas_depth.TrimTests.test_the_pixels_in_the_sheet_are_the_source_pixels_of_the_kept_box)
-    AssertionError: b'\xff\x00\xff\xff\xff\x00\xff\xff\xff\x00\xf[1297 chars]\xff' != b'\xc8((\xff\xc8((\xff\xc8((\xff\xc8((\xff\xc[1009 chars]\xff' : walk_0
-M171 caught  S-8 the wrong part of the frame is copied into a trimmed cell: test_atlas_depth.py fails (FAILED (failures=2))
+M171 STALE   S-8 the wrong part of the frame is copied into a trimmed cell: anchor found 0 times in scripts/build_sheet_atlas.py
     ERROR: test_a_shelf_layout_says_so_and_has_no_grid_fields (test_atlas_depth.PackTests.test_a_shelf_layout_says_so_and_has_no_grid_fields)
     KeyError: 'layout'
 M172 caught  S-8 a shelf atlas does not say it is a shelf: test_atlas_depth.py fails (FAILED (errors=1))
@@ -1252,7 +1251,7 @@ M228 caught  S-6 the tileset and atlas may disagree about full_bleed: test_tiles
     AssertionError: False is not true
 M229 caught  S-6 a different number of tiles and frames is accepted: test_tileset.py fails (FAILED (failures=1))
     ERROR: test_a_tileset_whose_atlas_is_missing_is_reported_not_crashed (test_tileset.ValidatorTests.test_a_tileset_whose_atlas_is_missing_is_reported_not_crashed)
-    FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmp_eshic0c\\out\\wang_corner_16_set.atlas.json'
+    FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmphqm1u9m6\\out\\wang_corner_16_set.atlas.json'
 M230 caught  S-6 a missing atlas crashes instead of being reported: test_tileset.py fails (FAILED (errors=1))
     FAIL: test_a_tileset_with_a_missing_tile_fails_the_gate_by_name_and_cannot_be_approved (test_tileset.GateTests.test_a_tileset_with_a_missing_tile_fails_the_gate_by_name_and_cannot_be_approved)
     AssertionError: 'passed' != 'failed'
@@ -1348,31 +1347,7 @@ M249 caught  S-6 a corner layout is exported as an edge wang set: test_exchange_
     ERROR: test_the_layout_and_terrains_travel_as_tileset_properties (test_exchange_export.TiledTests.test_the_layout_and_terrains_travel_as_tileset_properties)
     KeyError: 'layout'
 M250 caught  S-6 the layout and terrains are not carried as properties: test_exchange_export.py fails (FAILED (errors=1))
-    FAIL: test_bundle_export_then_verify_through_the_command_line (test_export_runtime.CommandTests.test_bundle_export_then_verify_through_the_command_line)
-    AssertionError: 1 != 0 : {
-    FAIL: test_the_delivered_art_is_recovered_exactly_and_never_touched (test_export_runtime.ExportTests.test_the_delivered_art_is_recovered_exactly_and_never_touched)
-    AssertionError: b'\x00\x00\x00\xff\x00\x00\x00\xff\x00\x00\x0[36289 chars]\xff' != b'\xff\x00\xff\xff\xff\x00\xff\xff\xff\x00\xf[36289 chars]\xff'
-    FAIL: test_the_runtime_sheet_has_the_same_size_and_real_transparency (test_export_runtime.ExportTests.test_the_runtime_sheet_has_the_same_size_and_real_transparency)
-    AssertionError: Tuples differ: (255, 255) != (0, 255)
-    FAIL: test_a_picture_that_is_not_rgba_is_handled (test_export_runtime.ImageTests.test_a_picture_that_is_not_rgba_is_handled)
-    AssertionError: Tuples differ: (0, 0, 0, 255) != (0, 0, 0, 0)
-    FAIL: test_key_pixels_become_transparent_black_and_art_pixels_are_unchanged (test_export_runtime.ImageTests.test_key_pixels_become_transparent_black_and_art_pixels_are_unchanged)
-    AssertionError: Tuples differ: (0, 0, 0, 255) != (0, 0, 0, 0)
-    FAIL: test_laying_the_result_over_the_key_colour_gives_the_original_back_exactly (test_export_runtime.ImageTests.test_laying_the_result_over_the_key_colour_gives_the_original_back_exactly)
-    AssertionError: b"\x00\xff\x00\xff\x00\x00\x00\xff\x00\x00\x00\xff\x00\x00\x0[16279 chars]\xff" != b"\x00\xff\x00\xff\xff\x00\xff\xff\xff\x00\xff\xff\xff\x00\xf[16279 chars]\xff"
-    FAIL: test_approving_through_the_command_line_makes_the_profile_default_files (test_export_runtime.LifecycleCommandTests.test_approving_through_the_command_line_makes_the_profile_default_files)
-    AssertionError: 1 != 0
-    FAIL: test_a_failed_replacement_puts_the_previous_files_back (test_export_runtime.LifecycleTests.test_a_failed_replacement_puts_the_previous_files_back)
-    AssertionError: 'blocked' != 'consistent'
-    FAIL: test_existing_runtime_files_are_kept_unless_replacement_is_asked_for (test_export_runtime.LifecycleTests.test_existing_runtime_files_are_kept_unless_replacement_is_asked_for)
-    AssertionError: 'blocked' != 'consistent'
-    FAIL: test_the_record_lists_the_derived_files_and_the_manifest_hash (test_export_runtime.LifecycleTests.test_the_record_lists_the_derived_files_and_the_manifest_hash)
-    AssertionError: 'blocked' != 'consistent'
-    FAIL: test_a_copied_file_that_differs_from_its_source_is_reported (test_export_runtime.VerifyTests.test_a_copied_file_that_differs_from_its_source_is_reported)
-    AssertionError: Lists differ: ['hero.png: laid over the key colour it do[50 chars]tly'] != []
-    FAIL: test_a_fresh_export_verifies_clean (test_export_runtime.VerifyTests.test_a_fresh_export_verifies_clean)
-    AssertionError: Lists differ: ['hero.png: laid over the key colour it do[50 chars]tly'] != []
-M251 caught  S-16 key pixels stay opaque magenta in the runtime copy: test_export_runtime.py fails (FAILED (failures=12))
+M251 STALE   S-16 key pixels stay opaque magenta in the runtime copy: anchor found 0 times in scripts/export_runtime.py
     FAIL: test_bundle_export_then_verify_through_the_command_line (test_export_runtime.CommandTests.test_bundle_export_then_verify_through_the_command_line)
     AssertionError: 1 != 0 : {
     FAIL: test_a_picture_that_is_not_rgba_is_handled (test_export_runtime.ImageTests.test_a_picture_that_is_not_rgba_is_handled)
@@ -1415,7 +1390,7 @@ M253 caught  S-16 the round trip is checked over the wrong background: test_expo
     AssertionError: ValueError not raised
 M254 caught  S-16 the output may sit inside the art it is made from: test_export_runtime.py fails (FAILED (failures=1))
     ERROR: test_an_existing_export_is_never_overwritten (test_export_runtime.ExportTests.test_an_existing_export_is_never_overwritten)
-    OSError: [WinError 145] The directory is not empty: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpz9h_cze2\\runtime_out'
+    OSError: [WinError 145] The directory is not empty: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpq17gfllw\\runtime_out'
 M255 caught  S-16 a runtime export overwrites a folder that has files: test_export_runtime.py fails (FAILED (errors=1))
     FAIL: test_art_that_fails_its_own_checks_is_not_exported_and_nothing_is_left_behind (test_export_runtime.ExportTests.test_art_that_fails_its_own_checks_is_not_exported_and_nothing_is_left_behind)
     AssertionError: ValueError not raised
@@ -1463,10 +1438,10 @@ M263 caught  S-16 verify ignores files the manifest does not list: test_export_r
     AssertionError: False is not true
 M264 caught  S-16 verify ignores edits to the runtime atlas: test_export_runtime.py fails (FAILED (failures=1))
     FAIL: test_a_failure_after_the_work_has_started_leaves_no_half_built_folder_behind (test_export_runtime.ExportTests.test_a_failure_after_the_work_has_started_leaves_no_half_built_folder_behind)
-    AssertionError: Lists differ: ['.gamearts-runtime-77p18u5i'] != []
+    AssertionError: Lists differ: ['.gamearts-runtime-uzynrkho'] != []
 M265 caught  S-16 a failed export leaves a half-built folder behind: test_export_runtime.py fails (FAILED (failures=1))
     ERROR: test_a_folder_with_no_manifest_is_reported_not_crashed (test_export_runtime.VerifyTests.test_a_folder_with_no_manifest_is_reported_not_crashed)
-    FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpql4crpjt\\runtime_out\\runtime.export.json'
+    FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpchpgwhlq\\runtime_out\\runtime.export.json'
 M266 caught  S-16 a missing manifest crashes verify instead of being reported: test_export_runtime.py fails (FAILED (errors=1))
     FAIL: test_a_generated_asset_gets_nothing (test_export_runtime.LifecycleTests.test_a_generated_asset_gets_nothing)
     AssertionError: ValueError not raised
@@ -1477,11 +1452,11 @@ M267 caught  S-16 a generated asset gets runtime files: test_export_runtime.py f
     AssertionError: ValueError not raised
 M268 caught  S-16 existing runtime files are replaced without being asked: test_export_runtime.py fails (FAILED (failures=1))
     ERROR: test_a_failed_replacement_puts_the_previous_files_back (test_export_runtime.LifecycleTests.test_a_failed_replacement_puts_the_previous_files_back)
-    FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpi0bx2rq7\\.gamearts\\outputs\\runtime\\workshop_v001\\v001'
+    FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpere2kmm9\\.gamearts\\outputs\\runtime\\workshop_v001\\v001'
 M269 caught  S-16 a failed replacement loses the previous runtime files: test_export_runtime.py fails (FAILED (errors=1))
     ERROR: test_an_asset_that_fails_its_audit_gets_no_runtime_files (test_export_runtime.LifecycleTests.test_an_asset_that_fails_its_audit_gets_no_runtime_files)
         raise UnidentifiedImageError(msg)
-    PIL.UnidentifiedImageError: cannot identify image file 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpn59r9u5e\\.gamearts\\outputs\\assets\\approved\\workshop_v001\\workshop_v001_sheet.png'
+    PIL.UnidentifiedImageError: cannot identify image file 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpbl_t5e2f\\.gamearts\\outputs\\assets\\approved\\workshop_v001\\workshop_v001_sheet.png'
 M270 caught  S-16 runtime files are made from an asset that fails its audit: test_export_runtime.py fails (FAILED (errors=1))
     FAIL: test_a_missing_runtime_folder_is_found_by_reconcile (test_export_runtime.LifecycleTests.test_a_missing_runtime_folder_is_found_by_reconcile)
     AssertionError: False is not true
@@ -1524,7 +1499,7 @@ M278 caught  S-16 the next step does not tell the owner an automatic export fail
 M279 caught  S-16 the profile's default exports never reach the lifecycle: test_export_runtime.py fails (FAILED (errors=3))
     ERROR: test_a_move_that_hits_a_sharing_violation_is_retried_and_then_succeeds (test_gamearts_common.MoveRetryTests.test_a_move_that_hits_a_sharing_violation_is_retried_and_then_succeeds)
     PermissionError: [Errno 5] Access is denied
-    PermissionError: bundle could not be moved to tmpnmdrkzlq/approved: another program on this computer (a virus scanner, a file indexer or a sync tool) is keeping it open. Nothing was changed; wait a moment and ask again.
+    PermissionError: bundle could not be moved to tmplwwcdav5/approved: another program on this computer (a virus scanner, a file indexer or a sync tool) is keeping it open. Nothing was changed; wait a moment and ask again.
     ERROR: test_replace_file_uses_the_same_retry_and_raises_a_persistent_violation_unchanged (test_gamearts_common.MoveRetryTests.test_replace_file_uses_the_same_retry_and_raises_a_persistent_violation_unchanged)
     PermissionError: [Errno 5] Access is denied
     FAIL: test_concurrent_writers_never_share_a_temp_file (test_gamearts_common.AtomicWriteTests.test_concurrent_writers_never_share_a_temp_file)
@@ -1541,7 +1516,7 @@ M280 caught  R-1 a sharing violation is never retried: test_gamearts_common.py f
     AssertionError: PermissionError not raised
 M281 caught  R-1 a violation that persists is swallowed after the last attempt: test_gamearts_common.py fails (FAILED (failures=3))
     ERROR: test_a_move_that_half_happened_is_never_repeated_blindly (test_gamearts_common.MoveRetryTests.test_a_move_that_half_happened_is_never_repeated_blindly)
-    FileExistsError: [WinError 183] Cannot create a file when that file already exists: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpj0ujvrie\\approved'
+    FileExistsError: [WinError 183] Cannot create a file when that file already exists: 'C:\\Users\\f_ald\\AppData\\Local\\Temp\\tmpkfz69zjp\\approved'
 M282 caught  R-1 a move that half happened is repeated blindly: test_gamearts_common.py fails (FAILED (errors=1))
     FAIL: test_a_violation_that_persists_is_explained_with_the_likely_cause (test_gamearts_common.MoveRetryTests.test_a_violation_that_persists_is_explained_with_the_likely_cause)
     PermissionError: [Errno 5] Access is denied
@@ -1556,7 +1531,7 @@ M285 caught  R-1 a script moves a folder without the retry: test_gamearts_common
     ERROR: test_replace_file_uses_the_same_retry_and_raises_a_persistent_violation_unchanged (test_gamearts_common.MoveRetryTests.test_replace_file_uses_the_same_retry_and_raises_a_persistent_violation_unchanged)
     PermissionError: [Errno 5] Access is denied
     FAIL: test_concurrent_writers_never_share_a_temp_file (test_gamearts_common.AtomicWriteTests.test_concurrent_writers_never_share_a_temp_file)
-    AssertionError: Lists differ: [PermissionError(13, 'Access is denied'), [76 chars]ed')] != []
+    AssertionError: Lists differ: [PermissionError(13, 'Access is denied'), [117 chars]ed')] != []
 M286 caught  R-1 replace_file does not use the shared retry: test_gamearts_common.py fails (FAILED (failures=1, errors=1))
     FAIL: test_an_asset_with_engine_ready_copies_says_so_and_calls_them_derived (test_report.PreviewTests.test_an_asset_with_engine_ready_copies_says_so_and_calls_them_derived)
     AssertionError: 'Engine-ready copies' not found in '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>test_project — art report</title><style>\n:root{--bg:#f6f4ef;--panel:#ffffff;--text:#1d1b16;--muted:#5b574d;--lin
@@ -1783,7 +1758,9 @@ M309 caught  S-15 detachable parts do not make the full lane: test_plan_card.py 
     AssertionError: 'quick' != 'standard'
     FAIL: test_a_stack_of_parallax_layers_is_a_set_and_counts_every_layer (test_plan_card.LaneTests.test_a_stack_of_parallax_layers_is_a_set_and_counts_every_layer)
     AssertionError: 'quick' != 'standard'
-M310 caught  S-15 a set of pictures is planned as a quick job: test_plan_card.py fails (FAILED (failures=2))
+    FAIL: test_a_ui_kit_counts_every_control_and_state_and_one_screen_stays_quick (test_plan_card.LaneTests.test_a_ui_kit_counts_every_control_and_state_and_one_screen_stays_quick)
+    AssertionError: 'quick' != 'standard'
+M310 caught  S-15 a set of pictures is planned as a quick job: test_plan_card.py fails (FAILED (failures=3))
     FAIL: test_standard_adds_the_master_and_full_adds_the_hidden_area_review (test_plan_card.ApprovalTests.test_standard_adds_the_master_and_full_adds_the_hidden_area_review)
     AssertionError: Lists differ: ['the mockup', 'the finished asset'] != ['the mockup', 'the master picture', 'the finished asset']
     FAIL: test_the_command_prints_the_card_as_json (test_plan_card.CommandTests.test_the_command_prints_the_card_as_json)
@@ -1869,15 +1846,15 @@ M328 caught  S-17 the count of soft pixels made art is wrong: test_import_asset.
     AssertionError: "32 x 32.*3 columns" does not match "The sheet is 32 x 32, which does not divide into cells of 10 x 16"
 M329 caught  S-17 a grid that does not divide the sheet is accepted: test_import_asset.py fails (FAILED (failures=1))
     FAIL: test_a_cell_size_that_does_not_divide_the_sheet_is_refused_with_its_size (test_import_asset.GridTests.test_a_cell_size_that_does_not_divide_the_sheet_is_refused_with_its_size)
-    ValueError: C:\Users\f_ald\AppData\Local\Temp\gamearts-adopt-4et9fez0\frames\f0002.png must be fully opaque; use a separate mask
-    AssertionError: "32 x 32.*cells of 15 x 16" does not match "C:\Users\f_ald\AppData\Local\Temp\gamearts-adopt-4et9fez0\frames\f0002.png must be fully opaque; use a separate mask"
+    ValueError: C:\Users\f_ald\AppData\Local\Temp\gamearts-adopt-1gk3mfme\frames\f0002.png must be fully opaque; use a separate mask
+    AssertionError: "32 x 32.*cells of 15 x 16" does not match "C:\Users\f_ald\AppData\Local\Temp\gamearts-adopt-1gk3mfme\frames\f0002.png must be fully opaque; use a separate mask"
 M330 caught  S-17 a cell size that does not divide the sheet is accepted: test_import_asset.py fails (FAILED (failures=1))
     FAIL: test_a_rotated_frame_is_refused (test_import_asset.DataFileTests.test_a_rotated_frame_is_refused)
     AssertionError: ValueError not raised
 M331 caught  S-17 a rotated frame is accepted: test_import_asset.py fails (FAILED (failures=1))
     FAIL: test_a_frame_outside_the_sheet_is_refused (test_import_asset.DataFileTests.test_a_frame_outside_the_sheet_is_refused)
-    ValueError: C:\Users\f_ald\AppData\Local\Temp\gamearts-adopt-pjvpmc3g\frames\f0002.png must be fully opaque; use a separate mask
-    AssertionError: "outside the sheet" does not match "C:\Users\f_ald\AppData\Local\Temp\gamearts-adopt-pjvpmc3g\frames\f0002.png must be fully opaque; use a separate mask"
+    ValueError: C:\Users\f_ald\AppData\Local\Temp\gamearts-adopt-5v370bra\frames\f0002.png must be fully opaque; use a separate mask
+    AssertionError: "outside the sheet" does not match "C:\Users\f_ald\AppData\Local\Temp\gamearts-adopt-5v370bra\frames\f0002.png must be fully opaque; use a separate mask"
 M332 caught  S-17 a frame outside the sheet is accepted: test_import_asset.py fails (FAILED (failures=1))
     FAIL: test_names_that_repeat_are_refused (test_import_asset.DataFileTests.test_names_that_repeat_are_refused)
     ValueError: duplicate frame name: walk 0
@@ -2039,7 +2016,9 @@ M356 caught  R-3 a manifest schema lists a different rights value: test_gamearts
 M357 caught  P14 E-1 one icon is planned as a set of one: test_plan_card.py fails (FAILED (failures=2))
     FAIL: test_a_stack_of_parallax_layers_is_a_set_and_counts_every_layer (test_plan_card.LaneTests.test_a_stack_of_parallax_layers_is_a_set_and_counts_every_layer)
     AssertionError: 'quick' != 'standard'
-M358 caught  P14 E-2 a stack of parallax layers is counted as one picture: test_plan_card.py fails (FAILED (failures=1))
+    FAIL: test_a_ui_kit_counts_every_control_and_state_and_one_screen_stays_quick (test_plan_card.LaneTests.test_a_ui_kit_counts_every_control_and_state_and_one_screen_stays_quick)
+    AssertionError: 'quick' != 'standard'
+M358 caught  P14 E-2 a stack of parallax layers is counted as one picture: test_plan_card.py fails (FAILED (failures=2))
     FAIL: test_a_game_with_no_ground_world_is_not_planned_world_art (test_plan_card.LaneTests.test_a_game_with_no_ground_world_is_not_planned_world_art)
     AssertionError: ValueError not raised
 M359 caught  P14 E-3 world art is planned for a game with no ground world: test_plan_card.py fails (FAILED (failures=1))
@@ -2055,23 +2034,386 @@ M362 caught  P14 the confirmation time is typed by hand: test_confirm_settings.p
     FAIL: test_an_isometric_tile_that_is_not_two_to_one_is_warned_about (test_confirm_settings.WarningTests.test_an_isometric_tile_that_is_not_two_to_one_is_warned_about)
     AssertionError: 0 != 1
 M363 caught  P14 an isometric tile that is not 2:1 passes silently: test_confirm_settings.py fails (FAILED (failures=1))
-    ERROR: test_a_confirmation_needs_a_name_and_the_owners_words (test_confirm_settings.ConfirmTests.test_a_confirmation_needs_a_name_and_the_owners_words) (who='owner', words=None)
-    AttributeError: 'NoneType' object has no attribute 'strip'
     FAIL: test_a_confirmation_needs_a_name_and_the_owners_words (test_confirm_settings.ConfirmTests.test_a_confirmation_needs_a_name_and_the_owners_words) (who='', words='yes')
-    jsonschema.exceptions.ValidationError: '' should be non-empty
-    ValueError: gamearts-project contract violation at confirmed_by: '' should be non-empty
-    AssertionError: "never invented" does not match "gamearts-project contract violation at confirmed_by: '' should be non-empty"
+    ValueError: These settings cannot be confirmed yet: the version shown to the owner (000000000000) is not the version of these settings (0bcf124b2047); show the owner the written summary and its version. Run the setup wizard (gamearts_setup.py next) and ask each question
+    AssertionError: "never invented" does not match "These settings cannot be confirmed yet: the version shown to the owner (000000000000) is not the version of these settings (0bcf124b2047); show the owner the written summary and its version. Run the setup wizard (gamearts_setup.py next) and ask each q
     FAIL: test_a_confirmation_needs_a_name_and_the_owners_words (test_confirm_settings.ConfirmTests.test_a_confirmation_needs_a_name_and_the_owners_words) (who='owner', words='')
-    AssertionError: ValueError not raised
+    ValueError: These settings cannot be confirmed yet: the version shown to the owner (000000000000) is not the version of these settings (0bcf124b2047); show the owner the written summary and its version. Run the setup wizard (gamearts_setup.py next) and ask each question
+    AssertionError: "never invented" does not match "These settings cannot be confirmed yet: the version shown to the owner (000000000000) is not the version of these settings (0bcf124b2047); show the owner the written summary and its version. Run the setup wizard (gamearts_setup.py next) and ask each q
     FAIL: test_a_confirmation_needs_a_name_and_the_owners_words (test_confirm_settings.ConfirmTests.test_a_confirmation_needs_a_name_and_the_owners_words) (who='  ', words='yes')
-    jsonschema.exceptions.ValidationError: '' should be non-empty
-    ValueError: gamearts-project contract violation at confirmed_by: '' should be non-empty
-    AssertionError: "never invented" does not match "gamearts-project contract violation at confirmed_by: '' should be non-empty"
-    FAIL: test_a_confirmation_needs_a_name_and_the_owners_words (test_confirm_settings.ConfirmTests.test_a_confirmation_needs_a_name_and_the_owners_words)
-    AssertionError: 'owner_confirmed' != 'inferred'
-M364 caught  P14 a confirmation is accepted without the owner's words: test_confirm_settings.py fails (FAILED (failures=4, errors=1))
+    ValueError: These settings cannot be confirmed yet: the version shown to the owner (000000000000) is not the version of these settings (0bcf124b2047); show the owner the written summary and its version. Run the setup wizard (gamearts_setup.py next) and ask each question
+    AssertionError: "never invented" does not match "These settings cannot be confirmed yet: the version shown to the owner (000000000000) is not the version of these settings (0bcf124b2047); show the owner the written summary and its version. Run the setup wizard (gamearts_setup.py next) and ask each q
+    FAIL: test_a_confirmation_needs_a_name_and_the_owners_words (test_confirm_settings.ConfirmTests.test_a_confirmation_needs_a_name_and_the_owners_words) (who='owner', words=None)
+    ValueError: These settings cannot be confirmed yet: the version shown to the owner (000000000000) is not the version of these settings (0bcf124b2047); show the owner the written summary and its version. Run the setup wizard (gamearts_setup.py next) and ask each question
+    AssertionError: "never invented" does not match "These settings cannot be confirmed yet: the version shown to the owner (000000000000) is not the version of these settings (0bcf124b2047); show the owner the written summary and its version. Run the setup wizard (gamearts_setup.py next) and ask each q
+M364 caught  P14 a confirmation is accepted without the owner's words: test_confirm_settings.py fails (FAILED (failures=4))
     FAIL: test_a_cut_out_rig_counts_its_parts_and_not_a_picture_for_every_frame (test_plan_card.LaneTests.test_a_cut_out_rig_counts_its_parts_and_not_a_picture_for_every_frame)
     AssertionError: 'frames' unexpectedly found in {'mockup': 1, 'master': 1, 'directional_masters': 7, 'frames': 64, 'parts': 12}
 M365 caught  P14 a cut-out rig is billed a picture for every frame: test_plan_card.py fails (FAILED (failures=1))
+    FAIL: test_every_layout_delivers_the_key_sheet_and_a_matte_that_agree_and_are_recorded (test_matte.BuildTests.test_every_layout_delivers_the_key_sheet_and_a_matte_that_agree_and_are_recorded) [grid]
+    AssertionError: 0 not greater than 0
+    FAIL: test_every_layout_delivers_the_key_sheet_and_a_matte_that_agree_and_are_recorded (test_matte.BuildTests.test_every_layout_delivers_the_key_sheet_and_a_matte_that_agree_and_are_recorded) [shelf]
+    AssertionError: 0 not greater than 0
+    FAIL: test_every_layout_delivers_the_key_sheet_and_a_matte_that_agree_and_are_recorded (test_matte.BuildTests.test_every_layout_delivers_the_key_sheet_and_a_matte_that_agree_and_are_recorded) [trim]
+    AssertionError: 0 not greater than 0
+    FAIL: test_a_doctored_alpha_is_found (test_matte.RuntimeExportTests.test_a_doctored_alpha_is_found)
+    AssertionError: False is not true
+    FAIL: test_true_alpha_becomes_key_colour_art_and_a_matching_coverage (test_matte.SplitTests.test_true_alpha_becomes_key_colour_art_and_a_matching_coverage)
+    AssertionError: b'\x0[30 chars]x00\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\x0[1837 chars]\x00' != b'\x0[30 chars]x00\x0b\x18\x1f\x1f\x18\x0b\x00\x00\x00\x00\x0[1633 chars]\x00'
+M366 caught  P12.4 the matte loses the softness it was given: test_matte.py fails (FAILED (failures=5))
+    FAIL: test_a_visible_pixel_that_is_exactly_the_key_colour_is_nudged_off_it (test_matte.SplitTests.test_a_visible_pixel_that_is_exactly_the_key_colour_is_nudged_off_it)
+    AssertionError: (255, 0, 255) == (255, 0, 255)
+M367 caught  P12.4 artwork exactly the key colour is left as background: test_matte.py fails (FAILED (failures=1))
+    FAIL: test_each_kind_of_disagreement_is_named (test_matte.PairTests.test_each_kind_of_disagreement_is_named)
+    AssertionError: False is not true
+M368 caught  P12.4 art with no coverage passes the pair check: test_matte.py fails (FAILED (failures=1))
+    FAIL: test_each_kind_of_disagreement_is_named (test_matte.PairTests.test_each_kind_of_disagreement_is_named)
+    AssertionError: False is not true
+M369 caught  P12.4 coverage over the key colour passes the pair check: test_matte.py fails (FAILED (failures=1))
+    FAIL: test_a_missing_or_changed_matte_is_named_by_the_sheet_check (test_matte.BuildTests.test_a_missing_or_changed_matte_is_named_by_the_sheet_check)
+    AssertionError: False is not true
+M370 caught  P12.4 a changed matte is not noticed: test_matte.py fails (FAILED (failures=1))
+    FAIL: test_the_runtime_copy_takes_its_alpha_from_the_matte_and_verifies (test_matte.RuntimeExportTests.test_the_runtime_copy_takes_its_alpha_from_the_matte_and_verifies)
+    AssertionError: b'\x0[934 chars]x00\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\x0[4837 chars]\x00' != b'\x0[934 chars]x00\x0b\x18\x1f\x1f\x18\x0b\x00\x00\x00\x00\x0[4437 chars]\x00'
+M371 caught  P12.4 the runtime export ignores the matte: test_matte.py fails (FAILED (failures=1))
+    FAIL: test_a_doctored_alpha_is_found (test_matte.RuntimeExportTests.test_a_doctored_alpha_is_found)
+    AssertionError: False is not true
+M372 caught  P12.4 a doctored runtime alpha is not found: test_matte.py fails (FAILED (failures=1))
+    FAIL: test_a_hard_edged_look_never_gets_a_matte_and_a_soft_one_may (test_matte.LookTests.test_a_hard_edged_look_never_gets_a_matte_and_a_soft_one_may)
+    AssertionError: False is not true : []
+M373 caught  P12.4 a hard-edged look may carry a matte: test_matte.py fails (FAILED (failures=1))
+    FAIL: test_a_missing_or_changed_matte_is_named_by_the_sheet_check (test_matte.BuildTests.test_a_missing_or_changed_matte_is_named_by_the_sheet_check)
+    AssertionError: False is not true
+M374 caught  P12.4 the sheet check ignores the matte: test_matte.py fails (FAILED (failures=1))
+    FAIL: test_a_ui_kit_counts_every_control_and_state_and_one_screen_stays_quick (test_plan_card.LaneTests.test_a_ui_kit_counts_every_control_and_state_and_one_screen_stays_quick)
+    AssertionError: 'quick' != 'standard'
+M375 caught  P14 Codex E-3 a UI kit is planned as one picture: test_plan_card.py fails (FAILED (failures=1))
+    ERROR: test_nothing_is_written_until_every_question_is_answered_and_the_open_ones_are_named (test_setup_wizard.FinishTests.test_nothing_is_written_until_every_question_is_answered_and_the_open_ones_are_named)
+    KeyError: 'palette'
+M376 caught  P15 the wizard finishes with a question still open: test_setup_wizard.py fails (FAILED (errors=1))
+    FAIL: test_an_answer_must_be_one_of_the_options (test_setup_wizard.AnswerTests.test_an_answer_must_be_one_of_the_options)
+    AssertionError: ValueError not raised
+    FAIL: test_the_command_shows_the_next_question_records_an_answer_and_refuses_a_bad_one (test_setup_wizard.CommandTests.test_the_command_shows_the_next_question_records_an_answer_and_refuses_a_bad_one)
+    AssertionError: 'not one of the options' not found in "BLOCKED 'nonsense'\n"
+M377 caught  P15 an answer that is not an option is accepted: test_setup_wizard.py fails (FAILED (failures=2))
+    FAIL: test_choices_that_need_the_owners_words_refuse_to_go_without (test_setup_wizard.AnswerTests.test_choices_that_need_the_owners_words_refuse_to_go_without) [image_generator]
+    AssertionError: ValueError not raised
+    FAIL: test_choices_that_need_the_owners_words_refuse_to_go_without (test_setup_wizard.AnswerTests.test_choices_that_need_the_owners_words_refuse_to_go_without) [palette]
+    AssertionError: ValueError not raised
+    FAIL: test_choices_that_need_the_owners_words_refuse_to_go_without (test_setup_wizard.AnswerTests.test_choices_that_need_the_owners_words_refuse_to_go_without) [engine]
+    AssertionError: ValueError not raised
+    FAIL: test_the_game_is_named_by_an_answer_and_the_name_becomes_the_project_id (test_setup_wizard.CommandTests.test_the_game_is_named_by_an_answer_and_the_name_becomes_the_project_id)
+    ValueError: None cannot be a project name; use letters, digits and hyphens (for example Sunny Farm becomes sunny-farm)
+    AssertionError: "own words" does not match "None cannot be a project name; use letters, digits and hyphens (for example Sunny Farm becomes sunny-farm)"
+M378 caught  P15 a pick that needs the owner's words is accepted without them: test_setup_wizard.py fails (FAILED (failures=4))
+    FAIL: test_changing_the_world_kind_resets_only_the_questions_that_depend_on_it (test_setup_wizard.AnswerTests.test_changing_the_world_kind_resets_only_the_questions_that_depend_on_it)
+    AssertionError: 'look' unexpectedly found in {'world_kind': {'value': 'free_world', 'said': "the owner's own words", 'answered_at': '2026-10-27T09:38:04.174047+00:00'}, 'look': {'value': 'pixel_mid', 'said': "the owner's own words", 'answered_at': '2026-10-27T09:38:04.096481+00:00'}, 'viewpoint': {'
+M379 caught  P15 changing an answer leaves the answers that depend on it: test_setup_wizard.py fails (FAILED (failures=1))
+    FAIL: test_choosing_the_same_thing_again_keeps_the_answers_that_depend_on_it (test_setup_wizard.AnswerTests.test_choosing_the_same_thing_again_keeps_the_answers_that_depend_on_it)
+    AssertionError: 'look' not found in {'world_kind': {'value': 'grid_world', 'said': "the owner's own words", 'answered_at': '2026-10-27T09:38:16.108942+00:00'}, 'project_name': {'value': 'name', 'said': "the owner's own words", 'answered_at': '2026-10-27T09:38:16.061512+00:00', 'text': 'Demo Game'}, 
+    FAIL: test_the_words_for_an_unchanged_pick_are_recorded_without_resetting_what_depends_on_it (test_setup_wizard.OwnerWordsTests.test_the_words_for_an_unchanged_pick_are_recorded_without_resetting_what_depends_on_it)
+    AssertionError: 'look' not found in {'world_kind': {'value': 'grid_world', 'said': 'a tile map, as I said', 'answered_at': '2026-10-27T09:38:26.186301+00:00'}, 'project_name': {'value': 'name', 'said': "the owner's own words", 'answered_at': '2026-10-27T09:38:26.067103+00:00', 'text': 'Demo Game'}, 
+M380 caught  P15 choosing the same thing again resets the dependent answers: test_setup_wizard.py fails (FAILED (failures=2))
+    FAIL: test_the_answers_are_what_ends_up_in_the_settings (test_setup_wizard.FinishTests.test_the_answers_are_what_ends_up_in_the_settings)
+    AssertionError: Tuples differ: ([32, 32], 16, 'dirs_4') != ([32, 32], 32, 'dirs_4')
+M381 caught  P15 the tile size answer is not what is saved: test_setup_wizard.py fails (FAILED (failures=1))
+    ERROR: test_the_owners_own_words_and_custom_sizes_are_kept (test_setup_wizard.FinishTests.test_the_owners_own_words_and_custom_sizes_are_kept)
+    jsonschema.exceptions.ValidationError: 'tool_name' is a required property
+    ValueError: gamearts-project contract violation at image_generation: 'tool_name' is a required property
+M382 caught  P15 a connected tool's name is dropped: test_setup_wizard.py fails (FAILED (errors=1))
+    ERROR: test_a_confirmed_game_whose_settings_change_needs_review_and_an_unchanged_one_keeps_its_confirmation (test_setup_wizard.FinishTests.test_a_confirmed_game_whose_settings_change_needs_review_and_an_unchanged_one_keeps_its_confirmation)
+    jsonschema.exceptions.ValidationError: 'confirmed_at' is a required property
+    ValueError: gamearts-project contract violation at (root): 'confirmed_at' is a required property
+M383 caught  P15 changed settings keep an earlier confirmation: test_setup_wizard.py fails (FAILED (errors=1))
+    FAIL: test_settings_the_wizard_did_not_write_cannot_be_confirmed (test_setup_wizard.ConfirmGateTests.test_settings_the_wizard_did_not_write_cannot_be_confirmed)
+    AssertionError: ValueError not raised
+    FAIL: test_settings_with_a_missing_answer_cannot_be_confirmed (test_setup_wizard.ConfirmGateTests.test_settings_with_a_missing_answer_cannot_be_confirmed)
+    AssertionError: ValueError not raised
+    FAIL: test_settings_missing_the_words_behind_a_pick_cannot_be_confirmed (test_setup_wizard.OwnerWordsTests.test_settings_missing_the_words_behind_a_pick_cannot_be_confirmed)
+    AssertionError: ValueError not raised
+    FAIL: test_a_confirmation_must_cite_the_version_the_owner_was_shown (test_setup_wizard.VersionTests.test_a_confirmation_must_cite_the_version_the_owner_was_shown) (wrong=None)
+    AssertionError: ValueError not raised
+    FAIL: test_a_confirmation_must_cite_the_version_the_owner_was_shown (test_setup_wizard.VersionTests.test_a_confirmation_must_cite_the_version_the_owner_was_shown) (wrong='')
+    AssertionError: ValueError not raised
+    FAIL: test_a_confirmation_must_cite_the_version_the_owner_was_shown (test_setup_wizard.VersionTests.test_a_confirmation_must_cite_the_version_the_owner_was_shown) (wrong='000000000000')
+    AssertionError: ValueError not raised
+    FAIL: test_a_confirmation_must_cite_the_version_the_owner_was_shown (test_setup_wizard.VersionTests.test_a_confirmation_must_cite_the_version_the_owner_was_shown)
+    AssertionError: 'owner_confirmed' != 'inferred'
+    FAIL: test_settings_changed_after_the_owner_was_shown_the_version_are_refused (test_setup_wizard.VersionTests.test_settings_changed_after_the_owner_was_shown_the_version_are_refused)
+    AssertionError: ValueError not raised
+M384 caught  P15 settings the wizard did not write can be confirmed: test_setup_wizard.py fails (FAILED (failures=8))
+    ERROR: test_settings_the_wizard_did_not_write_cannot_be_confirmed (test_setup_wizard.ConfirmGateTests.test_settings_the_wizard_did_not_write_cannot_be_confirmed)
+    AttributeError: 'NoneType' object has no attribute 'get'
+M385 caught  P15 hand-written settings count as chosen: test_setup_wizard.py fails (FAILED (errors=1))
+    FAIL: test_the_answers_are_what_ends_up_in_the_settings (test_setup_wizard.FinishTests.test_the_answers_are_what_ends_up_in_the_settings)
+    AssertionError: 'x' != "no fixed palette (the owner's choice)"
+M386 caught  P15 the palette answer is not what is saved: test_setup_wizard.py fails (FAILED (failures=1))
+    FAIL: test_settings_the_wizard_did_not_write_cannot_be_confirmed (test_setup_wizard.ConfirmGateTests.test_settings_the_wizard_did_not_write_cannot_be_confirmed)
+    AssertionError: True is not false
+M387 caught  P15 check-settings reports setup complete for any settings: test_setup_wizard.py fails (FAILED (failures=1))
+    FAIL: test_the_game_is_named_by_an_answer_and_the_name_becomes_the_project_id (test_setup_wizard.CommandTests.test_the_game_is_named_by_an_answer_and_the_name_becomes_the_project_id)
+    AssertionError: ValueError not raised
+M388 caught  P15 a game name that is not a safe file prefix is accepted: test_setup_wizard.py fails (FAILED (failures=1))
+    FAIL: test_the_game_is_named_by_an_answer_and_the_name_becomes_the_project_id (test_setup_wizard.CommandTests.test_the_game_is_named_by_an_answer_and_the_name_becomes_the_project_id)
+    AssertionError: 'demo' != 'sunny-farm'
+M389 caught  P15 the saved project id is not the owner's answer: test_setup_wizard.py fails (FAILED (failures=1))
+    ERROR: test_every_pick_needs_the_owners_own_words_and_they_are_kept (test_setup_wizard.OwnerWordsTests.test_every_pick_needs_the_owners_own_words_and_they_are_kept) (said=None)
+    AttributeError: 'NoneType' object has no attribute 'strip'
+    FAIL: test_every_pick_needs_the_owners_own_words_and_they_are_kept (test_setup_wizard.OwnerWordsTests.test_every_pick_needs_the_owners_own_words_and_they_are_kept) (said='')
+    AssertionError: ValueError not raised
+    FAIL: test_every_pick_needs_the_owners_own_words_and_they_are_kept (test_setup_wizard.OwnerWordsTests.test_every_pick_needs_the_owners_own_words_and_they_are_kept) (said='   ')
+    AssertionError: ValueError not raised
+    FAIL: test_every_pick_needs_the_owners_own_words_and_they_are_kept (test_setup_wizard.OwnerWordsTests.test_every_pick_needs_the_owners_own_words_and_they_are_kept)
+    AssertionError: {'project_name': {'value': 'name', 'said':[67 chars]mo'}} != {}
+M390 caught  P15 a pick is recorded without the owner's words: test_setup_wizard.py fails (FAILED (failures=3, errors=1))
+    FAIL: test_the_version_is_short_stable_and_names_exactly_these_picks (test_setup_wizard.VersionTests.test_the_version_is_short_stable_and_names_exactly_these_picks)
+    AssertionError: Regex didn't match: '^[0-9a-f]{12}$' not found in '5fe6c2a1da5'
+M391 caught  P15 the version is not 12 characters: test_setup_wizard.py fails (FAILED (failures=1))
+    FAIL: test_a_confirmation_must_cite_the_version_the_owner_was_shown (test_setup_wizard.VersionTests.test_a_confirmation_must_cite_the_version_the_owner_was_shown) (wrong=None)
+    AssertionError: ValueError not raised
+    FAIL: test_a_confirmation_must_cite_the_version_the_owner_was_shown (test_setup_wizard.VersionTests.test_a_confirmation_must_cite_the_version_the_owner_was_shown) (wrong='')
+    AssertionError: ValueError not raised
+    FAIL: test_a_confirmation_must_cite_the_version_the_owner_was_shown (test_setup_wizard.VersionTests.test_a_confirmation_must_cite_the_version_the_owner_was_shown) (wrong='000000000000')
+    AssertionError: ValueError not raised
+    FAIL: test_a_confirmation_must_cite_the_version_the_owner_was_shown (test_setup_wizard.VersionTests.test_a_confirmation_must_cite_the_version_the_owner_was_shown)
+    AssertionError: 'owner_confirmed' != 'inferred'
+    FAIL: test_settings_changed_after_the_owner_was_shown_the_version_are_refused (test_setup_wizard.VersionTests.test_settings_changed_after_the_owner_was_shown_the_version_are_refused)
+    AssertionError: ValueError not raised
+M392 caught  P15 a confirmation need not cite the version shown: test_setup_wizard.py fails (FAILED (failures=5))
+    ERROR: test_the_game_is_named_by_an_answer_and_the_name_becomes_the_project_id (test_setup_wizard.CommandTests.test_the_game_is_named_by_an_answer_and_the_name_becomes_the_project_id)
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_settings_the_wizard_wrote_are_confirmed_with_the_owners_words (test_setup_wizard.ConfirmGateTests.test_settings_the_wizard_wrote_are_confirmed_with_the_owners_words)
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_settings_with_a_missing_answer_cannot_be_confirmed (test_setup_wizard.ConfirmGateTests.test_settings_with_a_missing_answer_cannot_be_confirmed)
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_a_framework_installed_in_a_parent_folder_serves_a_nested_game (test_setup_wizard.ContractTests.test_a_framework_installed_in_a_parent_folder_serves_a_nested_game)
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_check_settings_keeps_the_fields_other_tools_read (test_setup_wizard.ContractTests.test_check_settings_keeps_the_fields_other_tools_read)
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_every_answer_changes_the_settings_so_none_is_accepted_and_ignored (test_setup_wizard.FinishTests.test_every_answer_changes_the_settings_so_none_is_accepted_and_ignored) [free_world]
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_every_answer_changes_the_settings_so_none_is_accepted_and_ignored (test_setup_wizard.FinishTests.test_every_answer_changes_the_settings_so_none_is_accepted_and_ignored) [layered_scene]
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_every_answer_changes_the_settings_so_none_is_accepted_and_ignored (test_setup_wizard.FinishTests.test_every_answer_changes_the_settings_so_none_is_accepted_and_ignored) [screen_space]
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_every_world_kind_finishes_into_settings_the_schema_accepts (test_setup_wizard.FinishTests.test_every_world_kind_finishes_into_settings_the_schema_accepts) [free_world]
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_every_world_kind_finishes_into_settings_the_schema_accepts (test_setup_wizard.FinishTests.test_every_world_kind_finishes_into_settings_the_schema_accepts) [layered_scene]
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_every_world_kind_finishes_into_settings_the_schema_accepts (test_setup_wizard.FinishTests.test_every_world_kind_finishes_into_settings_the_schema_accepts) [screen_space]
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_settings_missing_the_words_behind_a_pick_cannot_be_confirmed (test_setup_wizard.OwnerWordsTests.test_settings_missing_the_words_behind_a_pick_cannot_be_confirmed)
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_a_look_with_soft_edges_asks_what_to_do_about_them_and_a_hard_edged_look_does_not (test_setup_wizard.SoftEdgeTests.test_a_look_with_soft_edges_asks_what_to_do_about_them_and_a_hard_edged_look_does_not)
+    TypeError: 'NoneType' object is not subscriptable
+    ERROR: test_the_answer_is_recorded_as_a_constraint_and_follows_a_change_of_look (test_setup_wizard.SoftEdgeTests.test_the_answer_is_recorded_as_a_constraint_and_follows_a_change_of_look)
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_a_confirmation_must_cite_the_version_the_owner_was_shown (test_setup_wizard.VersionTests.test_a_confirmation_must_cite_the_version_the_owner_was_shown)
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_settings_changed_after_the_owner_was_shown_the_version_are_refused (test_setup_wizard.VersionTests.test_settings_changed_after_the_owner_was_shown_the_version_are_refused)
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    ERROR: test_the_version_is_short_stable_and_names_exactly_these_picks (test_setup_wizard.VersionTests.test_the_version_is_short_stable_and_names_exactly_these_picks)
+    ValueError: The question 'soft_edges' does not apply to this game yet; answer 'project_name' first or check `next`
+    FAIL: test_a_look_in_the_owners_own_words_is_asked_too (test_setup_wizard.SoftEdgeTests.test_a_look_in_the_owners_own_words_is_asked_too)
+    AssertionError: 'soft_edges' not found in ['project_name', 'world_kind', 'look', 'screen_size', 'screen_scaling', 'animation', 'image_generator', 'engine', 'palette']
+M393 caught  P15 a soft-edged look is never asked about its edges: test_setup_wizard.py fails (FAILED (failures=1, errors=17))
+    ERROR: test_the_answer_is_recorded_as_a_constraint_and_follows_a_change_of_look (test_setup_wizard.SoftEdgeTests.test_the_answer_is_recorded_as_a_constraint_and_follows_a_change_of_look)
+    KeyError: 'prompting'
+M394 caught  P15 the soft-edge answer is not recorded as a constraint: test_setup_wizard.py fails (FAILED (errors=1))
+    FAIL: test_settings_missing_the_words_behind_a_pick_cannot_be_confirmed (test_setup_wizard.OwnerWordsTests.test_settings_missing_the_words_behind_a_pick_cannot_be_confirmed)
+    AssertionError: ValueError not raised
+M395 caught  P15 settings missing the owner's words can be confirmed: test_setup_wizard.py fails (FAILED (failures=1))
+    FAIL: test_finish_shows_the_picks_in_plain_words_with_what_each_means_and_every_possible_question (test_setup_wizard.SummaryTests.test_finish_shows_the_picks_in_plain_words_with_what_each_means_and_every_possible_question)
+    AssertionError: Lists differ: [] != ['project_name', 'world_kind', 'look', 'so[150 chars]tte']
+M396 caught  P15 the possible questions are not listed: test_setup_wizard.py fails (FAILED (failures=1))
+    FAIL: test_finish_shows_the_picks_in_plain_words_with_what_each_means_and_every_possible_question (test_setup_wizard.SummaryTests.test_finish_shows_the_picks_in_plain_words_with_what_each_means_and_every_possible_question)
+    AssertionError: 'generates no pictures' not found in 'Name: Type the name (Demo Game) World: A tile map Look: Pixel art, 16-bit era Viewpoint: Seen from above and a little in front Tile size: 32 x 32 pixels Facing: Four directions Movement: Let Game Arts choose Images: I make the pictures myself Eng
+M397 caught  P15 the summary leaves out what the image generator pick means: test_setup_wizard.py fails (FAILED (failures=1))
+    ERROR: test_a_storyboard_forbids_scene_mockups_outside_the_approved_sequence (test_lifecycle_operations.StoryboardGateTests.test_a_storyboard_forbids_scene_mockups_outside_the_approved_sequence)
+    KeyError: 'storyboard_scene_id'
+    FAIL: test_a_scene_mockup_row_keeps_the_fields_other_tools_read (test_lifecycle_operations.StoryboardGateTests.test_a_scene_mockup_row_keeps_the_fields_other_tools_read)
+    AssertionError: 'storyboard_scene_id' not found in {'mockup_id': 'scene-d', 'revision': 'v001', 'scope': 'scene', 'status': 'generated', 'file': '.gamearts/outputs/mockups/generated/scene_d_mockup_v001.png', 'metadata': '.gamearts/outputs/mockups/generated/scene_d_mockup_v001.metadata.json', 'sha256
+    FAIL: test_editing_an_approved_scene_blocks_its_mockup_until_reapproved (test_lifecycle_operations.StoryboardGateTests.test_editing_an_approved_scene_blocks_its_mockup_until_reapproved)
+    ValueError: This game has a storyboard: a scene mockup must name an approved storyboard scene (storyboard_scene_id)
+    AssertionError: "not approved in its current form|not approved" does not match "This game has a storyboard: a scene mockup must name an approved storyboard scene (storyboard_scene_id)"
+M398 caught  P15 Storyboard contract: a scene mockup row loses its scene id: test_lifecycle_operations.py fails (FAILED (failures=2, errors=1))
+    ERROR: test_a_multi_part_bundle_without_cleanup_proof_cannot_be_approved (test_lifecycle_operations.BundleBuiltByTheBuilderTests.test_a_multi_part_bundle_without_cleanup_proof_cannot_be_approved)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_a_single_component_bundle_has_nothing_detachable_and_passes_the_technical_gate (test_lifecycle_operations.BundleBuiltByTheBuilderTests.test_a_single_component_bundle_has_nothing_detachable_and_passes_the_technical_gate)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_nested_declared_files_are_accepted_and_traversal_is_refused (test_lifecycle_operations.FilesRuleTests.test_nested_declared_files_are_accepted_and_traversal_is_refused)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_list_filters_by_status (test_lifecycle_operations.FullFlowTests.test_list_filters_by_status)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_register_approve_select_revoke_restore_reapprove (test_lifecycle_operations.FullFlowTests.test_register_approve_select_revoke_restore_reapprove)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_restore_needs_a_reference_and_a_revoked_record (test_lifecycle_operations.FullFlowTests.test_restore_needs_a_reference_and_a_revoked_record)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_restoring_a_mockup_returns_it_to_generated_with_its_companions (test_lifecycle_operations.FullFlowTests.test_restoring_a_mockup_returns_it_to_generated_with_its_companions)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_revoking_a_mockup_names_the_assets_built_on_it (test_lifecycle_operations.FullFlowTests.test_revoking_a_mockup_names_the_assets_built_on_it)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_a_connected_tool_must_be_named_and_must_be_the_chosen_one (test_lifecycle_operations.ImageGeneratorSettingTests.test_a_connected_tool_must_be_named_and_must_be_the_chosen_one)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_a_game_with_no_choice_registers_as_before_and_says_the_choice_is_missing (test_lifecycle_operations.ImageGeneratorSettingTests.test_a_game_with_no_choice_registers_as_before_and_says_the_choice_is_missing)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_a_mockup_made_with_the_chosen_tool_registers_and_the_result_names_the_setting (test_lifecycle_operations.ImageGeneratorSettingTests.test_a_mockup_made_with_the_chosen_tool_registers_and_the_result_names_the_setting)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_an_import_is_accepted_whichever_generator_is_chosen (test_lifecycle_operations.ImageGeneratorSettingTests.test_an_import_is_accepted_whichever_generator_is_chosen)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_changing_the_generator_never_reopens_approved_art (test_lifecycle_operations.ImageGeneratorSettingTests.test_changing_the_generator_never_reopens_approved_art)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_when_the_owner_supplies_the_pictures_a_generated_mockup_is_refused_but_an_import_is_accepted (test_lifecycle_operations.ImageGeneratorSettingTests.test_when_the_owner_supplies_the_pictures_a_generated_mockup_is_refused_but_an_import_is_accepted)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_a_jpeg_becomes_a_png_without_changing_a_decoded_pixel_and_the_original_is_recorded (test_lifecycle_operations.ImportMockupTests.test_a_jpeg_becomes_a_png_without_changing_a_decoded_pixel_and_the_original_is_recorded)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_a_png_is_copied_byte_for_byte_and_left_generated_without_a_statement_of_approval (test_lifecycle_operations.ImportMockupTests.test_a_png_is_copied_byte_for_byte_and_left_generated_without_a_statement_of_approval)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_an_already_approved_mockup_is_registered_and_approved_with_the_users_own_words (test_lifecycle_operations.ImportMockupTests.test_an_already_approved_mockup_is_registered_and_approved_with_the_users_own_words)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_refusals (test_lifecycle_operations.ImportMockupTests.test_refusals)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_the_storyboard_gate_applies_to_an_imported_scene_mockup (test_lifecycle_operations.ImportMockupTests.test_the_storyboard_gate_applies_to_an_imported_scene_mockup)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_transparency_and_key_pixels_are_reported_not_hidden (test_lifecycle_operations.ImportMockupTests.test_transparency_and_key_pixels_are_reported_not_hidden)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_an_approved_bundle_with_nested_declared_files_can_be_revoked (test_lifecycle_operations.NestedBundleRevokeTests.test_an_approved_bundle_with_nested_declared_files_can_be_revoked)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_damaged_sheet_registers_as_generated_with_issues_and_cannot_be_approved (test_lifecycle_operations.RegisterAssetTests.test_damaged_sheet_registers_as_generated_with_issues_and_cannot_be_approved)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_register_links_the_approved_mockup_and_runs_the_technical_gate (test_lifecycle_operations.RegisterAssetTests.test_register_links_the_approved_mockup_and_runs_the_technical_gate)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_register_refuses_an_unapproved_source_mockup (test_lifecycle_operations.RegisterAssetTests.test_register_refuses_an_unapproved_source_mockup)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_register_refuses_source_mockup_whose_bytes_changed (test_lifecycle_operations.RegisterAssetTests.test_register_refuses_source_mockup_whose_bytes_changed)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_register_rejects_a_bundle_outside_the_generated_store (test_lifecycle_operations.RegisterAssetTests.test_register_rejects_a_bundle_outside_the_generated_store)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_register_requires_a_source_and_a_new_revision (test_lifecycle_operations.RegisterAssetTests.test_register_requires_a_source_and_a_new_revision)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_a_tool_output_is_named_hashed_documented_and_registered_without_touching_the_original (test_lifecycle_operations.RegisterGeneratedTests.test_a_tool_output_is_named_hashed_documented_and_registered_without_touching_the_original)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_staging_never_leaves_the_game_folder (test_lifecycle_operations.RegisterGeneratedTests.test_staging_never_leaves_the_game_folder)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_the_revision_cannot_be_registered_twice (test_lifecycle_operations.RegisterGeneratedTests.test_the_revision_cannot_be_registered_twice)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_the_tool_and_its_name_default_to_the_saved_choice (test_lifecycle_operations.RegisterGeneratedTests.test_the_tool_and_its_name_default_to_the_saved_choice)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_with_no_saved_choice_the_tool_must_be_named (test_lifecycle_operations.RegisterGeneratedTests.test_with_no_saved_choice_the_tool_must_be_named)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_a_rollback_that_itself_fails_is_reported_not_hidden (test_lifecycle_operations.RollbackTests.test_a_rollback_that_itself_fails_is_reported_not_hidden)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_failed_mockup_approval_puts_everything_back (test_lifecycle_operations.RollbackTests.test_failed_mockup_approval_puts_everything_back)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_failed_mockup_revoke_and_restore_put_metadata_content_back_too (test_lifecycle_operations.RollbackTests.test_failed_mockup_revoke_and_restore_put_metadata_content_back_too)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_failed_revoke_restores_files_and_record (test_lifecycle_operations.RollbackTests.test_failed_revoke_restores_files_and_record)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_listing_reports_blocked_records_instead_of_aborting (test_lifecycle_operations.SelectReportTests.test_listing_reports_blocked_records_instead_of_aborting)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_manifest_without_a_matching_folder_is_blocked_not_fatal (test_lifecycle_operations.SelectReportTests.test_manifest_without_a_matching_folder_is_blocked_not_fatal)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_a_scene_mockup_row_keeps_the_fields_other_tools_read (test_lifecycle_operations.StoryboardGateTests.test_a_scene_mockup_row_keeps_the_fields_other_tools_read)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_a_storyboard_forbids_scene_mockups_outside_the_approved_sequence (test_lifecycle_operations.StoryboardGateTests.test_a_storyboard_forbids_scene_mockups_outside_the_approved_sequence)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_editing_an_approved_scene_blocks_its_mockup_until_reapproved (test_lifecycle_operations.StoryboardGateTests.test_editing_an_approved_scene_blocks_its_mockup_until_reapproved)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    ERROR: test_without_a_storyboard_scene_mockups_still_register (test_lifecycle_operations.StoryboardGateTests.test_without_a_storyboard_scene_mockups_still_register)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    FAIL: test_parallel_registrations_lose_nothing (test_lifecycle_operations.ConcurrencyTests.test_parallel_registrations_lose_nothing)
+    AssertionError: Lists differ: [1, 1, 1, 1, 1] != [0, 0, 0, 0, 0]
+    FAIL: test_an_approval_that_fails_leaves_a_registered_generated_mockup_and_says_so (test_lifecycle_operations.ImportMockupTests.test_an_approval_that_fails_leaves_a_registered_generated_mockup_and_says_so)
+    jsonschema.exceptions.ValidationError: 'file' is a required property
+    ValueError: gamearts-mockups-manifest contract violation at (root): 'file' is a required property
+    AssertionError: "registered as generated, but approval failed: disk full" does not match "gamearts-mockups-manifest contract violation at (root): 'file' is a required property"
+M399 caught  P15 Storyboard contract: a mockup row loses its file field: test_lifecycle_operations.py fails (FAILED (failures=2, errors=42))
+    FAIL: test_game_arts_does_not_write_approve_or_reject_scenes_another_tool_owns (test_storyboard_external.AuthorityTests.test_game_arts_does_not_write_approve_or_reject_scenes_another_tool_owns)
+    AssertionError: ValueError not raised
+M400 caught  P15 Game Arts writes scenes another tool owns: test_storyboard_external.py fails (FAILED (failures=1))
+    FAIL: test_game_arts_does_not_write_approve_or_reject_scenes_another_tool_owns (test_storyboard_external.AuthorityTests.test_game_arts_does_not_write_approve_or_reject_scenes_another_tool_owns)
+    AssertionError: ValueError not raised
+    FAIL: test_the_command_adopts_and_the_game_arts_commands_then_refuse (test_storyboard_external.CommandTests.test_the_command_adopts_and_the_game_arts_commands_then_refuse)
+    AssertionError: 0 != 1
+M401 caught  P15 Game Arts approves scenes another tool owns: test_storyboard_external.py fails (FAILED (failures=2))
+    FAIL: test_game_arts_does_not_write_approve_or_reject_scenes_another_tool_owns (test_storyboard_external.AuthorityTests.test_game_arts_does_not_write_approve_or_reject_scenes_another_tool_owns)
+    AssertionError: ValueError not raised
+M402 caught  P15 Game Arts rejects scenes another tool owns: test_storyboard_external.py fails (FAILED (failures=1))
+    FAIL: test_an_order_that_does_not_name_every_scene_once_is_refused (test_storyboard_external.AdoptTests.test_an_order_that_does_not_name_every_scene_once_is_refused)
+    AssertionError: ValueError not raised
+M403 caught  P15 an owner's order may leave a scene out: test_storyboard_external.py fails (FAILED (failures=1))
+    FAIL: test_a_scene_not_approved_by_the_owner_is_found (test_storyboard_external.AuditTests.test_a_scene_not_approved_by_the_owner_is_found)
+    AssertionError: False is not true
+M404 caught  P15 the audit ignores who approved an externally owned scene: test_storyboard_external.py fails (FAILED (failures=1))
+    FAIL: test_another_owner_and_a_storyboard_game_arts_made_are_not_replaced (test_storyboard_external.AuthorityTests.test_another_owner_and_a_storyboard_game_arts_made_are_not_replaced)
+    AssertionError: ValueError not raised
+M405 caught  P15 a second owner can take over the scenes: test_storyboard_external.py fails (FAILED (failures=1))
+    FAIL: test_another_owner_and_a_storyboard_game_arts_made_are_not_replaced (test_storyboard_external.AuthorityTests.test_another_owner_and_a_storyboard_game_arts_made_are_not_replaced)
+    AssertionError: ValueError not raised
+M406 caught  P15 a storyboard Game Arts made is replaced by another owner's: test_storyboard_external.py fails (FAILED (failures=1))
+    ERROR: test_the_mockup_gate_accepts_an_adopted_scene_and_refuses_one_the_owner_did_not_list (test_storyboard_external.AdoptTests.test_the_mockup_gate_accepts_an_adopted_scene_and_refuses_one_the_owner_did_not_list)
+    ValueError: Storyboard scene intro is not approved in its current form; approve it before making its mockup
+    FAIL: test_the_audit_is_consistent (test_storyboard_external.AdoptTests.test_the_audit_is_consistent)
+    AssertionError: Lists differ: ['scene intro: approved content changed si[121 chars]ed)'] != []
+    FAIL: test_the_owners_scenes_are_recorded_approved_with_their_owner_the_words_and_a_hash_of_the_text (test_storyboard_external.AdoptTests.test_the_owners_scenes_are_recorded_approved_with_their_owner_the_words_and_a_hash_of_the_text)
+    AssertionError: '0000000000000000000000000000000000000000000000000000000000000000' != '023d507310f8fccc01d2120f4e99c9c0a91707d886e2a8ac6cc2a530a5f8d6ce'
+    FAIL: test_the_owner_changes_a_scene_by_adopting_again_and_the_hash_follows (test_storyboard_external.AuthorityTests.test_the_owner_changes_a_scene_by_adopting_again_and_the_hash_follows)
+    AssertionError: '0000000000000000000000000000000000000000000000000000000000000000' == '0000000000000000000000000000000000000000000000000000000000000000'
+    FAIL: test_the_command_adopts_and_the_game_arts_commands_then_refuse (test_storyboard_external.CommandTests.test_the_command_adopts_and_the_game_arts_commands_then_refuse)
+    AssertionError: 'blocked' != 'consistent'
+M407 caught  P15 an adopted scene's text hash is not recorded: test_storyboard_external.py fails (FAILED (failures=4, errors=1))
+    ERROR: test_the_words_for_an_unchanged_pick_are_recorded_without_resetting_what_depends_on_it (test_setup_wizard.OwnerWordsTests.test_the_words_for_an_unchanged_pick_are_recorded_without_resetting_what_depends_on_it)
+    KeyError: 'said'
+M408 caught  P15 the owner's words for an unchanged pick are dropped: test_setup_wizard.py fails (FAILED (errors=1))
 
-caught 365, missed 0, stale 0 of 365
+caught 406, missed 0, stale 2 of 408
+
+# Re-run after retargeting the two stale anchors (M171, M251) and re-checking M398, M399:
+M171 caught  S-8 the wrong part of the frame is copied into a trimmed cell: test_atlas_depth.py fails (FAILED (failures=2))
+M251 caught  S-16 key pixels stay opaque magenta in the runtime copy: test_export_runtime.py fails (FAILED (failures=12))
+M398 caught  P15 Storyboard contract: a scene mockup row loses its scene id: test_lifecycle_operations.py fails (FAILED (failures=2, errors=1))
+M399 caught  P15 Storyboard contract: a mockup row loses its file field: test_lifecycle_operations.py fails (FAILED (failures=2, errors=42))
+caught 4, missed 0, stale 0 of 4
+# Result: 408 mutations, 408 caught (406 in the full run plus the two retargeted), 0 missed, 0 stale.

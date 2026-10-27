@@ -37,6 +37,8 @@ Ask a locally connected agent: **"Enable automatic Game Arts updates for Claude 
 ```text
 python scripts/sync_local_agents.py bootstrap --source <GameArtsSkills checkout> --game-root <your game root> [--adopt-existing] [--hooks local|project|none] [--codex-user-hook] [--require-signed]
 ```
+
+One install can serve several games: every script takes `--game-root`, so a framework installed in a parent folder works for a game in a nested folder (for example `--game-root stories/one`), and each game keeps its own `.gamearts/`.
 - `--adopt-existing` only after you authorize backing up and replacing framework-path files already installed; without it a colliding or edited file is kept and reported as a conflict.
 - Hook placement: `local` (default) writes Claude Code's personal `.claude/settings.local.json` (and adds it to `.git/info/exclude` so it is never committed); Codex has no project-local personal hook file, so its entry goes to `~/.codex/hooks.json` only with `--codex-user-hook`. `project` commits portable entries (no absolute paths; `--python-command` names the interpreter; needs a POSIX-style shell on every machine). `none` installs nothing.
 - Both tools make you review and trust a new or changed hook (Codex: `/hooks`) before it runs. Do not assume the update is active until you have, and the first sync has completed.

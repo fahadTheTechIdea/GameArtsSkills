@@ -675,6 +675,17 @@ class StoryboardGateTests(GameFolder):
         self.assertEqual(life.register_mockup(self.root, metadata, image)["status"], "generated")
         self.assertEqual(self.manifest("mockups")[0]["storyboard_scene_id"], "arrival")
 
+    def test_a_scene_mockup_row_keeps_the_fields_other_tools_read(self):
+        """The Storyboard framework draws each scene from these manifest fields; they change only with a notice."""
+        self.storyboard(["arrival"])
+        image, metadata = make_mockup(self.root, "scene-d", scope="scene", scene="arrival")
+        life.register_mockup(self.root, metadata, image)
+        row = self.manifest("mockups")[0]
+        for field in ("mockup_id", "revision", "status", "file", "storyboard_scene_id"):
+            self.assertIn(field, row, f"the mockup manifest row lost {field!r}")
+        self.assertEqual((row["status"], row["storyboard_scene_id"]), ("generated", "arrival"))
+        self.assertTrue((self.root / row["file"]).is_file())
+
     def test_editing_an_approved_scene_blocks_its_mockup_until_reapproved(self):
         self.storyboard(["arrival", "first-match"])
         image, metadata = make_mockup(self.root, "scene-a", scope="scene", scene="arrival")

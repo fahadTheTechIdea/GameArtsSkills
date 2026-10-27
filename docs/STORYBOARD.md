@@ -30,6 +30,9 @@ You can mix them. Nothing is approved until you say so.
 - A rejected scene leaves the sequence; once revised it comes back as a fresh proposal.
 - A draft can never approve itself, and `write` ignores any approval it contains.
 
+## When another tool decides the scenes
+If a storyboard tool owns the story, it hands its scenes over with `python scripts/gamearts_storyboard.py adopt-external --owner <its id> --from <its JSON file> --user-approval-ref "<the developer's own words>"`. Game Arts records each scene as approved by that owner, with the words and a hash of the scene's text, and then only makes pictures for them: it will not write, approve or reject those scenes itself. To change a scene, change it in the owning tool and adopt again. `audit` finds a scene whose text was edited by hand afterwards.
+
 ## From storyboard to mockups
 `next` lists the approved scenes that have no mockup yet, in order. Each scene mockup names its scene (`storyboard_scene_id`); the lifecycle refuses a `scene` mockup that names no approved scene whenever the game has a storyboard, and revoking a scene mockup puts the scene back in `next`. Rough panels are review images only, never production art.
 

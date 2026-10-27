@@ -84,6 +84,14 @@ def _save(root, data, by, summary, approval_reference=None):
     return data
 
 
+def _refuse_when_external(data, action):
+    """Scenes another tool owns are changed there, never here."""
+    owner = (data or {}).get("external_owner")
+    if owner:
+        raise ValueError(f"The scenes of this game belong to {owner['id']}, which decides what they are; Game Arts does not {action} them. "
+                         f"Change them there and run adopt-external again.")
+
+
 def _check_panels(root, scenes):
     for scene in scenes:
         panel = scene.get("panel")
@@ -106,6 +114,7 @@ def write(root, draft, by="agent", summary="storyboard updated"):
         scene.pop("status", None)
     with lock(root):
         old = load(root) if exists(root) else None
+        _refuse_when_external(old, "write")
         previous = {s["id"]: s for s in old["scenes"]} if old else {}
         notes = []
         merged = []
@@ -196,6 +205,7 @@ def approve(root, scene_ids, user_approval_reference):
         raise ValueError("Name each approved scene once, in playing order")
     with lock(root):
         data = load(root)
+        _refuse_when_external(data, "approve")
         by_id = {s["id"]: s for s in data["scenes"]}
         for scene_id in scene_ids:
             if scene_id not in by_id:
@@ -214,11 +224,52 @@ def approve(root, scene_ids, user_approval_reference):
     return {"approved_sequence": list(scene_ids)}
 
 
+def adopt_external(root, owner, document, user_approval_reference):
+    """Take the scenes another tool decided (its scenes, their order, its approval in the developer's own words) and make pictures for them. Each scene is
+    recorded approved with that owner, the developer's words and a hash of its text, and from then on Game Arts changes none of them: `write`, `approve`
+    and `reject` refuse, and a change is made by the owner and adopted again."""
+    if not isinstance(owner, str) or not common.SLUG.fullmatch(owner):
+        raise ValueError("Name the owner of the scenes as a short id of letters, digits, hyphens and underscores")
+    if not isinstance(user_approval_reference, str) or not user_approval_reference.strip():
+        raise ValueError("The developer's own words approving these scenes are required; never invent them")
+    if not isinstance(document, dict) or not document.get("scenes"):
+        raise ValueError("The owner's document must be a JSON object with a non-empty list of scenes")
+    scenes = json.loads(json.dumps(document["scenes"]))
+    ids = [scene.get("id") for scene in scenes]
+    if len(set(ids)) != len(ids):
+        raise ValueError("duplicate scene IDs in the owner's scenes")
+    order = document.get("order", ids)
+    if sorted(order) != sorted(ids):
+        raise ValueError("The owner's order must name every scene exactly once")
+    root = Path(root).resolve()
+    with lock(root):
+        old = load(root) if exists(root) else None
+        if old and not old.get("external_owner") and old["scenes"]:
+            raise ValueError("This game already has a storyboard Game Arts made; it is not replaced by another owner's scenes")
+        if old and old.get("external_owner") and old["external_owner"]["id"] != owner:
+            raise ValueError(f"The scenes belong to {old['external_owner']['id']}, not {owner}")
+        stamp = _now()
+        for scene in scenes:
+            scene.pop("status", None)
+            scene.pop("approval", None)
+            scene["status"] = "approved"
+            scene["approval"] = {"reference": user_approval_reference.strip(), "at_utc": stamp, "owner": owner, "content_sha256": scene_hash(scene)}
+        data = {"title": document.get("title") or (old or {}).get("title") or "storyboard", "origin": "user_provided", "scenes": scenes,
+                "source_files": (old or {}).get("source_files", []), "links": document.get("links", (old or {}).get("links", [])),
+                "sequence": {"order": list(order), "status": "approved", "approval": {"reference": user_approval_reference.strip(), "at_utc": stamp, "owner": owner}},
+                "external_owner": {"id": owner, "adopted_at_utc": stamp}, "changes": (old or {}).get("changes", [])}
+        if (old or {}).get("brief"):
+            data["brief"] = old["brief"]
+        _save(root, data, "user", f"adopted {len(scenes)} scenes from {owner}", user_approval_reference.strip())  # the developer's words approved them
+    return {"adopted": list(order), "owner": owner}
+
+
 def reject(root, scene_ids, reason):
     if not isinstance(reason, str) or not reason.strip():
         raise ValueError("A rejection reason is required")
     with lock(root):
         data = load(root)
+        _refuse_when_external(data, "reject")
         by_id = {s["id"]: s for s in data["scenes"]}
         for scene_id in scene_ids:
             if scene_id not in by_id:
@@ -248,6 +299,13 @@ def audit(root):
     except ValueError as exc:
         return [str(exc)]
     issues = []
+    owner = (data.get("external_owner") or {}).get("id")
+    if owner:  # every scene is approved by that owner, in its recorded words
+        for scene in data["scenes"]:
+            if scene["status"] != "approved" or scene.get("approval", {}).get("owner") != owner:
+                issues.append(f"scene {scene['id']}: the scenes belong to {owner} but this one is not approved by {owner}")
+        if data["sequence"].get("approval", {}).get("owner") != owner:
+            issues.append(f"the sequence was not approved by {owner}, the owner of the scenes")
     ids = [s["id"] for s in data["scenes"]]
     if len(set(ids)) != len(ids):
         issues.append("duplicate scene IDs")
@@ -346,7 +404,7 @@ def scene_gate(root, scope, scene_id):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ops = parser.add_subparsers(dest="operation", required=True)
-    for name in ("import", "write", "approve", "reject", "audit", "next", "status"):
+    for name in ("import", "write", "approve", "reject", "adopt-external", "audit", "next", "status"):
         sub = ops.add_parser(name)
         sub.add_argument("--game-root", type=Path, required=True)
         if name == "import":
@@ -361,6 +419,10 @@ def main():
             sub.add_argument("--scenes", required=True, help="comma-separated scene IDs (for approve: in playing order)")
         if name == "approve":
             sub.add_argument("--user-approval-ref", required=True, help="Reference to the actual user approval message; never invent")
+        if name == "adopt-external":
+            sub.add_argument("--owner", required=True, help="Id of the tool that decided the scenes, for example storyboard-framework")
+            sub.add_argument("--from", dest="document", type=Path, required=True, help="The owner's JSON: {title, scenes: [...], order?: [...], links?: [...]}")
+            sub.add_argument("--user-approval-ref", required=True, help="The developer's own words approving these scenes; never invent")
         if name == "reject":
             sub.add_argument("--reason", required=True)
     args = parser.parse_args()
@@ -371,6 +433,8 @@ def main():
             result = write(args.game_root, common.read_json(args.draft), args.by, args.summary)
         elif args.operation == "approve":
             result = approve(args.game_root, [s for s in args.scenes.split(",") if s], args.user_approval_ref)
+        elif args.operation == "adopt-external":
+            result = adopt_external(args.game_root, args.owner, common.read_json(args.document), args.user_approval_ref)
         elif args.operation == "reject":
             result = reject(args.game_root, [s for s in args.scenes.split(",") if s], args.reason)
         elif args.operation == "audit":
