@@ -191,7 +191,7 @@ class ReviewAidTests(SheetCase):
         self.register("look-0")
         sheet.build(self.root, ["look-0:v001"])
         sheet.build(self.root, ["look-0:v001"])
-        self.assertEqual([p.name for p in (self.root / sheet.EXPLORATION).iterdir()], ["candidates.json", "candidates.png"])
+        self.assertEqual(sorted(p.name for p in (self.root / sheet.EXPLORATION).iterdir()), ["candidates.json", "candidates.png"])
 
     def test_unreadable_settings_are_reported_and_smooth_scaling_is_used(self):
         self.register("look-0")

@@ -12,7 +12,20 @@ import build_component_bundle as engine  # noqa: E402
 import validate_component_bundle as bundle_validator  # noqa: E402
 from test_component_bundle import ComponentTests  # noqa: E402
 
-GOLDEN_BUNDLE = "a62cae8b8a485d15f0f3d0d2bbbc59e530cbd716dada671640c5605f25f22677"
+GOLDEN_BUNDLE = "18d2d250c11d11ec8c43a547b89dbd0603cfed19183c3132b6b82aa58721d0d8"  # of the bundle with every float rounded to nine places: the last digit of a sine differs between platforms' maths libraries
+
+
+def rounded_digest(raw):
+    """A digest of the JSON with every float rounded to nine places, so a different last digit from the platform's maths library is not a change."""
+    def rounded(value):
+        if isinstance(value, float):
+            return round(value, 9)
+        if isinstance(value, dict):
+            return {key: rounded(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [rounded(item) for item in value]
+        return value
+    return hashlib.sha256(json.dumps(rounded(json.loads(raw)), sort_keys=True).encode()).hexdigest()
 
 
 def keys(*pairs, **options):
@@ -33,8 +46,7 @@ class UnchangedTests(unittest.TestCase):
             root = Path(directory)
             config = ComponentTests().fixture(root)
             out = engine.build(config, root / "generated" / config["name"], root)
-            raw = (out / f"{config['name']}.bundle.json").read_bytes()
-            self.assertEqual(hashlib.sha256(raw).hexdigest(), GOLDEN_BUNDLE)
+            self.assertEqual(rounded_digest((out / f"{config['name']}.bundle.json").read_bytes()), GOLDEN_BUNDLE)
 
     def test_linear_is_the_default_and_the_midpoint_is_the_mean(self):
         track = keys((0, 0), (1, 10))

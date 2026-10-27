@@ -16,8 +16,8 @@ import gamearts_common as common  # noqa: E402
 import validate_sheet_atlas as validator  # noqa: E402
 
 KEY = (255, 0, 255, 255)
-GOLDEN_PNG = "16b3f263f215fc740566a03acf7f21ab2c1cc22608e0844ff3bd93a64bf998bd"
-GOLDEN_ATLAS = "56b40e2a1dc5d096336ea2218ecf79960cdf1d76008cabe126c18266f485ee4e"
+GOLDEN_PNG = "52540a3bde3c8d041cde06eef5e5ade6e7fbe1f23c4a0bd633b36005fc6b2f79"  # of the decoded pixels and size: the compressed bytes differ between zlib builds
+GOLDEN_ATLAS = "46b7f85c013b3e9a432b2e6f7a203360c848a8842cc39c2863c603233d086ee6"  # of the atlas without the frames' source hashes: the test's own PNGs compress differently between zlib builds
 BLOCKS = [  # (ink box x, y, w, h) in a 20 x 20 source frame, colour
     ((7, 5, 6, 8), (200, 40, 40, 255)),
     ((3, 12, 10, 4), (40, 120, 200, 255)),
@@ -29,6 +29,18 @@ PIVOT = [10, 19]
 
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def atlas_digest(path):
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    for frame in data["frames"]:
+        frame.pop("source_sha256", None)
+    return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
+
+
+def pixel_digest(path):
+    with Image.open(path) as opened:
+        return hashlib.sha256(opened.convert("RGBA").tobytes() + str(opened.size).encode()).hexdigest()
 
 
 def source_frame(box, colour, size=(20, 20)):
@@ -86,8 +98,8 @@ class UnchangedTests(unittest.TestCase):
                               {"file": "b.png", "name": "walk_1", "direction": "E", "action": "walk", "pivot": [5, 8]},
                               {"file": "c.png", "name": "idle_0", "direction": "S", "action": "idle", "pivot": [3, 11], "anchors": {"hand": [2, 4], "head": [4, 1]}, "duration_ms": 250}]}
             png, atlas = builder.build(job, Path(folder) / "out")
-            self.assertEqual(digest(png), GOLDEN_PNG)
-            self.assertEqual(digest(atlas), GOLDEN_ATLAS)
+            self.assertEqual(pixel_digest(png), GOLDEN_PNG)
+            self.assertEqual(atlas_digest(atlas), GOLDEN_ATLAS)
 
 
 class TagRuleTests(unittest.TestCase):
