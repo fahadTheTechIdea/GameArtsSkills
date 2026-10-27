@@ -1,0 +1,46 @@
+{
+  "id": "painterly",
+  "title": "Hand-painted",
+  "description": "Soft brushed painting with visible brush texture, rich colour variation and soft edges.",
+  "art_style": {
+    "id": "hand_painted",
+    "outline_policy": "No hard outline; edges come from colour and value contrast.",
+    "shading_policy": "Soft painted light and shadow with colour-temperature shifts.",
+    "texture_policy": "Visible brush texture kept at one consistent scale."
+  },
+  "cameras": [
+    "orthogonal_3_4_oblique",
+    "isometric_3_4",
+    "top_down",
+    "side",
+    "custom"
+  ],
+  "world_kinds": [
+    "grid_world",
+    "free_world",
+    "layered_scene",
+    "screen_space"
+  ],
+  "native_size_guidance": "Draw at about twice the final display size and reduce once with a smooth filter; keep every asset in a set at the same scale.",
+  "animation_approach": "cut_out",
+  "avoid": [
+    "Do not add hard black outlines.",
+    "Do not mix brush scales within one set.",
+    "Do not bake cast shadows into sprites that move."
+  ],
+  "required_checks": [
+    "palette_near",
+    "loop_seam",
+    "pivot_drift",
+    "clipping"
+  ],
+  "check_parameters": {
+    "palette_near": {
+      "max_lab_distance": 18
+    },
+    "loop_seam": {
+      "max_ratio": 2.0
+    }
+  },
+  "soft_edges": true
+}

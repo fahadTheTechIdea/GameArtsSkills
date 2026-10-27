@@ -1,0 +1,59 @@
+{
+  "id": "pixel_low",
+  "title": "Pixel art, 8-bit era",
+  "description": "Tiny sprites on small tiles with a very small fixed palette and hard one-pixel edges, like early console games.",
+  "art_style": {
+    "id": "pixel_art",
+    "outline_policy": "One-pixel dark outline around every sprite; no anti-aliasing.",
+    "shading_policy": "Flat colour with two or three tones per material; no gradients.",
+    "texture_policy": "Tiny repeating patterns only; no noise.",
+    "pixel_density": "One art pixel is one game pixel; tiles 8 to 16 px, characters 8 to 24 px tall.",
+    "palette_reference": "A fixed palette of at most 32 colours, chosen once for the whole game."
+  },
+  "cameras": [
+    "orthogonal_3_4_oblique",
+    "top_down",
+    "side",
+    "isometric_3_4"
+  ],
+  "world_kinds": [
+    "grid_world",
+    "free_world",
+    "layered_scene",
+    "screen_space"
+  ],
+  "native_size_guidance": "Draw at the final pixel size: tiles of 8 or 16 px and sprites one to three tiles tall. Never draw large and shrink.",
+  "tile_px": [
+    8,
+    16
+  ],
+  "animation_approach": "frame_by_frame",
+  "avoid": [
+    "Do not use anti-aliasing, blur or soft gradients.",
+    "Do not draw detail finer than one art pixel.",
+    "Do not mix pixel sizes: every art pixel is the same size across the whole image.",
+    "Do not add colours outside the fixed palette of 32.",
+    "Do not use dithering unless the owner asks for it."
+  ],
+  "required_checks": [
+    "palette_exact",
+    "colour_count_max",
+    "pixel_grid",
+    "integer_scale",
+    "loop_seam",
+    "pivot_drift",
+    "clipping"
+  ],
+  "check_parameters": {
+    "colour_count_max": {
+      "max_colours": 32
+    },
+    "pixel_grid": {
+      "min_aligned_share": 0.98
+    },
+    "loop_seam": {
+      "max_ratio": 1.5
+    }
+  },
+  "soft_edges": false
+}

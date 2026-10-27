@@ -1,0 +1,77 @@
+{
+  "machine": {
+    "python": "3.14.4",
+    "pillow": "12.2.0",
+    "system": "Windows-11-10.0.26200-SP0",
+    "processor": "AMD64 Family 25 Model 33 Stepping 0, AuthenticAMD"
+  },
+  "repeat": 2,
+  "seconds": {
+    "2048": {
+      "colour_counts_pixel_art": 0.147,
+      "colour_counts_gradient": 0.203,
+      "palette_extract_pixel_art": 0.185,
+      "palette_extract_gradient": 0.28,
+      "still_checks_pixel_art_with_palette": 0.361,
+      "still_checks_gradient": 0.522,
+      "edge_profiles": 0.119,
+      "snap_to_pixel_grid": 0.88,
+      "snap_output_size": [
+        256,
+        256
+      ],
+      "still_check_statuses": {
+        "palette_exact": "passed",
+        "palette_near": "passed",
+        "colour_count_max": "passed",
+        "pixel_grid": "failed",
+        "integer_scale": "passed"
+      }
+    },
+    "4096": {
+      "colour_counts_pixel_art": 0.628,
+      "colour_counts_gradient": 0.741,
+      "palette_extract_pixel_art": 0.702,
+      "palette_extract_gradient": 0.944,
+      "still_checks_pixel_art_with_palette": 1.535,
+      "still_checks_gradient": 1.567,
+      "edge_profiles": 0.542,
+      "snap_to_pixel_grid": 3.36,
+      "snap_output_size": [
+        512,
+        512
+      ],
+      "still_check_statuses": {
+        "palette_exact": "passed",
+        "palette_near": "passed",
+        "colour_count_max": "passed",
+        "pixel_grid": "failed",
+        "integer_scale": "passed"
+      }
+    },
+    "animation_16_frames": {
+      "sheet_size": [
+        832,
+        52
+      ],
+      "check_animation": 0.022,
+      "render_preview_strip_and_gif": 0.053
+    },
+    "animation_64_frames": {
+      "sheet_size": [
+        832,
+        208
+      ],
+      "check_animation": 0.057,
+      "render_preview_strip_and_gif": 0.138
+    },
+    "animation_256_frames": {
+      "sheet_size": [
+        832,
+        832
+      ],
+      "check_animation": 0.17,
+      "render_preview_strip_and_gif": 0.535
+    }
+  }
+}

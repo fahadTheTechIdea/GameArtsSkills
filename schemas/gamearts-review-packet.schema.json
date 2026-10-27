@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts visual-review packet (written by scripts/visual_review_cleanup.py prepare)",
+  "type": "object",
+  "required": [
+    "type",
+    "asset_id",
+    "revision",
+    "review_status",
+    "cleanup_manifest",
+    "review_spec",
+    "approved_reference",
+    "source_files",
+    "review_board",
+    "props_board",
+    "component_ids",
+    "uncertain_region_ids"
+  ],
+  "properties": {
+    "type": {
+      "const": "gamearts-visual-acceptance"
+    },
+    "asset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "review_status": {
+      "const": "pending_user_visual_review"
+    },
+    "cleanup_manifest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "review_spec": {
+      "type": "string",
+      "minLength": 1
+    },
+    "approved_reference": {
+      "type": "object",
+      "required": [
+        "mockup_id",
+        "revision",
+        "path",
+        "sha256",
+        "source_sha256",
+        "crop_packet"
+      ],
+      "properties": {
+        "mockup_id": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "crop_packet": {
+          "type": "string"
+        }
+      }
+    },
+    "source_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    "art_style_id": {
+      "type": "string"
+    },
+    "review_board": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^/\\:][^\\:]*$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "props_board": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^/\\:][^\\:]*$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "component_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "uncertain_region_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "object_source_bounds": {
+      "type": "object"
+    },
+    "engine_validation": {
+      "enum": [
+        "not_tested",
+        "passed",
+        "failed"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

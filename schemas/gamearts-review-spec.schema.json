@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts visual-review specification",
+  "type": "object",
+  "required": [
+    "asset_id",
+    "revision",
+    "approved_reference",
+    "expected_component_ids",
+    "inventory_audit",
+    "occlusion_audit",
+    "uncertain_regions"
+  ],
+  "properties": {
+    "asset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "approved_reference": {
+      "type": "object",
+      "required": [
+        "file",
+        "sha256",
+        "mockup_id",
+        "mockup_revision",
+        "crop_packet"
+      ],
+      "properties": {
+        "file": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^/\\\\:][^\\\\:]*$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "mockup_id": {
+          "type": "string"
+        },
+        "mockup_revision": {
+          "type": "string"
+        },
+        "crop_packet": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^/\\\\:][^\\\\:]*$"
+        }
+      }
+    },
+    "expected_component_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "inventory_audit": {
+      "const": "complete_for_visible_reference"
+    },
+    "occlusion_audit": {
+      "const": "completed"
+    },
+    "uncertain_regions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "mask",
+          "evidence_status",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mask": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\:][^\\\\:]*$"
+          },
+          "evidence_status": {
+            "enum": [
+              "inferred",
+              "partially_observed",
+              "unknown"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "art_style_id": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

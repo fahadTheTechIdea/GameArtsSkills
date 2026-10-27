@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts storyboard (one living document per game, updated in place)",
+  "type": "object",
+  "required": [
+    "title",
+    "origin",
+    "scenes"
+  ],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "origin": {
+      "enum": [
+        "user_provided",
+        "agent_authored",
+        "hybrid"
+      ]
+    },
+    "brief": {
+      "type": "string",
+      "description": "The user's own prompt or brief, verbatim."
+    },
+    "source_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "original_name",
+          "sha256",
+          "imported_at_utc"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\:][^\\\\:]*$"
+          },
+          "original_name": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "imported_at_utc": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "summary"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "beat": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "mood": {
+            "type": "string"
+          },
+          "camera_notes": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "characters": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "key_moments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assets_needed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ui_needed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "panel": {
+            "type": "object",
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[^/\\\\:][^\\\\:]*$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          },
+          "status": {
+            "enum": [
+              "proposed",
+              "approved",
+              "needs_review",
+              "rejected"
+            ]
+          },
+          "approval": {
+            "type": "object",
+            "required": [
+              "reference",
+              "at_utc",
+              "content_sha256"
+            ],
+            "properties": {
+              "reference": {
+                "type": "string",
+                "minLength": 1
+              },
+              "at_utc": {
+                "type": "string"
+              },
+              "content_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "sequence": {
+      "type": "object",
+      "required": [
+        "order",
+        "status"
+      ],
+      "properties": {
+        "order": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          }
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "approved"
+          ]
+        },
+        "approval": {
+          "type": "object",
+          "required": [
+            "reference",
+            "at_utc"
+          ],
+          "properties": {
+            "reference": {
+              "type": "string",
+              "minLength": 1
+            },
+            "at_utc": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "condition": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at_utc",
+          "by",
+          "summary"
+        ],
+        "properties": {
+          "at_utc": {
+            "type": "string"
+          },
+          "by": {
+            "enum": [
+              "user",
+              "agent"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "approval_reference": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

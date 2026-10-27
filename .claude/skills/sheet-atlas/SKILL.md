@@ -1,52 +1,30 @@
 ---
 name: sheet-atlas
-description: Use when assembling or validating final sprite sheets, exact #FF00FF masking, pivots, frame bounds, atlas JSON or attachment metadata.
+description: Assemble and validate sprite sheets, measured atlas JSON and component bundles - exact key-colour masking, pivots, frame bounds, attachment metadata. Use when producing or checking final sheets and atlases.
 ---
 
-# Deterministic sprite sheet + atlas
+# Deterministic sheets and atlases
 
-Do NOT assume the image model's grid or embedded labels are accurate. Assemble approved individual frames into precisely measured cells using a deterministic script/tool. Choose cells from actual maximum directional/action extents, keep stable pivots and physical scale, avoid clipping and frame drift.
+Policy: master *Sprite sheets, atlases and component bundles*, *Masking and PNG export policy*, *Parent-artwork cleanup and separation gate*. Never trust an image model's grid, embedded labels or printed JSON. A model produces ONE approved master, ONE isolated component or ONE key pose at a time from the real approved reference; the scripts assemble and measure.
 
-Exact source/export requirements: every delivered PNG uses alpha=255 throughout and exact #FF00FF in unused pixels, no PNG alpha transparency, no backgrounds with gradients or fringes. If masked compositing needs edge-coverage information, preserve it via authorized separate metadata or working intermediate.
+## Build a sheet
+1. Gather the approved individual frames of the current revision (never a revoked one). Each is fully opaque with exact `#FF00FF` in unused pixels; whole-silhouette, no source floor, wall or JPEG patches around props.
+2. Write a frames job (`schemas/gamearts-frames-job.schema.json`, examples in `docs/ATLAS_GENERATION.md`): descriptive `name`, `asset_id`, frame files (relative paths inside the job's folder), `columns`, `padding`, optional `spacing`, per-frame `pivot`, verified named `anchors`, `duration_ms`, `direction`, `action`. Do not invent anchor measurements. Flags: `allow_near_key` (art that legitimately uses near-key colours), `full_bleed` (terrain and full-panel UI), `allow_empty` per frame.
+3. Run `python scripts/build_sheet_atlas.py <job.json> --output-dir <candidate-folder>` internally. It refuses a non-opaque or empty frame, near-key contamination, an out-of-bounds pivot, duplicate frame names and an existing output, checks its own result, and writes `<name>.png` plus `<name>.atlas.json` (cell rectangles, source size, `source_ink_bounds`, pivots, anchors, durations, hashes, `engine_validation: "not_tested"`).
+4. Run `python scripts/validate_sheet_atlas.py <image.png> <atlas.json>`: schema, PNG format, rectangles, pivots, overlaps, exact key outside frames, near-key contamination. Then check alignment and composition visually. Exit 0 is mechanical correctness only; it never proves artistic or engine readiness.
+   **Style and size checks.** Registering a bundle also runs the style-conformance checks the game's preset lists (master *Quality gates and validation grades*); to see them first: `python scripts/validate_style_conformance.py --game-root <game> --image <sheet.png>`. A failed check names what was measured: fix the sheet, never the limit. A `pixel_grid` or `integer_scale` failure on pixel art means the tool returned it enlarged: `python scripts/snap_to_pixel_grid.py --image <large.png> --output <name>.snapped.png --game-root <game>` writes a labelled working copy (it refuses a picture with no grid and says why); show it, and use it as a frame source only once the person has seen it. The original is never replaced.
+5. Keep both files in one bundle under the game's `.gamearts/outputs/assets/generated/` and register it (`game-arts-lifecycle`). If a script cannot run or frames are missing, say the atlas **was not generated**; never fabricate coordinates.
 
-For each sheet export a companion JSON with actual canvas width/height, real frame rectangles, directions, frame order/durations, original image dimensions, pivots, trim offsets, source reference and validation. For modular art: named mount on parent, parent-local world coordinates, direction-specific measured frame pixel anchors, component pivots, moving mount transforms keyed by action/state/direction/time, and draw/occlusion metadata. Atlas coordinate space convention must be explicit.
+## Names for frames, tighter sheets, interface kits, tilesets
+Ask for these only when the asset needs them (master *Sprite sheets, atlases and component bundles*; job fields in `docs/ATLAS_GENERATION.md`). **Tags** name a run of frames and how it plays (`tags` in the job). **Trim with `pack: "shelf"`** sizes each cell to its art and keeps the pivot inside it. **Interface kits** use `nine_slice`, `control` and `state`, with every control declared in `controls`; a missing state is named and stops the build. **A tileset** is built with `python scripts/build_tileset.py <job.json> --output-dir <folder>` and checked with `python scripts/validate_tileset.py <name>.tileset.json` (layouts and job in `docs/TILESETS.md`); the builder describes a missing tile in words and refuses it. The technical gate runs the same checks, so register the bundle and read what it reports.
 
-Run `python scripts/validate_sheet_atlas.py <image.png> <atlas.json>` for geometry/pink checks, then visually validate alignment and composition. Script success alone is not proof of artistic or Godot readiness.
-## Executable builder — mandatory
-The repository now includes **`scripts/build_sheet_atlas.py`**, which creates a real sprite-sheet PNG and companion measured JSON atlas from existing approved individual source frame PNGs, rather than merely describing an output.
+**For other tools and the engine.** `python scripts/export_exchange.py --atlas <atlas> --format aseprite-array` (or `--tileset <file> --format tiled`) writes the shape another tool reads; it is best effort until the person has opened one. Engine-ready copies with real transparency come from the lifecycle (`export-runtime`, `game-arts-lifecycle`) and are derived files, never new art.
 
-When a production request requires a sprite sheet:
-1. Gather the actual approved source frames from the target game, preserving pixel-art/style rules and exact opaque #FF00FF.
-2. Make a builder job manifest with descriptive game-related name, source frame paths, direction/action, chosen columns, per-frame source pivots and verified named attachment points if applicable. Read `docs/ATLAS_GENERATION.md` for the job format. Do not invent anchor measurements.
-3. Invoke `scripts/build_sheet_atlas.py` **internally** using your available command/file tools. Never ask normal users to run the script.
-4. The builder arranges native-sized frames on canonical pivots, writes opaque #FF00FF output PNG, and writes real frame rectangles, source offsets, transformed frame anchors, timing and hashes into the matching `.atlas.json`.
-5. Use `scripts/validate_sheet_atlas.py` and additional checks; evaluate full image visual fidelity, directional coverage, and nested animated mount transforms in the Godot preview when available.
-6. Store both outputs as one candidate bundle inside the target game's `.gamearts/outputs/assets/generated/`. Obtain final approval before lifecycle promotion to approved.
-7. If the agent cannot execute the builder or frames are unavailable, state that the atlas **was not generated** and explain the blocker. Do not fabricate coordinates or pretend a successful build.
-8. Source-frame anchors are **supplied and transformed**, not automatically inferred from image content. Mark anchor or Godot validation unverified until actually checked.
+## Modular assets
+`scripts/build_component_bundle.py` (job format in `docs/COMPONENT_ANIMATION.md`) builds per-component, per-direction sheets and atlases plus `<asset>.bundle.json` with the hierarchy, tracks, draw order and `sampled_poses`; validate with `scripts/validate_component_bundle.py <bundle-folder>` and, for approval, `--approval-gate`. It consumes supplied approved frames and anchors; it does not infer mounts, create art or certify engine behavior.
 
-For complete examples see `docs/ATLAS_GENERATION.md`. 
+## Cleanup before assembly
+Every object exported independently (movable, removable, interactive, replaceable, animated) must be absent from the parent frames. Do not let a model paint tools into a whole workshop and then also export them as sprites. The clean-parent hash, masks and plate are verified by `validate_parent_cleanup.py` (`--strict-props` for new standalone assets, which also needs each sprite's reviewed silhouette mask and `source_offset`); modular packages use the bundle `--approval-gate`. Without the proof the candidate stays `pending`; no approved-atlas claim. A cell's rectangular extent is not evidence of a clean silhouette.
 
-## Executable modular moving component implementation (v7.6)
-
-When approved artwork includes separately moving or state-changing parts, do **not** stop at generic atlas metadata. Use `scripts/build_component_bundle.py` internally with the actual approved frame PNGs and **artist-verified parent anchors/pivots** to build individual directional sheets and measured JSON atlases, plus a `.bundle.json` containing the nested component hierarchy and sampled direction/time-dependent mount transforms. See `docs/COMPONENT_ANIMATION.md`. Do not hardcode component types or frame counts. Ensure all required directions and parent mounts exist, validate the generated bundle, and keep it in `assets/generated` pending final approval. The tool cannot infer artwork anchor geometry, create missing animation images, or certify Godot rendering, so never claim those capabilities without separate actual tests.
-
-
-## Image-generation versus atlas-generation boundary
-**Never prompt an image model to draw final sprite sheets, fake atlases, or printed JSON.** It may generate ONE approved master, ONE isolated component, or ONE key pose at a time using the actual approved reference. Deterministic builders must combine verified actual PNGs and calculate frame bounds/pivots/atlases from image geometry. Reject changing static pixels, directions, perspective, clipping, fake grid lines, annotations and backgrounds that violate opaque #FF00FF. Refer to the master **Mandatory reference-controlled image prompting** section.
-
-
-## No duplicated detachable parts inside source parent sheets
-
-Before assembling an atlas, inspect the component ownership inventory. Every object exported independently (movable, removable, interactive, replaceable, animated) must be excluded from the parent-frame pixels. Do not let an image model generate a whole workshop with tools/props painted into it and then separately export the same tools as additional sprites. Source-frame clean-parent hash and independent masks/plate must be verified by `validate_parent_cleanup.py`; final modular packages use `validate_component_bundle.py --approval-gate`. Without the required proof mark candidate `pending`; no finalized/approved atlas claim. Art-medium-independent technical check after rasterization; the selected art style must remain unchanged.
-
-
-## Artifact-quality gates learned from real workflow
-A sprite cell’s rectangular extent is NOT evidence its exported object silhouette is clean. Before assembling measured sheets, require each isolated prop frame be rendered with pink outside its **reviewed sprite-local silhouette mask**. Run the parent validator's strict-props mode on new standalone assets and \`validate_component_bundle.py --approval-gate\` on multi-part rigs. Never include source floor, wall, JPEG fringe patches or unrelated shadows around independently movable props. Keep source-frame hashes/atlas positions measured from actual current-version PNGs and do not depend on revoked intermediate frames. Mark untested Godot scale/occlusion as unknown, never atlas-passed.
-
-
-## Source-grounded visual cleanup review gate (new production)
-
-A correctly masked PNG/sheet/atlas is **not** proof the isolated component's silhouette represents the whole real object or that the inferred floor/wall/tabletop behind it is plausible. The existing `scripts/visual_review_cleanup.py` automatically generates (1) a before/clean-parent/clean-plate/removed-region/uncertainty/changed-pixel comparison board and (2) each original source-context crop beside its isolated sprite. It checks the current candidate's ownership masks and source files, and records SHA256 hashes. The analyzer must independently inventory visible objects, and classify/mark every obscured area with a source-aligned binary mask and observed/inferred reason.
-
-**Only after displaying both boards and receiving explicit user acceptance** of the complete object inventory, each independently extracted silhouette, the clean background and the listed inferred regions may the agent write the visual-review decision. `scripts/visual_review_cleanup.py verify` checks the exact packet/user-decision binding and detects edits after approval; an agent-written receipt does not independently prove a real user message. Newly approved assets using `visual_review_protocol: "review_packet_v1"` are blocked by the lifecycle `audit` if review evidence is missing/stale. Do not ask users to create JSON; agents run these steps internally, as one coherent visual review. Applies to every selected art style. QA review boards are not game sprite PNGs.
+## Review before approval
+A correctly masked PNG, sheet and atlas does not prove the isolated component is the whole object or that the reconstructed area behind it is plausible. `scripts/visual_review_cleanup.py prepare` builds the comparison boards from the cleanup manifest and the analyzer's review spec; the user's explicit acceptance of the displayed revision is recorded with `verify` (*Human-verifiable silhouette and reconstructed-background review*). Agents run these steps internally, as one coherent review. Review boards are not game sprites. Engine and scale tests are `not_tested` until the game project reports them.

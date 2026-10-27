@@ -6,8 +6,6 @@
     "schema_version",
     "project_id",
     "art_style",
-    "world",
-    "directions",
     "animation",
     "workflow",
     "export"
@@ -20,8 +18,21 @@
       "type": "string",
       "minLength": 1
     },
-    "master_standard": {
-      "type": "string"
+    "settings_status": {
+      "enum": [
+        "inferred",
+        "owner_confirmed",
+        "needs_review"
+      ],
+      "description": "Owner confirmation state. New mockup registration requires owner_confirmed. inferred: saved from the owner's words or the agent's proposals, not yet confirmed. needs_review: a material setting changed after confirmation."
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "confirmed_by": {
+      "type": "string",
+      "minLength": 1
     },
     "art_style": {
       "type": "object",
@@ -45,7 +56,7 @@
         },
         "palette_reference": {
           "type": "string",
-          "description": "Optional approved palette reference file or profile"
+          "description": "Optional approved palette: a reference file or profile, or the palette in plain words"
         },
         "outline_policy": {
           "type": "string",
@@ -66,28 +77,59 @@
         "ui_camera": {
           "type": "string",
           "description": "Optional approved UI illustration/screen camera, independent of world.object_camera."
+        },
+        "preset": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "description": "Optional id of the style preset the policy fields were started from. The fields themselves are copied into the project."
+        },
+        "anchor": {
+          "type": "object",
+          "required": [
+            "mockup_id",
+            "revision"
+          ],
+          "additionalProperties": false,
+          "description": "The approved style board (a mockup with scope style) that shows this game's look. When set, every reference packet carries it as a second reference image and production waits until it is approved.",
+          "properties": {
+            "mockup_id": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]*$"
+            },
+            "revision": {
+              "type": "string",
+              "pattern": "^v[0-9]{3,}$"
+            }
+          }
         }
       }
     },
     "world": {
       "type": "object",
-      "required": [
-        "grid",
-        "logical_tile_m",
-        "ground_tile_px",
-        "pixels_per_meter",
-        "construction_snap_m"
-      ],
       "properties": {
         "grid": {
           "enum": [
             "orthogonal_square",
+            "isometric",
+            "hex_pointy",
+            "hex_flat",
             "custom"
-          ]
+          ],
+          "description": "Selected ground-map geometry. Orthogonal square, isometric 2:1 diamond and the two hexagon orientations are supported presets; custom is allowed with an explicit project profile."
+        },
+        "camera_profile": {
+          "enum": [
+            "orthogonal_3_4_oblique",
+            "isometric_3_4",
+            "top_down",
+            "side",
+            "custom"
+          ],
+          "description": "Selected projection/camera preset. The framework supports any angle; this field plus object_camera/ground_camera resolves the project view."
         },
         "object_camera": {
           "type": "string",
-          "description": "Selected project world-asset camera. Agents use this exact value in image-generation prompts instead of substituting a generic view."
+          "description": "Exact selected project world-asset camera. Agents use this value in image-generation prompts instead of substituting a generic view."
         },
         "logical_tile_m": {
           "type": "array",
@@ -118,16 +160,80 @@
         "ground_camera": {
           "type": "string",
           "description": "Optional approved terrain/square-grid camera, distinct from raised world object camera."
+        },
+        "layers": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Ordered parallax layers, back to front, for a layered_scene game.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "scroll_scale"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "scroll_scale": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "minItems": 2,
+                "maxItems": 2,
+                "description": "How far the layer moves for each unit the camera moves, per axis; 1 matches the camera, below 1 is farther away."
+              },
+              "repeat_px": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "minItems": 2,
+                "maxItems": 2,
+                "description": "Spacing at which the layer repeats, per axis; 0 means it does not repeat on that axis."
+              },
+              "autoscroll_px_per_s": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
         }
       }
     },
     "directions": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "minItems": 1,
-      "uniqueItems": true
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        {
+          "enum": [
+            "dirs_8",
+            "dirs_4",
+            "dirs_2_side",
+            "dirs_1_side",
+            "dirs_1_front"
+          ]
+        }
+      ],
+      "description": "Facing directions for free-facing mobile assets: an explicit list, or a named set (dirs_8, dirs_4, dirs_2_side, dirs_1_side, dirs_1_front). Static structures, terrain and UI are classified per asset and ignore it."
     },
     "animation": {
       "type": "object",
@@ -186,6 +292,49 @@
         }
       }
     },
+    "image_generation": {
+      "type": "object",
+      "description": "The image generator the owner chose for this game. Every image call uses it and the agent never substitutes another. Not a material setting: changing it never reopens approved art.",
+      "required": [
+        "tool"
+      ],
+      "properties": {
+        "tool": {
+          "enum": [
+            "built_in_image_gen",
+            "cli_image_gen",
+            "connected_tool",
+            "user_supplied"
+          ],
+          "description": "built_in_image_gen: the coding agent's own built-in image tool (Codex's image_gen). cli_image_gen: the Codex imagegen command-line fallback, which needs an OpenAI API key. connected_tool: a connector or plugin tool the owner names in tool_name. user_supplied: the owner makes the pictures elsewhere and hands them in; the agent never generates."
+        },
+        "tool_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required for connected_tool: the tool's name as the owner calls it."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional owner preferences for the tool, such as a model or quality choice, applied to every call."
+        }
+      },
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "tool": {
+            "const": "connected_tool"
+          }
+        },
+        "required": [
+          "tool"
+        ]
+      },
+      "then": {
+        "required": [
+          "tool_name"
+        ]
+      }
+    },
     "prompting": {
       "type": "object",
       "description": "Optional prompt-resolution preferences; the agent combines these with selected project settings, active instructions and approved references.",
@@ -209,7 +358,188 @@
           }
         }
       }
+    },
+    "world_kind": {
+      "enum": [
+        "grid_world",
+        "free_world",
+        "layered_scene",
+        "screen_space"
+      ],
+      "description": "What kind of world the game has. grid_world (the default when absent): a tile grid with a ground plane. free_world: a continuous world without a tile grid. layered_scene: ordered parallax layers. screen_space: no ground world at all (cards, match-3, visual novels, menus). Decides which world fields are required."
+    },
+    "screen": {
+      "type": "object",
+      "description": "The game's screen geometry. Required for screen_space games; any game may state its base resolution here.",
+      "required": [
+        "base_resolution_px"
+      ],
+      "properties": {
+        "base_resolution_px": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "scaling": {
+          "enum": [
+            "integer",
+            "fit",
+            "stretch",
+            "none"
+          ],
+          "description": "How the base resolution scales to the display: integer multiples, fit with bars, stretch, or not at all."
+        }
+      },
+      "additionalProperties": false
+    },
+    "engine_target": {
+      "type": "object",
+      "required": [
+        "profile"
+      ],
+      "additionalProperties": false,
+      "description": "The engine or tool that will use the art. profile names a file in presets/engines (generic when absent). Not a material setting: changing it never reopens approved art.",
+      "properties": {
+        "profile": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "maxLength": 40
+        },
+        "version_note": {
+          "type": "string",
+          "description": "Optional engine version or other note from the developer."
+        }
+      }
     }
   },
-  "additionalProperties": true
+  "additionalProperties": true,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "settings_status": {
+            "const": "owner_confirmed"
+          }
+        },
+        "required": [
+          "settings_status"
+        ]
+      },
+      "then": {
+        "required": [
+          "confirmed_at",
+          "confirmed_by"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "world_kind": {
+            "enum": [
+              "free_world",
+              "layered_scene",
+              "screen_space"
+            ]
+          }
+        },
+        "required": [
+          "world_kind"
+        ]
+      },
+      "else": {
+        "required": [
+          "world",
+          "directions"
+        ],
+        "properties": {
+          "world": {
+            "required": [
+              "grid",
+              "logical_tile_m",
+              "ground_tile_px",
+              "pixels_per_meter",
+              "construction_snap_m"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "world_kind": {
+            "const": "free_world"
+          }
+        },
+        "required": [
+          "world_kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "world",
+          "directions"
+        ],
+        "properties": {
+          "world": {
+            "required": [
+              "camera_profile",
+              "object_camera",
+              "pixels_per_meter"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "world_kind": {
+            "const": "layered_scene"
+          }
+        },
+        "required": [
+          "world_kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "world",
+          "directions"
+        ],
+        "properties": {
+          "world": {
+            "required": [
+              "camera_profile",
+              "object_camera",
+              "pixels_per_meter",
+              "layers"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "world_kind": {
+            "const": "screen_space"
+          }
+        },
+        "required": [
+          "world_kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "screen"
+        ]
+      }
+    }
+  ]
 }

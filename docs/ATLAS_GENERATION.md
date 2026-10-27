@@ -1,59 +1,53 @@
-# Automatic sprite-sheet and atlas generation
+# Sprite sheets and atlases
 
-**Game Arts now has an actual sprite-sheet and JSON atlas builder** at [scripts/build_sheet_atlas.py](../scripts/build_sheet_atlas.py). Claude Code or Codex should run it internally whenever generating a multi-frame sprite sheet. The user should not need to run commands or manually create an atlas.
+[`scripts/build_sheet_atlas.py`](../scripts/build_sheet_atlas.py) turns approved individual frame PNGs into one sprite-sheet PNG and its measured atlas JSON. The agent runs it internally; you never type a command. The rules (exact key colour, atlas contents, what the checks do and do not prove) are in the master standard: *Masking and PNG export policy* and *Sprite sheets, atlases and component bundles*.
 
-## Input: approved individual frames
-
-The agent prepares a small private job file in the working game project after the approved mockup has been decomposed and the locked frame art created.
-
-Example `frames.json` (illustrative; source images must exist):
+## Job
+The agent writes a small private job next to the real approved frames (contract: [`schemas/gamearts-frames-job.schema.json`](../schemas/gamearts-frames-job.schema.json)). Illustrative; frame counts, directions and files come from the asset's approved profile:
 
 ```json
 {
   "name": "game_asset_action_e_v001",
   "asset_id": "asset-001",
-  "columns": 6,
+  "columns": 2,
   "padding": 2,
   "spacing": 0,
   "pixels_per_meter": 16,
-  "source_mockups": [{"mockup_id":"scene-001","revision":"v001"}],
+  "duration_ms": 125,
+  "source_mockups": [{"mockup_id": "scene-001", "revision": "v001"}],
   "frames": [
-    {"file":"frame0.png","direction":"E","action":"open","pivot":[14,27],"anchors":{"mount":[8,20]},"duration_ms":125},
-    {"file":"frame1.png","direction":"E","action":"open","pivot":[14,27],"anchors":{"mount":[8,20]},"duration_ms":125}
+    {"file": "frame0.png", "name": "open_0", "direction": "E", "action": "open", "pivot": [14, 27], "anchors": {"mount": [8, 20]}},
+    {"file": "frame1.png", "name": "open_1", "direction": "E", "action": "open", "pivot": [14, 27], "anchors": {"mount": [8, 20]}, "duration_ms": 200}
   ]
 }
 ```
+- `file` is relative to the job's folder. `pivot` and `anchors` are integer pixels inside the source frame (default pivot: bottom centre). Anchors are **supplied** values transformed into cell coordinates, never measured from the picture; check them against the approved master.
+- `duration_ms` per frame or as the job default (125 if neither). `name` must be unique.
+- `allow_near_key` (art that legitimately uses colours very close to `#FF00FF`), `full_bleed` (terrain or full-panel UI that may be painted edge to edge) and, per frame, `allow_empty` (a deliberately blank frame) are explicit opt-ins; the default is strict.
 
-The example has two frames (not six); actual counts, directions and image files are chosen by the approved asset profile.
+## Optional: names for runs of frames, tighter sheets, interface kits, blending
+All of these are off unless the job asks for them; a job without them builds exactly as before.
+- `tags`: named runs of frames, `{"name": "walk", "from": 0, "to": 5, "direction": "forward"}`. `from` and `to` are frame numbers, both included; `direction` is `forward`, `reverse`, `pingpong` or `pingpong_reverse`; `repeat` is how many times the run plays, where 0 or absent repeats forever and 1 plays once. Tag names are unique and the frames must exist. These are Aseprite's frame tags, so another tool can read them.
+- `trim: true` with `pack: "shelf"`: each cell holds only that frame's art joined with its pivot (so the pivot is never cut out) plus the padding, and the cells are placed in rows of similar height up to `max_width` (2048 by default). `columns` belongs to the default grid and is refused with a shelf; trim is refused without one, because a grid has equal cells. Frames keep their job order in the atlas; each trimmed frame records `trim` (the kept box in the source picture) and `trimmed`, and the atlas says `layout: "shelf"`.
+- Interface kits: per frame, `nine_slice: [left, top, right, bottom]` (pixels of the whole source frame; the centre must stay at least one pixel wide in each direction, and a nine-slice frame is never trimmed), `control` and `state` (`normal`, `hover`, `pressed`, `disabled`, `focus`) for the frames that are states of one button or slider, and `set` for a family such as an icon set. The job lists each control once in `controls`, with the states it must have: `{"name": "button", "states": ["normal", "hover", "pressed", "disabled"]}`. Every declared state needs exactly one frame, the frames of a control share size and margins, every control declares `normal`, and the frames of one `set` share a size and a padding.
+- `blend_mode`: `normal`, `additive`, `subtractive`, `multiply`, `screen` or `premultiplied`, for glow, shadow and light sheets. It is advice for the game project to use; nothing here applies it.
 
-A batch can contain all frames for a sheet and have an arbitrary column count. For a directional base sheet, use the approved direction order and suitable layout; for an action/direction animation sheet, use a horizontal row if the active profile requires it.
+## Run
+```text
+python scripts/build_sheet_atlas.py <job.json> --output-dir <candidate-folder>
+python scripts/validate_sheet_atlas.py <name>.png <name>.atlas.json
+```
+The builder refuses a non-opaque, empty or near-key-contaminated frame, an out-of-bounds pivot, duplicate names, an invalid job and an existing output name. It places frames on one canonical pivot per cell without scaling art to a category frame, fills every unused pixel with exact opaque `#FF00FF`, checks the finished sheet against the same policy, and writes both files or neither.
 
-## Outputs
+## Outputs (saved together in the candidate bundle under `.gamearts/outputs/assets/generated/`)
+- `<name>.png`: the sheet.
+- `<name>.atlas.json` ([`schemas/gamearts-atlas.schema.json`](../schemas/gamearts-atlas.schema.json)): image size, cell size, columns, rows, per frame the cell `rect` (exclusive, top-left origin), `source_size`, `source_ink_bounds` (measured art extent), offset in cell, `pivot`, `anchors`, `duration_ms`, source file and SHA256; plus `mask_color`, `parent_attachment` for component sheets, source mockups and a `validation` block (`engine_validation: "not_tested"`).
 
-For one job, the tool creates **two individual files** together:
+## Other tools and the engine
+`python scripts/export_exchange.py --atlas <name>.atlas.json --format aseprite-array` (or `aseprite-hash`) writes the data file Aseprite writes beside a sheet, so tools that read it can cut the frames and play the tags. Some loaders find a tag's frames by their number, so `--frame-names index` names every frame "0", "1", "2" and so on instead of by its own name. `python scripts/export_runtime.py --bundle <folder> --output-dir <folder>` makes engine-ready copies with the key colour turned into real transparency; for an approved asset the lifecycle does this (`export-runtime`) and records it. Both are explained in the master standard (*Engine-neutral integration contract*). Tilesets are in [TILESETS.md](TILESETS.md).
 
-- `<descriptive-game-asset-name>.png`
-- `<same-name>.atlas.json`
-
-Both should be saved under `<game>/.gamearts/outputs/assets/generated/` (or an associated candidate bundle subfolder). Approval and promotion must be handled by the lifecycle skill, including all component resources.
-
-The atlas includes real final canvas/cell dimensions, per-frame rects, source size and source pixel bounding boxes, frame-local pivot and provided attachment anchor coordinates, timing, source hashes and provenance references. Components may supply `parent_attachment` and `attachment_tracks` metadata.
-
-**Do not mistake user-supplied anchor values for computer-vision measurements.** The builder accurately transforms supplied source-frame coordinates into atlas-cell coordinates; it does not infer the correct physical mount from an image. The agent must inspect and validate those anchors against the approved master.
-
-## Validation limits
-
-The builder rejects non-opaque source PNGs, invalid coordinate formats and pre-existing output names. It fills unused sheet space with exact opaque #FF00FF and never scales artwork to fit a category-sized frame.
-
-A separate validator checks atlas rectangles and alpha; the builder's JSON does **not** certify the image's artistic quality, parent-child alignment, full directional coverage, or performance inside Godot. Those require specialist validation and real engine tests.
-
-Run internal build and verification scripts automatically when capable; do not make the user type shell commands.
+## What the checks prove
+`validate_sheet_atlas.py` checks the schema, PNG format and size, rectangles inside the image, pivots inside their cell, no overlapping frames, exact key outside the frames and near-key contamination. Exit status 0 is **mechanical correctness only**. Atlas rectangles say nothing about whether a prop was cut cleanly (a rectangle holding a workbench and its floor is a valid atlas); each independent prop also needs the cleanup and review gates ([Component animation](COMPONENT_ANIMATION.md), master *Parent-artwork cleanup and separation gate*). They do not certify artistic quality, alignment, directional coverage or engine behavior.
 
 ## Developer test
-
-Install Pillow, then run `python -m unittest discover -s tests -v`. The tests use synthetic PNGs and check pivot alignment, frame geometry, mask opacity, anchor conversion, and rejection conditions.
-
-
-## Lessons from real production extraction
-
-Actual measured PNG and atlas rectangles prove sheet geometry, **not** that a detachable object was cleanly cut. A rectangle containing a workbench and its floor pixels can still have a mathematically correct atlas. For each new independent prop, require a separately reviewed sprite-local silhouette mask and run strict parent-cleanup checks before using the sprite as approved production artwork. Verify real pixel dimensions and hashes of the current revision, not frames from a rejected prior version. Keep the approved source mockup revision and original source hashes in provenance. Preserve inferred/retouched pixel notes (for occluded surfaces or JPEG edge fringes) and manual approval separately from engine testing.
+`python -m unittest discover -s tests -p "test_build_sheet_atlas.py" -v` and `python -m unittest discover -s tests -p "test_validate_sheet_atlas.py" -v` run the focused checks (Python 3, Pillow, `jsonschema`).

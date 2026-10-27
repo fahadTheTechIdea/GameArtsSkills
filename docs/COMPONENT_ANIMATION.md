@@ -1,160 +1,74 @@
-# Game Arts — Modular Moving Components
+# Modular moving components
 
-The [component bundle builder](../scripts/build_component_bundle.py) is an executable production helper for all modular 2D assets. It accepts approved source PNG frames, creates a **separate sprite-sheet PNG and measured atlas JSON for each component/direction**, validates that child mount names exist, calculates nested parent/child transforms and samples animated mounts over normalized time.
+[`scripts/build_component_bundle.py`](../scripts/build_component_bundle.py) builds, for every component and direction, a sprite sheet and measured atlas, plus one `<asset>.bundle.json` with the hierarchy, tracks, draw order and sampled composed transforms. The agent runs it internally. The rules are in the master standard: *Animation candidates and modular components*, *Sprite sheets, atlases and component bundles*, *Parent-artwork cleanup and separation gate*.
 
-**Claude and Codex should invoke this automatically** after approved mockups and component artwork are available. Users do not need to run commands.
-
-## Example job
-
-The agent writes a `component_job.json` next to real approved source frame images, with this structure (illustrative paths/anchor numbers):
+## Job
+Contract: [`schemas/gamearts-component-job.schema.json`](../schemas/gamearts-component-job.schema.json). Illustrative paths and numbers:
 
 ```json
 {
   "name": "mygame_dynamic_structure_v001",
   "directions": ["S", "E"],
   "sample_times": [0, 0.5, 1],
-  "source_mockups": [{"mockup_id":"scene-001","revision":"v003"}],
+  "source_mockups": [{"mockup_id": "scene-001", "revision": "v003"}],
   "components": [
-    {
-      "id": "base",
-      "parent": null,
-      "views": {
-        "S": {"frames":[{"file":"base_s.png","pivot":[16,24],"anchors":{"joint":[18,12]}}]},
-        "E": {"frames":[{"file":"base_e.png","pivot":[16,24],"anchors":{"joint":[22,14]}}]}
-      }
-    },
-    {
-      "id": "part",
-      "parent": "base",
-      "mount": "joint",
-      "parent_action": "open",
-      "views": {
-        "S": {"frames":[{"file":"part_s.png","pivot":[4,10]}]},
-        "E": {"frames":[{"file":"part_e.png","pivot":[4,10]}]}
-      },
-      "mount_tracks": {
-        "open": {
-          "S": [{"time":0,"rotation_degrees":0},{"time":1,"rotation_degrees":70}],
-          "E": [{"time":0,"rotation_degrees":0},{"time":1,"rotation_degrees":-70}]
-        }
-      }
-    }
+    {"id": "base", "parent": null,
+     "views": {"S": {"frames": [{"file": "base_s.png", "pivot": [16, 24], "anchors": {"joint": [18, 12]}}]},
+               "E": {"frames": [{"file": "base_e.png", "pivot": [16, 24], "anchors": {"joint": [22, 14]}}]}}},
+    {"id": "part", "parent": "base", "mount": "joint", "parent_action": "open", "draw_order": {"*": 1},
+     "views": {"S": {"frames": [{"file": "part_s.png", "pivot": [4, 10]}]},
+               "E": {"frames": [{"file": "part_e.png", "pivot": [4, 10]}]}},
+     "mount_tracks": {"open": {"S": [{"time": 0, "rotation_degrees": 0}, {"time": 1, "rotation_degrees": 70}],
+                               "E": [{"time": 0, "rotation_degrees": 0}, {"time": 1, "rotation_degrees": -70}]}}}
   ]
 }
 ```
+- `directions` depend on the asset profile (one for a fixed structure, the approved set for a mobile one); every component needs a view for each.
+- Exactly one root. Every child names a `mount` that exists as a named anchor on **every frame** of its parent's atlas in every direction. Frame counts may differ per component and direction (frames are shown by `duration_ms` weights).
+- `mount_tracks` animate the child's attachment on the parent and are keyed by the **parent's** action (`parent_action`, else the parent's `action`); `motion_tracks` animate the child itself and are keyed by its own `action`. Both are keyed by direction (`"*"` for all). A track that no action selects, a direction the bundle does not have, or keyframe times that do not strictly increase within `[0, 1]` fail the build.
+- Keyframes: `time`, `position` (local pixels), `rotation_degrees`, `scale`. Rotation interpolates linearly, so 0 to 360 is a full turn; set `"rotation_interpolation": "shortest"` for the shortest arc. All values are artist-verified, never inferred.
+- Timing of a segment: a keyframe may say how the segment that starts at it is crossed. `interpolation` is `linear` (default), `nearest` (hold this key's value until the next key, for stepped limited animation) or `cubic` (a smooth curve through this key and the next whose slope comes from the neighbouring keys; evenly spaced straight keys stay straight). `easing` reshapes the time inside the segment: `linear`, `ease_in` (u squared), `ease_out` (one minus the square of one minus u) or `ease_in_out` (twice u squared below one half, mirrored above). A stepped segment cannot also ease, and a last keyframe has no segment after it, so neither field is accepted there. `sampled_poses` follow both, so they remain the numeric reference to check a game against. A job without these fields builds exactly as before.
+- `rest`: optional local transform. `draw_order`: integer per direction (`"*"` for all); default is the parent-first order. `sample_times`: normalized times saved as test transforms.
+- Source frames are relative to the job's folder. The output folder must not exist.
 
-### Inputs
-- Asset `name`: descriptive versioned slug; output location must not already exist.
-- `directions`: **profile-dependent**, not hardcoded to eight. Every component must have all listed views.
-- `components`: exactly one root; any number of descendants with `parent` and `mount` pointing to a named anchor in **every frame** of their parent directional atlas.
-- `views[direction].frames`: approved individual source PNGs, pivots and measured named anchors (see [atlas builder](ATLAS_GENERATION.md)). Frame counts may differ by component and direction.
-- `rest`: optional local component position/rotation/scale.
-- `parent_action` and `mount_tracks`: optional animated mount transform tracks keyed by parent action and direction (or `*` wildcard).
-- `action` and `motion_tracks`: optional child-local animation tracks keyed by action and direction.
-- Keyframe times: monotonic normalized 0..1, position in **screen/local pixels** relative to named mounts; rotation in degrees; scale factors dimensionless. These are artist-verified values, **not automatically inferred**.
-- `sample_times`: normalized positions at which to save test transform matrices.
+## Outputs (one candidate under `.gamearts/outputs/assets/generated/<revision>/`)
+`<name>_<component>_<direction>.png` and `.atlas.json` per component and direction, and `<name>.bundle.json` ([`schemas/gamearts-bundle.schema.json`](../schemas/gamearts-bundle.schema.json)): `component_order`, components with parents, mounts, tracks, `draw_order` and atlas names, `sampled_poses`, `rotation_interpolation`, `visual_review_protocol` (`"review_packet"` for multi-part bundles) and a `validation` block (`parent_cleanup: "pending"` until proof is supplied, `engine_validation: "not_tested"`). Everything is built in a staging folder and published only if it all validated.
 
-### Outputs
-The agent stores the complete candidate in `.gamearts/outputs/assets/generated/<descriptive-revision>/`:
-- `<name>_<component>_<direction>.png`
-- `<name>_<component>_<direction>.atlas.json`
-- `<name>.bundle.json` with hierarchy, track definitions, per-direction references and sampled composed 2D transforms.
+## Composition convention
+`child_world = parent_world x mount_offset x mount_animation x rest x own_motion`, with `mount_offset` = the child's named anchor on the parent's *current* frame minus that frame's pivot. On a direction change the directional frames, pivots, anchors and transforms switch together. `sampled_poses` hold each component's composed 2D matrix for every direction and time; a game project's engine integration compares against them (master *Engine-neutral integration contract*).
 
-The builder uses **opaque exact #FF00FF** unused pixels. It doesn't resize art to match arbitrary category cell sizes and retains source frame hashes.
-
-### Composition convention
-
-`child_world = parent_world × parent_frame_mount_offset × animated_mount × child_rest × child_motion`
-
-Each mount offset comes from the parent atlas frame's named anchor minus that frame's pivot. When a parent or child changes direction, the selected directional frames and mounts must update together; the engine stores per-direction data so a Godot runtime adapter can do so atomically.
-
-### Required validation and known limitations
-
-- The build validates hierarchy cycles, missing directional artwork, missing named parent anchors, bad frame formats and invalid animation tracks when evaluated.
-- It **does not infer attachment anchor coordinates from artwork**, solve mechanical geometry, validate collisions/occlusion, test every continuous time, or create native Godot scenes. Such checks require a separate visual review and real Godot integration.
-- The bundle is **not automatically approved or game-ready** after a successful build. User and technical approval gates still apply.
-- Never use this tool to regenerate new reference art instead of obtaining approved mockups and frame images.
-
-For developers/test runners, `python -m unittest discover -s tests -v` runs synthetic modular-component tests. The normal user never needs to run that command.
-
-## Automated bundle validator
-
-After building, the agent should invoke `scripts/validate_component_bundle.py <generated-bundle-folder>` internally and keep the bundle in generated until human approval and any required Godot tests. The validator checks PNGs, atlases, frame bounds, alpha, directional listings and sampled transforms, but does not infer physical geometry or verify unsampled motion.
-
-
-## Permanent asset view and direction classification
-
-**Before generating artwork, classify the asset by gameplay behavior and use the game-approved art style and projection consistently.** Never generate additional angles solely because the framework can support them.
-
-| Asset class | Default views | Moving components |
-|---|---|---|
-| Static structure or fixed building | **One** locked, approved world-facing view | Separate frame-based or transform-animated parts as applicable; the static master does not rotate |
-| Fixed machinery or permanently installed industrial equipment | **One** locked, approved world-facing view | Animate arms, linkages, valves, flame, doors, etc. independently as appropriate |
-| Mobile object, vehicle or free-facing actor | **Eight** coherent directions (S, SW, W, NW, N, NE, E, SE) when gameplay supports directional movement or facing | Correct direction-specific components and applicable actions; preserve model identity and physical scale across views |
-| UI icon, portrait or presentation graphic | **One** UI-optimized view unless UI behavior requires otherwise | UI-specific states/effects; don't reuse world camera assumptions |
-
-A fixed asset may explicitly require a **limited rotation set** for placement or an interactive turning assembly; then use only its actual approved orientation set (e.g., 2 or 4) without forcing eight. Conversely, a mobile asset whose gameplay supports free directional travel uses the full eight-direction package and synchronized moving attachments. A fixed installation's independently rotating arm or turret is not grounds for rotating its entire base or rebuilding all eight static views.
-
-For every asset, record `asset_class`, `view_policy`, `directions`, `approved_view_reference`, `rotation_requirements`, and independently animated `components` in its production blueprint/manifest. A valid single-view bundle must include exactly that one declared direction for all relevant components; validators must derive coverage from the declared profile, **not demand eight directions from a structure**. Only generate directions verified necessary for gameplay.
-
-**Appearance lock:** Across any genuinely required directions, keep structure/model identity, geometry, materials, wall/door/window layout, proportions, scale, palette, component attachment logic and pixel density consistent. A different angle is not permission to redesign the object. Do not include labels, grids, diagrams, or example JSON inside actual production sprite PNG sheets. Measured metadata lives in separate JSON files.
-
-**Oilfield Days defaults:** workshop, cabins, warehouses, fuel farm, separators, pumpjacks and flare stacks use a single approved top-down-oblique world angle (with independent door/linkage/flame animation); freely moving trucks, forklifts and mobile construction equipment use eight direction masters and applicable action sheets; fleet thumbnails, build-menu icons and dispatch portraits are separate UI presentation resources.
-
-**Repository maintenance rule:** Update the current existing canonical master standard **in place** and update existing README, skills, instructions, validator contracts and documentation as needed. **Do not create another version-numbered master document or duplicate guidance file for routine changes.** Preserve previous sections and amend the current file rather than producing a parallel version.
-
-
-## Mandatory clean-parent proof before production approval
-
-Game Arts **must not** export separate objects while leaving their copies painted inside the parent image. The separation inventory includes **movable, removable, interactive, replaceable and animated** objects, whether or not each has its own animation. This applies to buildings, vehicles, fixed machinery, characters, composite props and UI/world assets, **for every visual style**.
-
-The existing `scripts/validate_parent_cleanup.py` checks rasterized ownership evidence. The internal cleanup manifest in a generated asset candidate has this shape:
-
-```json
-{
-  "schema_version": "1.0",
-  "method": "pixel_exact",
-  "source_composite": "parent_before_cleanup.png",
-  "static_parent": "static_parent_clean.png",
-  "clean_plate": "approved_background_without_props.png",
-  "clean_plate_review": "approved",
-  "clean_plate_reference_id": "approved_review_reference_id",
-  "art_style_id": "selected_project_style",
-  "detached_components": [
-    {"id":"independent_object_id","kind":"removable",
-     "sprite":"object.png","removal_mask":"object_ownership_mask.png"}
-  ]
-}
+## Validate
+```text
+python scripts/validate_component_bundle.py <bundle-folder>
+python scripts/validate_component_bundle.py <bundle-folder> --approval-gate
 ```
+The first checks the bundle and atlas contracts, every sheet's key-colour policy, mounts on every parent frame, track reachability and the sampled poses. `--approval-gate` additionally demands the cleanup proof below. A built bundle is **not** approved or game-ready; it never finds physical mount points or certifies visual alignment or engine behavior.
 
-The referenced full-size source/cleaned-parent/clean-plate files must share the same pixel geometry; **mask pixels are binary 0/255** and cover the original object's actual footprint. They are authoring evidence, not a change to the game's visual medium. Detached sprites must contain actual artwork, be opaque, and leave unused pixels exact #FF00FF. The clean plate is a separately reviewed file, NOT a self-asserted guarantee that hidden geometry was correctly painted. The script validates *declared* objects and cannot automatically find missing inventory entries.
-
-For modular bundles, the existing build manifest may contain `detached_inventory` (mapping of parent component ID to required child/prop IDs) and `parent_cleanup_evidence` entries for every required parent+direction+frame:
-
+## Cleanup proof (required for approval)
+Every independently movable, removable, interactive, replaceable or animated element must be absent from the static parent frames, with proof for **every parent, direction and frame**. The job carries:
 ```json
 {
   "detached_inventory": {"workshop_body": ["workbench", "spanner", "screw"]},
   "parent_cleanup_evidence": [
-    {"parent_component": "workshop_body", "direction": "fixed",
-     "frame_index": 0, "manifest": "proof/workshop_body_fixed_0/cleanup.json"}
+    {"parent_component": "workshop_body", "direction": "fixed", "frame_index": 0, "manifest": "proof/workshop_body_fixed_0/cleanup.json"}
   ]
 }
 ```
+Each cleanup manifest ([`schemas/gamearts-cleanup.schema.json`](../schemas/gamearts-cleanup.schema.json)) lists the original composite, the cleaned parent, a separately reviewed clean plate and each detached component:
+```json
+{
+  "schema_version": "1.0", "method": "pixel_exact",
+  "source_composite": "parent_before_cleanup.png", "static_parent": "static_parent_clean.png",
+  "clean_plate": "approved_background_without_props.png", "clean_plate_review": "approved",
+  "clean_plate_reference_id": "review-reference-id", "art_style_id": "selected_project_style",
+  "detached_components": [
+    {"id": "workbench", "kind": "removable", "sprite": "workbench.png", "removal_mask": "workbench.mask.png",
+     "sprite_silhouette_mask": "workbench.silhouette.png", "silhouette_review": "approved",
+     "silhouette_reference_id": "workbench-review", "source_offset": [112, 64]}
+  ]
+}
+```
+All full-size images share one pixel geometry; masks are binary 0/255. `scripts/validate_parent_cleanup.py <cleanup.json>` proves the parent differs from the source inside each removal mask, matches the plate there, and equals the source elsewhere. With `--strict-props` (required for new production; the bundle gate always uses it) each sprite also needs its independently reviewed `sprite_silhouette_mask` and a `source_offset`; the sprite's ink must then equal the source pixels at that offset (within `source_tolerance`, default 0), lie inside its removal mask and match its silhouette. The builder packages the evidence in the candidate and records the result; every inventory ID must appear in the proof. The check validates *declared* objects: an omitted object needs the visual inventory audit.
 
-The builder copies each manifest and its images into the **existing** generated asset bundle and validates them, without changing the originals. The production approval check (the existing `validate_component_bundle.py --approval-gate`) demands the listed evidence cover every relevant parent frame/direction, all actual child components and every extra detached inventory ID; the verified clean parent must hash-match the exact source frame recorded by the atlas. With no cleanup evidence a candidate may still be built for review, but its `validation.parent_cleanup` stays `pending` and it **cannot be approved**.
-
-Standalone one-view parents that export independent furniture/tools separately without building a modular animation bundle must run the same `validate_parent_cleanup.py` technical check, then undergo explicit visual review before approval. Always reject duplicated detached artwork and missing/incorrect clean backgrounds. An image generator must produce the **clean shell without any separated objects** rather than a second prop sheet only.
-
-
-## Silhouette extraction (strict approval requirement for new bundles)
-
-The Oilfield Days v001 prop sheet passed basic geometry while containing rectangular source-floor patches. For new component bundles each independently exported prop must provide `sprite_silhouette_mask` (binary 0/255 sprite-local PNG at exact exported sprite dimensions), `silhouette_review: approved` and a nonempty `silhouette_reference_id` identifying an independently reviewed segmentation/reference. The source background-removal mask and the exported sprite-local foreground stencil serve different purposes: one cleans the parent, the other forbids extraneous pixels in the detached sprite. **Do not fabricate the “approved” stencil by tracing contaminated output.**
-
-Run strict checking in `scripts/validate_parent_cleanup.py --strict-props`; a modular bundle's `scripts/validate_component_bundle.py --approval-gate` includes this requirement and `build_component_bundle.py` packages each proof mask. The checker rejects foreground pixels outside the approved stencil and missing pixels inside it. These checks apply across styles after aligned raster export and are *not* equivalent to semantic object recognition. Visual inspection of fine texture boundaries and inferred hidden geometry is still required. Leave art approval separate from runtime/scale testing.
-
-
-## Independent visual acceptance of composited parts
-
-Even a valid animated attachment matrix and precise atlas do not prove a moving component was extracted cleanly or the hidden parent surface is credible. The current visual review helper builds inspectable source/clean-parent/backplate/removal-mask/uncertainty panels and source-context-versus-isolated-component boards from the current candidate. For multi-direction and multi-frame rigs, prepare complete evidence for all applicable parent/direction/frame combinations and link **each review packet** in the same generated asset bundle.
-
-Require an independent object inventory, source-grounded silhouette evidence and explicitly highlighted reconstructed/unknown areas; render inspections with the selected style's scaling policy. Capture the user's one clear visual acceptance covering complete component IDs and inferred regions. The new-protocol asset's manifest must reference all review packet/decision files. The existing `gamearts_asset_lifecycle.py audit` checks their bytes before approved artwork is reused. Source/pixel checks remain separate, and Godot interaction is not claimed tested by the visual board.
+## Visual acceptance
+Valid matrices and exact masks do not prove a part was extracted completely or that the hidden surface behind it is credible. `scripts/visual_review_cleanup.py` builds the review boards and the hash-bound decision (master *Human-verifiable silhouette and reconstructed-background review*); the lifecycle blocks approved reuse if that evidence is missing or no longer matches the files.

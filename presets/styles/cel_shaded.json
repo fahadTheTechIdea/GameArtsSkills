@@ -1,0 +1,50 @@
+{
+  "id": "cel_shaded",
+  "title": "Cel-shaded cartoon",
+  "description": "Clean cartoon look: bold even outlines, flat colour areas and one hard shadow tone.",
+  "art_style": {
+    "id": "illustrated",
+    "outline_policy": "Bold continuous outline of even weight, slightly thicker around the outer silhouette.",
+    "shading_policy": "Flat colour with a single hard-edged shadow tone per material; no gradients.",
+    "texture_policy": "None; surfaces are flat colour."
+  },
+  "cameras": [
+    "orthogonal_3_4_oblique",
+    "isometric_3_4",
+    "top_down",
+    "side",
+    "custom"
+  ],
+  "world_kinds": [
+    "grid_world",
+    "free_world",
+    "layered_scene",
+    "screen_space"
+  ],
+  "native_size_guidance": "Draw at about twice the final display size and reduce once with a smooth filter; keep every asset in a set at the same scale.",
+  "animation_approach": "either",
+  "avoid": [
+    "Do not use soft shading or gradients.",
+    "Do not vary the outline weight between assets.",
+    "Do not add texture or noise."
+  ],
+  "required_checks": [
+    "palette_near",
+    "colour_count_max",
+    "loop_seam",
+    "pivot_drift",
+    "clipping"
+  ],
+  "check_parameters": {
+    "palette_near": {
+      "max_lab_distance": 10
+    },
+    "colour_count_max": {
+      "max_colours": 48
+    },
+    "loop_seam": {
+      "max_ratio": 1.5
+    }
+  },
+  "soft_edges": true
+}

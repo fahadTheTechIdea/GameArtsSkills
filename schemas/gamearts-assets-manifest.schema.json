@@ -1,0 +1,372 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts Assets Lifecycle Manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "game_id",
+    "assets"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "game_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "asset_id",
+          "status",
+          "bundle_path",
+          "files"
+        ],
+        "properties": {
+          "asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^v[0-9]{3,}$"
+          },
+          "status": {
+            "enum": [
+              "generated",
+              "approved",
+              "revoked"
+            ]
+          },
+          "bundle_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^/\\\\:][^\\\\:]*$"
+            }
+          },
+          "approval": {
+            "enum": [
+              "pending",
+              "user_granted",
+              "approved",
+              "granted",
+              "not_granted",
+              "rejected"
+            ]
+          },
+          "visual_review": {
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ]
+          },
+          "approval_reference": {
+            "type": "string"
+          },
+          "approved_at_utc": {
+            "type": "string"
+          },
+          "source_mockups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "mockup_id",
+                "revision"
+              ],
+              "properties": {
+                "mockup_id": {
+                  "type": "string"
+                },
+                "revision": {
+                  "type": "string"
+                },
+                "reference_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-fA-F0-9]{64}$"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-fA-F0-9]{64}$"
+                }
+              }
+            }
+          },
+          "artifact_hashes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            }
+          },
+          "technical_validation": {
+            "type": "object",
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "passed",
+                  "failed"
+                ]
+              },
+              "checked_at_utc": {
+                "type": "string"
+              },
+              "atlases": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "bundle_gate": {
+                "enum": [
+                  "passed",
+                  "failed",
+                  "not_applicable"
+                ]
+              },
+              "style_conformance": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "description": "The style checks the game's preset requires, measured on every sheet. A failed check blocks approval; untested and not_applicable never do.",
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "passed",
+                      "failed",
+                      "untested",
+                      "not_applicable"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "preset": {
+                    "type": "string"
+                  },
+                  "sheets": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "sheet",
+                        "checks"
+                      ],
+                      "properties": {
+                        "sheet": {
+                          "type": "string"
+                        },
+                        "checks": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "name",
+                              "status",
+                              "detail"
+                            ],
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "enum": [
+                                  "passed",
+                                  "failed",
+                                  "untested"
+                                ]
+                              },
+                              "detail": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "issues": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "tilesets": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "The tileset files of the bundle that were checked (labels, grid, shared sides)."
+              }
+            }
+          },
+          "visual_review_protocol": {
+            "enum": [
+              "review_packet",
+              "review_packet_v1",
+              "legacy"
+            ]
+          },
+          "visual_reviews": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "packet",
+                "decision"
+              ],
+              "properties": {
+                "packet": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^[^/\\\\:][^\\\\:]*$"
+                },
+                "decision": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^[^/\\\\:][^\\\\:]*$"
+                }
+              }
+            }
+          },
+          "engine_validation": {
+            "enum": [
+              "not_tested",
+              "passed",
+              "failed"
+            ]
+          },
+          "provenance": {
+            "type": "object",
+            "description": "How the artwork was produced (standard: generation provenance).",
+            "properties": {
+              "provider": {
+                "type": "string"
+              },
+              "model": {
+                "type": "string"
+              },
+              "seed": {
+                "type": [
+                  "string",
+                  "integer"
+                ]
+              },
+              "edit_mode": {
+                "type": "string"
+              },
+              "conditioning_images": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "path",
+                    "sha256"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-fA-F0-9]{64}$"
+                    }
+                  }
+                }
+              },
+              "captured_at_utc": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "rights": {
+            "type": "object",
+            "description": "Usage-rights note for supplied references and generated art.",
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "owned",
+                  "licensed",
+                  "user_supplied",
+                  "unknown"
+                ]
+              },
+              "notes": {
+                "type": "string"
+              }
+            }
+          },
+          "replaced_by": {
+            "type": "string"
+          },
+          "restored_from": {
+            "type": "string"
+          },
+          "revocation_reason": {
+            "type": "string"
+          },
+          "revoked_at_utc": {
+            "type": "string"
+          },
+          "derived_exports": {
+            "type": "array",
+            "description": "Derived, engine-ready copies made from this approved asset. They are never approved themselves and are removed if the asset is revoked.",
+            "items": {
+              "type": "object",
+              "required": [
+                "kind",
+                "path",
+                "manifest_sha256",
+                "created_at_utc"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "runtime"
+                  ]
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "manifest_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "created_at_utc": {
+                  "type": "string"
+                },
+                "status": {
+                  "const": "derived"
+                }
+              }
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,50 @@
+{
+  "id": "flat_vector",
+  "title": "Flat vector",
+  "description": "Clean geometric shapes with solid fills and crisp edges, as drawn in vector software.",
+  "art_style": {
+    "id": "vector",
+    "outline_policy": "No outline, or one uniform stroke width across the whole set.",
+    "shading_policy": "Solid fills with at most one flat shadow shape; a very subtle gradient is optional.",
+    "texture_policy": "None."
+  },
+  "cameras": [
+    "orthogonal_3_4_oblique",
+    "isometric_3_4",
+    "top_down",
+    "side",
+    "custom"
+  ],
+  "world_kinds": [
+    "grid_world",
+    "free_world",
+    "layered_scene",
+    "screen_space"
+  ],
+  "native_size_guidance": "Draw at about twice the final display size and reduce once with a smooth filter; keep every asset in a set at the same scale.",
+  "animation_approach": "cut_out",
+  "avoid": [
+    "Do not use textures, noise or brush effects.",
+    "Do not vary stroke width between assets.",
+    "Do not add detail that is not a clean shape."
+  ],
+  "required_checks": [
+    "palette_near",
+    "colour_count_max",
+    "loop_seam",
+    "pivot_drift",
+    "clipping"
+  ],
+  "check_parameters": {
+    "palette_near": {
+      "max_lab_distance": 8
+    },
+    "colour_count_max": {
+      "max_colours": 24
+    },
+    "loop_seam": {
+      "max_ratio": 1.5
+    }
+  },
+  "soft_edges": true
+}

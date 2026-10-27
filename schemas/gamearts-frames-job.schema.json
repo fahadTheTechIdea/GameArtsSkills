@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts sheet-builder job",
+  "type": "object",
+  "required": [
+    "name",
+    "frames"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "asset_id": {
+      "type": "string"
+    },
+    "columns": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "padding": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2048
+    },
+    "spacing": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2048
+    },
+    "pixels_per_meter": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "allow_near_key": {
+      "type": "boolean"
+    },
+    "full_bleed": {
+      "type": "boolean"
+    },
+    "source_mockups": {
+      "type": "array"
+    },
+    "frames": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "properties": {
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\:][^\\\\:]*$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "direction": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pivot": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "anchors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "trim": {
+      "type": "boolean",
+      "description": "Keep only each frame's art (joined with its pivot) plus padding. Needs pack 'shelf'."
+    },
+    "pack": {
+      "enum": [
+        "grid",
+        "shelf"
+      ],
+      "description": "grid (default): equal cells. shelf: cells of their own size placed in rows by height."
+    },
+    "max_width": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16384,
+      "description": "Widest sheet a shelf layout may make; default 2048."
+    },
+    "tags": {
+      "type": "array",
+      "description": "Named runs of frames; checked by gamearts_atlas.tag_problems and the atlas contract."
+    },
+    "controls": {
+      "type": "array",
+      "description": "Controls whose states are frames of this sheet: [{name, states}]. Copied to the atlas and checked by gamearts_atlas.ui_problems."
+    },
+    "blend_mode": {
+      "enum": [
+        "normal",
+        "additive",
+        "subtractive",
+        "multiply",
+        "screen",
+        "premultiplied"
+      ],
+      "description": "Advisory blend mode copied to the atlas (additive glow, multiply shadow, screen light)."
+    }
+  },
+  "additionalProperties": true
+}

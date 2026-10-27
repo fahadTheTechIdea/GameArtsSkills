@@ -1,78 +1,53 @@
 ---
 name: game-arts-mockup-creator
-description: Create, revise, present and stage visually reviewable mockups of whole game worlds, levels/scenes, individual art assets, characters, UI screens and UI flows. Automatically use as first visual production step for new Game Arts designs, with project style and approved references; request explicit approval before final artwork.
+description: Create, revise, present and register visually reviewable mockups of game worlds, scenes, assets, characters, UI screens and flows. Use as the first visual step for any new Game Arts design that has no approved reference, and when the user asks to create, revise, compare or approve a mockup.
 ---
 
-# Game Arts Mockup Creator
+# Game Arts mockup creator
 
-## Automatically triggered when
-- The user requests a new scene, environment, sprite, world, character, interface, effect or visual asset and there is not yet an approved mockup/reference for that design.
-- The user asks to create, revise, compare, or approve a mockup.
-- An existing approved mockup needs a materially changed artistic direction.
+Policy: master *Mandatory mockup-first approval gate*, *Mockup scope classification and decomposition*, *Reference-controlled image prompting*, *Masking and PNG export policy*.
+
+## When
+A new scene, environment, sprite, world, character, interface, effect or asset with no approved reference; a request to create, revise, compare or approve a mockup; a materially changed direction for an approved mockup. An unchanged approved mockup is reused, not recreated. A mockup the user made elsewhere is imported with `import-mockup`, not regenerated (`game-arts-lifecycle`, *External and user-supplied mockups*).
 
 ## Procedure
-1. Discover the target game project. Load its existing `.gamearts/project.json` settings, relevant custom instructions and already-approved references. If no settings exist, use the current approved game-profile defaults for the mockup; ask only genuinely essential missing decisions. Setup is optional, conversational and never a prerequisite to viewing an initial concept.
-2. Determine scope from the request: world, scene, individual asset, character, UI screen/flow or mixed. Use the appropriate art-style and asset profiles. Do not impose pixel-art-only techniques on nonpixel styles.
-3. Inspect user-supplied reference images. Respect observed design details; never silently replace them with generic objects. For a broad mockup, preserve intended visual hierarchy and provide nested detail mockups where the source cannot reveal fine geometry.
-4. **Generate actual reviewable mockup artwork** using a supported image-generation/design tool when connected. Don't merely give a text prompt and claim the image was created. If the agent lacks a capable image-generation tool, say so and offer the concept brief instead without claiming completion.
-5. Follow exact opaque `#FF00FF` unused-pixel rules for every exported Game Arts PNG. A fully painted scene mockup can have no unused pixels. Apply the approved art/camera/world presentation rules.
-6. Export each actual mockup to the game repository's `.gamearts/outputs/mockups/generated/`, giving it a descriptive `<game>_<scope>_<content>_mockup_vNNN.png` filename. Associate immutable `mockup_id`/revision, candidate metadata, reference provenance, and generated status with `.gamearts/outputs/manifests/mockups.json`; verify saves. No approval is implied by generation.
-7. Show the actual preview in the conversation when the platform supports it. Ask plainly: **"Do you approve this mockup, or what should change?"** Do not send a huge questionnaire.
-8. When the user asks for revisions, create a new generated revision and show the updated preview; preserve earlier iterations. On explicit approval, invoke `game-arts-lifecycle` to move the exact approved revision and metadata to `mockups/approved/` and update manifests. Rejected/superseded candidates go to `mockups/revoked/`.
-9. After approval, invoke `mockup-analyzer` to inspect **all relevant visible geometry, textures, surfaces, small details, components, UI elements and real-world animation candidates**. Produce a nested blueprint where appropriate. Link every planned production asset to the approved mockup ID/revision and relevant blueprint elements.
-10. Only then route to the correct production/animation/sheet/atlas/Godot skill. Production assets have a **separate approval** after technical validation.
+1. Find the game. Read `.gamearts/project.json`, active instructions and approved references (`select --stage approved --kind mockups`; a game with no `instructions`, `outputs` or `manifests` folder yet simply has none). A text concept may be discussed anytime, but **generating and registering a mockup needs `settings_status: "owner_confirmed"`**: if it is missing, inferred or `needs_review`, show a plain-language summary and ask for one confirmation (`game-arts-project-setup`). Never fabricate it.
+2. For a game or campaign request, a storyboard comes first (`game-arts-storyboard`); a scene mockup then names its approved `storyboard_scene_id`.
+3. Classify the scope: world, scene, asset, character, ui_screen, ui_flow, mixed or style (a style board, see below). Use the saved art style and asset profile; do not impose pixel-art rules on other styles. Study supplied references and keep their observed details.
+4. **Render an actual mockup with the owner's chosen image generator** (the section "The image generator" below) and the full prompt from the master (resolved style, camera, scale, scope, identity, export rule). A text prompt is not a mockup, and a picture you draw yourself with a script is not a generated mockup either; if the chosen tool cannot be used here, follow "Not available in this session" below and register nothing. A fully painted, full-bleed mockup (scene, world, UI screen) uses the whole frame and has no unused pixels; whatever is unused is exact `#FF00FF`. A mockup is a review picture at the tool's natural size (a landscape frame around 1536 x 1024 is typical); `pixels_per_meter` and tile sizes calibrate production art, not the mockup, so record its size and never claim scale calibration for it.
+5. Write the prompt you actually sent to the tool into a scratch text file (`<game>/.gamearts/system/prompt_draft.txt`; delete it afterwards). Leave the picture where the tool saved it (for Codex's built-in tool that is under `$CODEX_HOME/generated_images/`) and register it; the framework names the file, hashes it, writes the metadata and files it under `generated`:
+```text
+python scripts/gamearts_asset_lifecycle.py register-generated --game-root <game> --image <the tool's PNG> --id <mockup_id> --revision <vNNN> --scope <scope> --prompt-file <prompt file> [--storyboard-scene-id <scene>] [--model <name>]
+```
+   The tool defaults to the owner's saved choice and `register-generated` refuses any other; never name a different one to get past it. Never copy files into managed folders by hand, write the metadata yourself or edit the manifest.
+6. Check it:
+```text
+python scripts/gamearts_asset_lifecycle.py audit-mockup --game-root <game> --id <mockup_id> --revision <vNNN>
+python scripts/gamearts_asset_lifecycle.py reconcile --game-root <game>
+```
+   Registration implies no approval. Tell the user the pixel facts it reports (size, transparency, exact key pixels) and anything you can see that departs from the saved style, camera or scale; it certifies none of them.
+7. **Look at the picture before the user does.** Compare it with the saved style, camera and what was asked. If it clearly departs (for example the camera is eye level when the game's is elevated 3/4), make **one** corrected revision, register it, and withdraw your first candidate with `revoke` (reason: "agent revision, not a user rejection"). Show only the better one and say what you changed; further changes wait for the user. Never withdraw anything the user has seen or approved.
+8. Show the preview and ask plainly: **"Do you approve this mockup, or what should change?"** A revision is a new generated revision; earlier ones stay.
+9. On the user's real approval of that exact revision, `game-arts-lifecycle` runs `approve-mockup`; rejected or superseded ones go to `revoked` through `revoke`. Then hand over to `mockup-analyzer`. Production assets have their own, separate approval.
 
-## Essential user experience
-- "Create a city mockup" → generate preview, show, ask approval.
-- "Generate a sprite from this image" → show an asset mockup first unless the image is already explicitly approved.
-- "Make the street wider" → create revised mockup, show it, ask approval.
-- "Approved" → promote *the currently presented identifiable revision*, then decompose automatically.
-- "Use my existing approved UI mockup" → reuse it; never make users reapprove the same design.
-- Don't require the user to say "activate Game Arts", run a command, read schema files, select a skill or manually move assets.
-- If saving fails or tools are unavailable, report honestly and don't mark the lifecycle complete.
+## Exploring a look (style boards)
+When the game has no style anchor and the person is still choosing a look ("what could it look like?", "show me some styles"), make two to four candidate **style boards** instead of a scene: one board per candidate (scope `style`), each in a different direction from the saved preset or from `presets/styles/` (`python scripts/gamearts_presets.py list`). Register each with `register-generated` as above, then compare them:
+```text
+python scripts/build_contact_sheet.py --game-root <game> --mockup <id>:<vNNN> --mockup <id>:<vNNN>
+```
+Show the picture named in `sheet` and ask **"Which letter feels closest to your game?"** On the answer, `approve-mockup` that board with the person's words and have `game-arts-project-setup` save it as `art_style.anchor`. A board that was not chosen is not rejected art: leave it generated unless the person asks to withdraw it. Policy: master *Art-style profiles* (style anchor, style exploration). The sheet is a review aid and is never registered.
 
+## The image generator
+The owner chooses the image generator once per game; it is saved as `image_generation` in `.gamearts/project.json` and applies to every image you make, mockups, panels and production art alike.
+- **Read it first, every time** (`check-settings` prints it). `tool` is `built_in_image_gen` (the agent's own built-in image tool; in Codex that is `image_gen`, also called with `$imagegen`), `cli_image_gen` (Codex's command-line fallback), `connected_tool` (the connector or plugin named in `tool_name`) or `user_supplied` (the owner makes the pictures; never generate: ask for the file and `import-mockup` it). Apply `notes` to every call.
+- **Missing:** ask once, with these four choices ("Which image generator should Game Arts use for this game?"), save the answer through `game-arts-project-setup`, and carry on. It is not a material setting: it never reopens approved art or the settings confirmation.
+- **How to tell whether it is available:** look at your own tools in this session. `built_in_image_gen` means the agent has an image tool of its own (Codex's `image_gen`); Claude Code has none. A plugin or connector image tool is a `connected_tool`: it counts only when it is the one the setting names, and never stands in for the built-in tool.
+- **Not available in this session:** say so and offer to change the setting, to take a picture the owner makes elsewhere, or to continue in the agent that has the tool. A short prose description of what you would paint may go in the message; nothing is saved or registered. Never use another tool in its place and never draw the picture yourself.
+- **Built-in tool in Codex:** it saves under `$CODEX_HOME/generated_images/` with a name of its own; `register-generated` copies the picture into the game under the proper name, so the file in `$CODEX_HOME` is only the tool's copy. Its edit mode works on images visible in the conversation, so view the reference crop first and label each image's role.
+- **Changing it** is the owner's decision ("use the Codex image generator for this game"): update the setting, verify with `check-settings`, and use the new tool from then on. Earlier mockups made with another tool stay valid.
 
-## User-supplied / externally generated mockups
-A user may supply an existing mockup created outside Game Arts. **Do not regenerate it.** Import a managed **copy** into the target game's mockup lifecycle, preserving the original external source. If the user explicitly confirms this exact revision is already approved, register it directly under `.gamearts/outputs/mockups/approved/`; otherwise register it under `mockups/generated/` and show it for approval. Store source provenance, descriptive versioned filename, ID, hash when available and manifest record. Never claim the import was saved if the agent lacks source access or filesystem permissions. After approval, analyze all its visual details and use that locked reference for production. Any exported Game Arts PNG derivative must comply with exact opaque #FF00FF; preserve nonconforming original external files separately and do not silently alter source pixels.
+## Everyday behavior
+"Create a city mockup" -> render, show, ask. "Make the street wider" -> new revision. "Approved" -> promote the revision just shown, then decompose. "Use my existing approved UI mockup" -> reuse it. If saving fails or a tool is unavailable, report it and do not mark anything complete.
 
-## Everyday user commands (natural language)
-
-Recognize the complete user-friendly command catalog in `docs/COMMANDS.md`, including: **set up / show / change game settings; add / show custom instructions; create world/scene/character/UI mockups; import an outside mockup; import an already approved mockup; revise / approve / reject mockups; generate production sprites, component animations, and measured atlases; approve / reject / restore assets; show generated/approved/revoked artwork; validate in Godot.** Do not require slash commands or special trigger keywords. Infer intent and invoke the correct skill(s), respecting exact revision identity. An already-approved imported mockup is not regenerated. Ask for approval only when a real new mockup or final asset needs it. Do not claim actions completed without successful tool execution.
-
-
-## Mandatory actual image prompts — use canonical master prompt packet
-
-Before any image generation or source-conditioned edit, read the **Mandatory reference-controlled image prompting** section of \`GAME_ARTS_MASTER_STANDARD_v7.7.md\`. Compose a precise actual tool prompt from the target approved/draft reference, project style, camera, asset class, identity invariants, allowed change and solid opaque pink export. **Pass the actual source image/crop as image conditioning if supported**; do not pretend written descriptions replace actual image attachments.
-
-For a mockup request, generate a visual *mockup*, not production components. For production based on approved mockups: do not replace the mockup with an unrelated generic visual. If only a large mockup screenshot exists, select/inspect its target region first. If the exact crop can't be made or passed to the tool, explicitly flag diminished reference fidelity rather than asserting the reference was used.
-
-**User-approved mockup import remains authoritative**: do not regenerate it. If already approved, carry the original into approved workflow with provenance.
-
-### Prompt to send for a structure master
-"Use the ATTACHED approved mockup crop depicting [specific structure] as the authoritative appearance. Generate ONE fixed-view master only. Match the project's approved camera [projection with explicit NOT-isometric for Oilfield Days], same building silhouette, roof, walls, doors, cladding, colors and pixel-detail scale. No other viewing angle; no door-animation frames, multi-part charts, labels, grids, or example JSON. Exact solid opaque #FF00FF elsewhere."
-
-**Gate:** compare resulting silhouette, approved camera, positions/materials and overall identity before presenting for master approval. Do not proceed to separately animated components until this gate passes. A visually attractive different building fails.
-
-
-## Selected game settings drive prompt generation (mandatory)
-Before **every** image-generation/edit call, read `<game-root>/.gamearts/project.json`, applicable active custom instructions, approved mockup crop/locked master and asset-specific profile. Resolve the exact selected `art_style.id`, `art_style.reference`, style appearance settings (palette/outline/shading/texture/pixel density if present), `world.object_camera`, scale, asset-specific directions, `animation.preferred_method` and `export.*`. **Insert these actual resolved values into the tool prompt, not merely into commentary.** Use the hierarchy and conflict-resolution guidance under "Mandatory saved-settings resolution for EVERY image prompt" in the one canonical master.
-
-Never hardcode Oilfield Days, pixel-art style, oblique projection, an isometric ban, or a direction count in generic prompts. Oilfield Days is a project-specific example, only applicable when that project/style is selected. If settings are missing, use verified approved references, then plainly marked defaults; ask the friendly wizard only for an essential missing choice. Never secretly replace a saved style. Check the actual prompt matches resolved values before sending it, and review the resulting image against the exact project-specific constraints afterward.
-
-
-## Actual crop before editing approved reference imagery
-When a user has supplied/approved a mockup and requests production art, first select the **actual asset region** in its managed approved image and run scripts/prepare_reference_crop.py through available filesystem tools. The script creates a real cropped PNG, source and settings hashes, and a selected-style prompt. Pass that crop as an actual image input if the image tool supports it. **Do not turn a text description of the mockup into a new uncontrolled image generation.** If input conditioning is unsupported, disclose that production cannot yet be reference-locked. A reported tool attachment and matching hashes still require visual similarity review; no automatic approval.
-
-
-## Production references versus concept mockups
-
-Creating a **new concept mockup** does not require a pre-existing approved crop. After the user has approved a generated or imported mockup, however, production from that source must use the approved registered image's actual pixels. Use the existing analyzer → `scripts/prepare_reference_crop.py` → image-tool attachment sequence before one locked asset master is generated. The crop must be a real PNG attached as an image, not merely an instruction saying “based on the mockup.” If the tool cannot accept conditioning, report a production limitation. The crop and receipt remain inside the existing `assets/generated/<asset-revision>/reference/` candidate; do not create a parallel mockup folder.
-
-
-## Clean parent generation excludes separated objects, all styles
-
-Concept/mockup images may depict movable furniture, loose workshop tools, replaceable equipment, mobile mechanisms and interactive props in place. During production from an approved mockup, derive the complete object-exclusion inventory from the current analyzer; include it as explicit **REMOVE FROM STATIC PARENT** instructions to the actual source-conditioned image edit/generation tool. The resulting static master must omit every independently movable, removable, interactive, replaceable or animated element—not merely produce additional copies on a second sheet. Restore/review the exposed clean floor/wall/backplate; export separated components individually. Keep exactly the project's selected style and camera. Apply `scripts/validate_parent_cleanup.py` before final approval. A generated reference concept is not itself verified production artwork.
-
-
-## Learned from workshop: avoid generic redraws after reference approval
-When reference art has been approved, the output is a **faithful source-anchored master**, not an opportunity to invent a newly angled or newly designed workshop. First select the actual approved region and all observed independent objects; use the current selected style and camera. For a clean structural master, explicitly exclude every detached item and reconstruct source-hidden wall/floor/surface under a separate reviewed plate. Render only the requested stage, not unrelated additional components or a large fake sprite sheet. Segmentation and reconstruction uncertainty stay explicit; do not claim every pixel was sourced from the mockup.
+## After approval: production images
+Never regenerate production art from a text description of the mockup. Use the approved image's real pixels: `mockup-analyzer` measures the region, `scripts/prepare_reference_crop.py` makes the crop packet, and the crop is attached to the image tool (*Reference crop and conditioning gate*). Produce one master first and compare it with the same crop before anything else. The clean static parent excludes every detached object (*Parent-artwork cleanup and separation gate*); reconstructed hidden areas are marked inferred and reviewed.

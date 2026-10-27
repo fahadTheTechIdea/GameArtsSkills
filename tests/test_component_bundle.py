@@ -59,8 +59,10 @@ class ComponentTests(unittest.TestCase):
             self.assertEqual(len(list(out.glob("*.atlas.json"))),6)
             data=json.loads((out/"test_scene_machine_v001.bundle.json").read_text())
             self.assertEqual(data["component_order"],["base","joint","tip"])
-            self.assertEqual(data["visual_review_protocol"], "review_packet_v1")
-            self.assertEqual(data["validation"]["godot_runtime"],"not_tested")
+            self.assertEqual(data["visual_review_protocol"], "review_packet")
+            self.assertEqual(data["validation"]["parent_cleanup"], "pending")  # detachable parts need proof before approval
+            self.assertEqual(data["validation"]["engine_validation"],"not_tested")
+            self.assertNotIn("godot_runtime", data["validation"])
             poses={(p["direction"],p["normalized_time"]):p for p in data["sampled_poses"]}
             def pos(p,component):
                 m=p["nodes"][component]["world_matrix_2d"]
@@ -99,6 +101,60 @@ class ComponentTests(unittest.TestCase):
         tr=engine.animate([{"time":0,"rotation_degrees":0},
                            {"time":1,"rotation_degrees":90}],.5,"test")
         self.assertAlmostEqual(tr["rotation_degrees"],45)
+
+    def test_full_turn_is_a_full_turn_by_default(self):
+        full=[{"time":0,"rotation_degrees":0},{"time":1,"rotation_degrees":360}]
+        self.assertAlmostEqual(engine.animate(full,.5,"spin")["rotation_degrees"],180)
+        wrap=[{"time":0,"rotation_degrees":0},{"time":1,"rotation_degrees":350}]
+        self.assertAlmostEqual(engine.animate(wrap,.5,"spin")["rotation_degrees"],175)
+        self.assertAlmostEqual(engine.animate(wrap,.5,"spin","shortest")["rotation_degrees"],-5)
+
+    def test_track_that_is_never_selected_is_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d); cfg=self.fixture(root)
+            cfg["components"][1]["mount_tracks"]={"idle":{"*":[{"time":0,"rotation_degrees":0}]}}
+            with self.assertRaisesRegex(ValueError,"never selected"):
+                engine.build(cfg,root/"result",root)
+            self.assertFalse((root/"result").exists())
+
+    def test_track_keyframes_are_checked_even_when_unsampled(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d); cfg=self.fixture(root)
+            cfg["components"][2]["motion_tracks"]["default"]["*"]=[{"time":.5,"position":[0,0]},{"time":.4,"position":[1,1]}]
+            with self.assertRaisesRegex(ValueError,"times must increase"):
+                engine.build(cfg,root/"result",root)
+
+    def test_track_for_a_missing_direction_is_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d); cfg=self.fixture(root)
+            cfg["components"][1]["mount_tracks"]["deploy"]["N"]=[{"time":0,"rotation_degrees":0}]
+            with self.assertRaisesRegex(ValueError,"direction the bundle does not have"):
+                engine.build(cfg,root/"result",root)
+
+    def test_frame_choice_follows_frame_durations(self):
+        frames=[{"duration_ms":100},{"duration_ms":300}]
+        self.assertEqual([engine.frame_index(frames,t) for t in (0,.24,.26,.99,1)],[0,0,1,1,1])
+
+    def test_draw_order_is_recorded_per_direction(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d); cfg=self.fixture(root)
+            cfg["components"][2]["draw_order"]={"S":-1,"*":7}
+            out=engine.build(cfg,root/"generated"/cfg["name"],root)
+            data=json.loads((out/(cfg["name"]+".bundle.json")).read_text())
+            tip=next(c for c in data["components"] if c["id"]=="tip")
+            self.assertEqual(tip["draw_order"],{"S":-1,"E":7})
+
+    def test_single_component_bundle_needs_no_review_packet(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            Image.new("RGBA",(8,8),PINK).save(root/"solo.png")
+            solo=Image.open(root/"solo.png"); solo.putpixel((3,3),(10,20,30,255)); solo.save(root/"solo.png")
+            cfg={"name":"solo_machine_v001","directions":["S"],"sample_times":[0],
+                 "components":[{"id":"body","parent":None,"views":{"S":{"frames":[{"file":"solo.png","pivot":[4,4]}]}}}]}
+            out=engine.build(cfg,root/"generated"/cfg["name"],root)
+            data=json.loads((out/"solo_machine_v001.bundle.json").read_text())
+            self.assertIsNone(data["visual_review_protocol"])
+            self.assertEqual(data["validation"]["parent_cleanup"], "not_applicable")
 
 if __name__=="__main__":
     unittest.main()

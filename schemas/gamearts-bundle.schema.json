@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts component bundle",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "asset_id",
+    "directions",
+    "component_order",
+    "components",
+    "validation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "asset_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "directions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "component_order": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9_-]+$"
+      }
+    },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "parent",
+          "atlases"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "parent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mount": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "type": "string"
+          },
+          "atlases": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^/\\\\:][^\\\\:]*$"
+            }
+          },
+          "draw_order": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "engine_validation": {
+          "enum": [
+            "not_tested",
+            "passed",
+            "failed"
+          ],
+          "description": "Reported by the game project; this framework only ever writes not_tested."
+        }
+      }
+    },
+    "visual_review_protocol": {
+      "enum": [
+        "review_packet",
+        "review_packet_v1",
+        null
+      ]
+    }
+  },
+  "additionalProperties": true
+}

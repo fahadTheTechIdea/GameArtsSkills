@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts tileset builder job",
+  "type": "object",
+  "required": [
+    "name",
+    "tile_size",
+    "layout",
+    "terrains",
+    "tiles"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "asset_id": {
+      "type": "string"
+    },
+    "tile_size": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "layout": {
+      "enum": [
+        "single",
+        "variants",
+        "wang_corner_16",
+        "wang_edge_16",
+        "blob_47",
+        "dual_grid_16"
+      ]
+    },
+    "terrains": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "maxItems": 2,
+      "uniqueItems": true
+    },
+    "columns": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "full_bleed": {
+      "type": "boolean"
+    },
+    "source_mockups": {
+      "type": "array"
+    },
+    "tiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "properties": {
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\:][^\\\\:]*$"
+          },
+          "terrain": {
+            "type": "string"
+          },
+          "neighbours": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "The terrain at each of the eight places around the tile, named clockwise from the top. Only the places the layout uses carry a label.",
+            "properties": {
+              "top": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "top_right": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "right": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "bottom_right": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "bottom": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "bottom_left": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "left": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "top_left": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

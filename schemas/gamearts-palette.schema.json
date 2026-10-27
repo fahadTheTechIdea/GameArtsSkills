@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts palette",
+  "description": "A game's colours, taken from an approved picture. Referenced by art_style.palette_reference and used by the style-conformance checks and the pixel-grid snapper.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "name",
+    "method",
+    "max_colours",
+    "colours",
+    "source"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "method": {
+      "enum": [
+        "exact",
+        "median_cut"
+      ],
+      "description": "exact: the picture had no more colours than allowed and every one is listed. median_cut: the picture had more, and they were reduced."
+    },
+    "max_colours": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "colours": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "hex",
+          "share"
+        ],
+        "properties": {
+          "hex": {
+            "type": "string",
+            "pattern": "^#[0-9A-F]{6}$"
+          },
+          "share": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Share of the picture's art pixels that use this colour."
+          }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "sha256"
+      ],
+      "properties": {
+        "file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    }
+  }
+}

@@ -1,129 +1,51 @@
-# Game Arts automatic agent installation
+# Installing Game Arts in a game project
 
-This is a **folder tree**, not a ZIP. Copy its files into the root of your game repository, preserving hidden directories.
+This is a **folder tree**, not a ZIP. Copy it into the root of your game repository, keeping the hidden folders.
+
+## What to copy
+| Item | Why |
+|---|---|
+| `CLAUDE.md` and/or `AGENTS.md` | Project-root guidance the agent loads automatically (Claude Code reads `CLAUDE.md`, Codex reads `AGENTS.md`). If the game already has one, add the framework's section instead of replacing yours. |
+| `.claude/skills/` and `.agents/skills/` | The focused skills (the two folders hold the same text). Copy the one your tool uses, or both. |
+| `GAME_ARTS_MASTER_STANDARD.md` | The single authoritative standard. (Do not copy the small pointer file under the old versioned name; it exists only for updaters installed earlier.) |
+| `scripts/`, `schemas/`, `presets/` | The helper scripts, the contracts they enforce, and the ready-made looks and engine profiles (validated data) the setup offers. Copy them together; a script without its schema refuses to run. |
+| `docs/` | Job formats and the user guides. |
+
+Game-specific files are created later, inside the **game** (never in this framework): `.gamearts/project.json`, `.gamearts/instructions/`, `.gamearts/storyboard/`, `.gamearts/outputs/` and `.gamearts/system/` (locks and backups; keep it out of version control).
+
+## Requirements
+- Python 3.11 or newer on the machine the agent runs on (run locally on 3.12 and 3.14; the CI matrix adds 3.11).
+- **Pillow** and **`jsonschema`**: `python -m pip install Pillow jsonschema`. A missing `jsonschema` is a hard failure (a skipped contract check would be reported as a pass), so install both.
+- An image-generation tool available to the agent, which you choose once per game (Codex's built-in image tool, its command-line fallback, a connector you name, or your own pictures). Without one the agent can still plan, import your mockups, build sheets from frames you provide and run every check, but it will say it cannot render art.
+- Git is needed only for the optional updater.
+
+The agent runs the scripts itself; you never type them. If something is missing (a package, an interpreter, a writable folder) it runs a read-only check, `scripts/gamearts_doctor.py`, and tells you the exact fix.
 
 ## Claude Code
-`CLAUDE.md` is project-root persistent guidance; `.claude/skills/<skill>/SKILL.md` provides discoverable focused skills. To apply across all your repositories on one machine, copy a skill directory under `~/.claude/skills/` and put the core policy in your user-level instructions as appropriate. For a shared team, commit the project files.
+`CLAUDE.md` is the project-root guidance; `.claude/skills/<name>/SKILL.md` are the discoverable skills. To share across all your repositories on one machine, copy the skill folders under `~/.claude/skills/`; for a team, commit the project files.
 
 ## Codex
-`AGENTS.md` is root guidance; `.agents/skills/<skill>/SKILL.md` is the corresponding skill layout. Commit them in your repo. The agent selects a skill by its frontmatter description; reliable auto-activation comes from the root instruction invoking `game-arts` for relevant requests.
+`AGENTS.md` is the root guidance; `.agents/skills/<name>/SKILL.md` is the matching skill layout. Commit them. A skill is selected by its description; the root instruction sends art requests to `game-arts`.
 
-## Usage
-Simply say, "Create a mockup of my game scene", "Generate a sprite for this asset", "Animate this component", or "Export atlas JSON". For new visual artwork, expect a mockup and approval stage; for an explicitly approved reference the workflow can continue directly.
+## First use
+Open the game in the agent and ask for art, or say **"Set up Game Arts for this game."** Settings are saved to `.gamearts/project.json` after you confirm them (`settings_status: "owner_confirmed"`); mockups cannot be registered before that. Commit the file so teammates and later sessions reuse it. More: [project settings](docs/PROJECT_SETTINGS.md), [commands](docs/COMMANDS.md), [workflow](docs/USER_WORKFLOW.md).
 
-## Sources
-- `GAME_ARTS_MASTER_STANDARD_v7.7.md` — authoritative policy.
-- `schemas/mockup-blueprint.schema.json` — one shared blueprint schema.
-- `scripts/validate_blueprint.py` — basic structure and optional JSON schema checks.
-- `scripts/validate_sheet_atlas.py` — dimensional checks and opaque-alpha gate (requires Pillow).
+## Keeping both agents current (optional, opt-in)
+[`scripts/sync_local_agents.py`](scripts/sync_local_agents.py) installs a session-start hook so each trusted Claude Code or Codex session checks the framework's `main` branch and updates both agents' skills, the master, scripts, schemas and docs in the game. Your settings, instructions, storyboard, outputs and unrelated files are never touched.
 
-## Important
-These are instructions plus small validators, not an AI image model, sprite renderer or Godot importer. Art generation, atlas assembly and Godot validation require those external tools to be available and actually run. None of the generated assets is automatically declared game-ready. All delivered Game Arts PNGs follow exact opaque #FF00FF and every sprite sheet needs a measured atlas JSON. No ZIP deliverables.
-## Persistent per-game settings (new)
-
-After installing the skills, open your game in **Claude Code or Codex** and say **“Set up Game Arts for this project.”** The agent asks a short series of easy questions, offers recommended defaults, and saves `<game>/.gamearts/project.json` through its project file tools. **Users do not run any Python command or edit JSON.** To review or update, say **“Show my Game Arts settings”** or **“Change my Game Arts settings.”** Commit the saved file so later sessions and teammates reuse your choices. Full details: [Project settings](docs/PROJECT_SETTINGS.md).
-
-## Custom instructions in each game
-
-To keep project-specific Game Arts rules, simply tell Claude or Codex **“Add a Game Arts instruction: ...”**. The agent uses `game-arts-custom-instructions` to save a dedicated Markdown file under the actual game's `.gamearts/instructions/` directory. It will automatically read applicable active rules on future art tasks. Say **“Show my custom art instructions”** to review or change them. See [custom instruction guide](docs/CUSTOM_INSTRUCTIONS.md). No commands required.
-
-## Mockup and asset approval storage
-
-Game Arts uses `.gamearts/outputs/mockups/{generated,approved,revoked}` and `.gamearts/outputs/assets/{generated,approved,revoked}` inside the **game project**. Every asset references its exact approved mockup revision. Tell the agent **“Approve this mockup”**, **“Approve this sprite”**, or **“Reject this artwork”**; no manual file moving. The `game-arts-lifecycle` skill manages complete PNG+atlas bundles, descriptive names and manifests. See [lifecycle guide](docs/ASSET_LIFECYCLE.md).
-
-## Every session: no special commands
-
-When Claude Code or Codex is opened in an installed game project, project-root instructions provide Game Arts awareness. Just ask for an artwork task; saved settings, active custom instructions and approved mockup/asset manifests are read quietly when relevant. The full standard and specialized skills are loaded on demand, not all at startup. The user never has to say “initialize Game Arts” or run a setup command unless explicitly choosing an advanced workflow. Tool/project access is required for persistence.
-
-## Automatic mockup and production flow
-
-Ask the agent normally for a world, scene, character, asset or UI design. If no approved visual reference exists, the agent should use `game-arts-mockup-creator` to create and display a real mockup using its available image tools, save a candidate, then request your approval. After approval it analyzes small details and creates final production art, sprite sheets and measured atlas JSON. Final assets have their own approval. The conversational setup wizard is used **only when you ask to configure the project or an essential setting is missing**, not as a mandatory ceremony before every mockup. Details: [User workflow](docs/USER_WORKFLOW.md).
-
-## Bring your own mockup
-
-**Bring your own mockup:** Upload or point the agent to artwork you created elsewhere. Game Arts imports a managed copy into the mockup lifecycle, preserves your original, and uses the approved version as its production reference—no unnecessary recreation.
-
-When the user supplies an existing external mockup, **import a copy rather than generating a replacement**. Respect explicit prior approval; if not approved, ask for approval of that actual revision. Keep source provenance and a traceable managed reference. Do not claim an import succeeded unless file access and write operations were completed. Follow the v7.5 external mockup intake rules and require detailed decomposition before final art production.
-
-## User-friendly commands
-
-Once installed, there is no manual activation. Ask normally: **“Create a mockup”**, **“Use this outside mockup”**, **“This is already approved”**, **“Revise it”**, **“Approve this mockup”**, **“Generate sprites”**, **“Approve this sprite”**, **“Show approved art”**, **“Set up my game art”**, or **“Change my settings.”** The agent routes the complete wizard, mockup creation/import, decomposition, production, animation, atlas, validation and lifecycle stages automatically. See [full commands](docs/COMMANDS.md).
-
-## Real moving component generation
-
-For assets with moving parts, Claude/Codex calls `scripts/build_component_bundle.py` internally with approved frames and verified attachment coordinates. This generates separate component PNG sheets, their matching measured atlas JSON files and a nested sampled-transform bundle; it is not merely an instruction to generate metadata. The user does not run commands. See [Component Animation](docs/COMPONENT_ANIMATION.md). Actual Godot tests remain a separate step.
-
-## Godot component scene integration
-
-For a Godot project, the agent should install the reusable `godot/addons/gamearts/` files under the game's `res://addons/gamearts/` folder and use `scripts/generate_godot_scene.py` internally to create a native `.tscn` referencing the actual approved component bundle. No user-run commands. In-engine scene loading must be verified separately; do not claim it from Python JSON tests. See [Godot component runtime](docs/GODOT_COMPONENT_RUNTIME.md).
-
-## Included reference-image workflow (all games, all users)
-
-**Install the framework as a complete package**, not just its Claude/Codex skill Markdown. In addition to the project-root `AGENTS.md` or `CLAUDE.md`, both skills directories, existing master standard and schemas, the agent needs the `scripts/` folder, especially **`scripts/prepare_reference_crop.py`** and the sprite/atlas builders. The reference helper uses Python 3 and **Pillow**; the agent should check dependencies and, with appropriate permissions, install them internally in its normal Python environment if missing. Do not make ordinary users run commands or manually write JSON.
-
-**Automatic path:** An approved mockup is already stored under the active **game** project’s `.gamearts/outputs/mockups/approved/` with an approved `mockups.json` entry. On “Generate this asset from the mockup,” the existing `mockup-analyzer` measures the object's actual bounding rectangle and passes it to the crop helper. The helper creates a source-faithful PNG crop and reference packet under the **same asset candidate** folder: `.gamearts/outputs/assets/generated/<asset-revision>/reference/`. The agent attaches that exact crop to a compatible image/edit tool and uses the game's chosen visual style, camera and instructions. The agent may then generate **one master candidate**, compare it with the reference and request master approval; component/sheet/atlas generation follows separately.
-
-The reference packet and crop are **supporting candidate files**, not a new top-level lifecycle, not an asset type, and not a reason to reorganize approved mockups. `prepare_reference_crop.py verify` can check recorded input/file hashes and opaque candidate pixels, **not provider-side proof of image conditioning or artistic similarity**. A source-conditioned tool invocation is required for reference-locked production. If the tool lacks actual image input, stop that stage and report the blocker instead of generating a generic structure. The agent must not claim local integration when only GitHub source files were updated.
-
-This works with all selected art media. World structures use a single approved view by default, mobile directional assets use the game's required directions, and UI icons use their own selected UI presentation viewpoint. The crop is left in original mockup colors; the new production PNG must use exact opaque #FF00FF. [Existing user workflow](docs/USER_WORKFLOW.md) describes the integrated steps.
-
-## Framework maintenance
-
-Keep **one current master standard** (`GAME_ARTS_MASTER_STANDARD_v7.7.md`), the existing dedicated skills and workflows, and the existing generated/approved/revoked lifecycle. Update them in place instead of introducing multiple parallel standards or separate image-type pipelines.
-
-
-## Automatic local updates for BOTH Claude Code and Codex
-
-Game Arts now ships with [`scripts/sync_local_agents.py`](scripts/sync_local_agents.py), an opt-in **project-local updater**. One trusted setup installs safe `SessionStart` hooks for both local agents. Whenever either Claude Code or Codex opens/resumes the game project, the hook checks the canonical GameArtsSkills `main` branch and synchronizes both local skill directories and all framework-managed support files.
-
-**For ordinary users:** In your locally connected Claude Code or Codex session, say **“Enable automatic Game Arts updates for both Claude and Codex in this game.”** The agent should locate this framework's trusted checkout and run the updater's one-time bootstrap on the current game workspace, preserving your game data and all unrelated client settings. Approve the respective client hook trust review. If you have multiple game repositories, ask the agent to enroll each intended project once.
-
-**For advanced installers (optional):** From an existing trusted GameArtsSkills checkout:
+Ask a locally connected agent: **"Enable automatic Game Arts updates for Claude and Codex in this game."** Or, from a trusted checkout of this repository:
 ```text
-python scripts/sync_local_agents.py bootstrap --source <GameArtsSkills checkout> --game-root <your game root> --adopt-existing
+python scripts/sync_local_agents.py bootstrap --source <GameArtsSkills checkout> --game-root <your game root> [--adopt-existing] [--hooks local|project|none] [--codex-user-hook] [--require-signed]
 ```
-Use `--adopt-existing` **only after authorizing the backup-and-update** of existing framework-path files. Without this flag the updater preserves colliding unowned files and reports them. The updater tracks managed hashes in `.gamearts/system/agent-sync-state.json` and stores backups inside `.gamearts/system/backups/`. It **never syncs or overwrites** `.gamearts/project.json`, `.gamearts/instructions/`, `.gamearts/outputs/`, unrelated custom skills, or unmarked user content in AGENTS.md/CLAUDE.md.
+- `--adopt-existing` only after you authorize backing up and replacing framework-path files already installed; without it a colliding or edited file is kept and reported as a conflict.
+- Hook placement: `local` (default) writes Claude Code's personal `.claude/settings.local.json` (and adds it to `.git/info/exclude` so it is never committed); Codex has no project-local personal hook file, so its entry goes to `~/.codex/hooks.json` only with `--codex-user-hook`. `project` commits portable entries (no absolute paths; `--python-command` names the interpreter; needs a POSIX-style shell on every machine). `none` installs nothing.
+- Both tools make you review and trust a new or changed hook (Codex: `/hooks`) before it runs. Do not assume the update is active until you have, and the first sync has completed.
+- Each run keeps a file you edited, removes a file the framework dropped only if you never edited it (backed up first), advances its recorded revision only when a whole run finished, and refuses an incomplete checkout. `--require-signed` accepts only a commit with a valid signature (`git verify-commit`; needs the signer's key set up locally).
+- State is `.gamearts/system/agent-sync-state.json`, backups are in `.gamearts/system/backups/`.
+- A change on GitHub does not reach an offline computer; it applies at the next trusted session start, or when you say **"Update my installed Game Arts skills now."** If a check fails the agent reports that nothing was synchronized.
+- The session that performs an update has already loaded the project instructions and skills it started with (observed in a real Claude Code session: the update ran at session start, yet the agent still answered from the previous `CLAUDE.md`). The new files apply from the next session.
 
-An installed bootstrap merges one project-local `SessionStart` entry into `.claude/settings.json` and `.codex/hooks.json`, retaining existing settings. Codex may ask you to review/trust the hook in `/hooks`; Claude Code applies its own hook safety controls. This is a one-time trust step, not something required for each art asset.
+**Security:** the updater downloads and runs framework scripts from a remote branch. Review the repository and the hooks before enabling it, and never enroll someone else's machine without their action.
 
-**Update timing:** Since GitHub cannot directly modify an offline PC, local installations refresh on the next trusted agent session startup/resume, not instantly at the remote commit timestamp. Internet access, Git and local filesystem permissions are required. If a check fails, the agent must report that it did **not** synchronize. This updater is for project-local installations; arbitrary unknown global installations elsewhere on the machine are not silently altered. Both Claude and Codex for each enrolled game are updated from the same verified source revision.
-
-**Security:** Auto-update is opt-in because trusted local hooks can download and run framework code. Review the repository and hooks before enabling.
-
-
-## Parent-artwork cleanup verification is required for ALL styles
-
-Install the existing `scripts/validate_parent_cleanup.py` with the rest of Game Arts. The current `mockup-analyzer` identifies *all* independently movable/removable/interactive/replaceable/animated objects. The agent must remove those objects **from the clean static parent** as well as export them individually—creating a reviewed clean background where the objects used to be. Keeping the workbench/screw/wheel/door painted in the parent and also exporting an isolated sprite is a rejection.
-
-The helper compares original composite PNG, final static-parent PNG, independently reviewed clean plate, component ownership masks, and exported component sprites. For nested/multi-view component bundles, use the current builder with packaged cleanup evidence and the existing validator's `--approval-gate` before promoting to approved. For a stand-alone structure with detached props but no animation bundle, run `validate_parent_cleanup.py` directly. These scripts are run internally by Claude/Codex, not by the user.
-
-All styles (pixel, painted, vector, illustrated, rendered-to-2D, custom) share this ownership rule. Exact raster comparison requires **pixel-aligned exported layers**, but does not dictate the style's visible edge quality. If aligned source art, masks, or reviewed clean plates are unavailable, the gate stays pending and approval is blocked. Do not fabricate compliance evidence.
-
-
-## Updated acceptance gates for new production packages
-
-The complete GameArtsSkills install now includes the existing `validate_parent_cleanup.py`, `validate_component_bundle.py`, and `gamearts_asset_lifecycle.py` scripts and both agent skill trees. New prop/animation output must have a source-grounded reviewed silhouette mask for each separate sprite; run the parent checker with `--strict-props` or the component bundle checker with `--approval-gate`. This prevents apparently valid sheet/atlas exports from carrying source floor/wall rectangles inside individual sprites.
-
-After an explicit user artwork approval, run the existing lifecycle script's `audit` operation to confirm that approved manifest, bundled blueprint, QA review, file existence and original approved mockup source hashes agree. The audit checks record integrity only; it cannot certify visual fidelity or Godot playback. It must not overwrite or silently reject previously approved artwork merely because a stronger checker was later installed. Your optional trusted auto-updater will synchronize these modified scripts and both Claude/Codex skill trees at the next local session start.
-
-
-## Included visual silhouette/background review (no separate workflow)
-
-With the complete GameArtsSkills package, install `scripts/visual_review_cleanup.py` along with existing `scripts/validate_parent_cleanup.py`, both Claude/Codex skills, Pillow and the single current master. Claude or Codex automatically invokes the helper **after** source decomposition and clean-parent pixel validation but **before** approving a new composite asset.
-
-The helper uses two internal inputs prepared by the agent **inside the existing candidate bundle**: (1) a parent-cleanup manifest, and (2) an analyzer visual-review spec containing asset ID/revision, complete independently inspected component IDs, `inventory_audit: complete_for_visible_reference`, `occlusion_audit: completed` and an explicit list of occluded/inferred masks and explanations. It creates side-by-side review boards and a versioned, hash-bound `visual_review.packet.json`. QA boards are annotated previews, **not game art sprites**.
-
-The agent shows the actual boards to the user and asks for **one explicit visual approval**. Only after that can it record the decision with the user message reference and all approved component/uncertainty IDs; then the `verify` command checks the same source/art/board hashes. New production sets `visual_review_protocol: "review_packet_v1"` plus `visual_reviews` packet/decision paths in the **existing** asset manifest. The built-in lifecycle audit rejects missing, stale or wrong-version decisions, but cannot cryptographically attest that a user action occurred.
-
-The reference/cleaning review files live in `assets/generated/<asset-revision>/` as supporting material, and move with that same complete bundle to `approved/` or `revoked/`. No new asset-type directories, extra master docs, user-run commands, forced Godot tests or extra setup wizard. Legacy approved artwork retains its acceptance unless explicitly revised. Local Claude/Codex copies receive these changes at their next trusted auto-sync **only if already enrolled**.
-
-
-### Exact approved reference is part of the review
-The internal visual-review spec must include `approved_reference` with the actual approved source crop's `file`, `sha256`, `mockup_id` and `mockup_revision`. This cropped image is prepared through the existing approved-reference crop gate, kept with the **current** asset candidate, and displayed as the first panel on the QA board. A mask-only comparison of a newly redrawn source is insufficient: the reviewer must see the original authoritative mockup too. The lifecycle audit compares that approved mockup ID/revision to the asset's actual registered `source_mockups` so a different source cannot be silently substituted.
-
-The new-protocol bundle builder marks new modular assets with `visual_review_protocol: "review_packet_v1"` automatically. The lifecycle audit derives the requirement from the bundle or blueprint metadata even if an asset-manifest writer accidentally omits the flag, then blocks approved reuse until the actual exact-user review is complete. This requirement does not retroactively revoke existing approved revisions.
-
-
-## Verified automatic production approval
-
-After displaying visual review boards for a generated asset and receiving an **actual user approval message**, Claude/Codex should call the installed `scripts/gamearts_asset_lifecycle.py approve` operation internally. This verifies the exact asset's review packet and user-decision reference, validates the complete candidate files, reconciles blueprint/QA approval status, promotes the complete bundle and runs an immediate post-promotion audit. It stores final artifact hashes for later change detection. If a review or audit fails, the candidate must remain generated/blocked rather than claimed approved. Do not manufacture consent, reuse older version approvals or alter honest Godot/scale limitations. Older approved artwork is unaffected by this new workflow.
+## What this is not
+Instructions plus validators and builders: not an image model, a sprite renderer or an engine importer. Nothing it produces is declared game-ready; engine import and runtime tests are the game project's, recorded as `engine_validation`.

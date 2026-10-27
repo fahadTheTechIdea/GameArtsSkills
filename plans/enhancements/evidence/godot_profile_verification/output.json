@@ -1,0 +1,272 @@
+{
+  "animated_sprite_2d_has_pingpong_property": false,
+  "animated_sprite_2d_playback_methods": [
+    "pause",
+    "play",
+    "play_backwards",
+    "set_frame_and_progress",
+    "stop"
+  ],
+  "animation_interpolation_enum": {
+    "CUBIC": 2,
+    "CUBIC_ANGLE": 4,
+    "LINEAR": 1,
+    "LINEAR_ANGLE": 3,
+    "NEAREST": 0
+  },
+  "animation_key_transition_samples_at_u_0.25_0.5_0.75_of_0_to_100": {
+    "-0.5": [
+      35.3553,
+      50.0,
+      64.6447
+    ],
+    "-2.0": [
+      12.5,
+      50.0,
+      87.5
+    ],
+    "0.0": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "0.5": [
+      43.75,
+      75.0,
+      93.75
+    ],
+    "1.0": [
+      25.0,
+      50.0,
+      75.0
+    ],
+    "2.0": [
+      6.25,
+      25.0,
+      56.25
+    ]
+  },
+  "animation_loop_modes": {
+    "LINEAR": 1,
+    "NONE": 0,
+    "PINGPONG": 2
+  },
+  "animation_value_samples_at_0.1_0.25_0.4_0.5_0.75_for_keys_0_10_0_at_0_0.5_1": {
+    "CUBIC": [
+      1.04,
+      5.0,
+      8.96,
+      10.0,
+      5.0
+    ],
+    "LINEAR": [
+      2.0,
+      5.0,
+      8.0,
+      10.0,
+      5.0
+    ],
+    "NEAREST": [
+      0.0,
+      0.0,
+      0.0,
+      10.0,
+      10.0
+    ]
+  },
+  "atlas_region_size": [
+    20,
+    10
+  ],
+  "button_stylebox_names": [
+    "disabled",
+    "focus",
+    "hover",
+    "normal",
+    "pressed"
+  ],
+  "canvas_item_blend_modes": {
+    "ADD": 1,
+    "MIX": 0,
+    "MUL": 3,
+    "PREMULT_ALPHA": 4,
+    "SUB": 2
+  },
+  "canvas_item_material_blend_mode_hint": [
+    "Mix,Add,Subtract,Multiply,Premultiplied Alpha"
+  ],
+  "canvas_item_material_blend_mode_set": 1,
+  "godot": "4.7.2-stable (official)",
+  "hex_offset_horizontal": {
+    "origin": [
+      32.0,
+      28.0
+    ],
+    "x+1": [
+      96.0,
+      28.0
+    ],
+    "y+1": [
+      64.0,
+      70.0
+    ],
+    "y+2": [
+      32.0,
+      112.0
+    ]
+  },
+  "hex_offset_vertical": {
+    "origin": [
+      32.0,
+      28.0
+    ],
+    "x+1": [
+      80.0,
+      56.0
+    ],
+    "y+1": [
+      32.0,
+      84.0
+    ],
+    "y+2": [
+      32.0,
+      140.0
+    ]
+  },
+  "iso_diamond_down": {
+    "origin": [
+      32.0,
+      16.0
+    ],
+    "x+1": [
+      64.0,
+      32.0
+    ],
+    "y+1": [
+      0.0,
+      32.0
+    ],
+    "y+2": [
+      -32.0,
+      48.0
+    ]
+  },
+  "nine_patch_margins_left_top_right_bottom": [
+    6,
+    5,
+    4,
+    3
+  ],
+  "nine_patch_properties": [
+    "draw_center",
+    "region_rect",
+    "patch_margin_left",
+    "patch_margin_top",
+    "patch_margin_right",
+    "patch_margin_bottom",
+    "axis_stretch_horizontal",
+    "axis_stretch_vertical"
+  ],
+  "parallax2d": {
+    "autoscroll": [
+      4.0,
+      0.0
+    ],
+    "repeat_size": [
+      1024.0,
+      0.0
+    ],
+    "scroll_scale": [
+      0.4,
+      0.0
+    ]
+  },
+  "settings": {
+    "display/window/size/viewport_height": {
+      "default": "648",
+      "hint_string": "1,4320,1,or_greater"
+    },
+    "display/window/size/viewport_width": {
+      "default": "1152",
+      "hint_string": "1,7680,1,or_greater"
+    },
+    "display/window/stretch/mode": {
+      "default": "disabled",
+      "hint_string": "disabled,canvas_items,viewport"
+    },
+    "display/window/stretch/scale_mode": {
+      "default": "fractional",
+      "hint_string": "fractional,integer"
+    },
+    "rendering/2d/snap/snap_2d_transforms_to_pixel": {
+      "default": "false",
+      "hint_string": ""
+    },
+    "rendering/2d/snap/snap_2d_vertices_to_pixel": {
+      "default": "false",
+      "hint_string": ""
+    },
+    "rendering/textures/canvas_textures/default_texture_filter": {
+      "default": "1",
+      "hint_string": "Nearest,Linear,Linear Mipmap,Nearest Mipmap"
+    }
+  },
+  "sprite_pivot": {
+    "centered": false,
+    "offset": [
+      -16.0,
+      -31.0
+    ]
+  },
+  "spriteframes": {
+    "count": 2,
+    "durations": [
+      1.0,
+      2.0
+    ],
+    "speed": 10.0
+  },
+  "spriteframes_walk": {
+    "loop": false,
+    "speed": 12.0
+  },
+  "tile_data_valid_peering_bits_by_terrain_mode": {
+    "MATCH_CORNERS": [
+      "BOTTOM_RIGHT_CORNER",
+      "BOTTOM_LEFT_CORNER",
+      "TOP_LEFT_CORNER",
+      "TOP_RIGHT_CORNER"
+    ],
+    "MATCH_CORNERS_AND_SIDES": [
+      "RIGHT_SIDE",
+      "BOTTOM_RIGHT_CORNER",
+      "BOTTOM_SIDE",
+      "BOTTOM_LEFT_CORNER",
+      "LEFT_SIDE",
+      "TOP_LEFT_CORNER",
+      "TOP_SIDE",
+      "TOP_RIGHT_CORNER"
+    ],
+    "MATCH_SIDES": [
+      "RIGHT_SIDE",
+      "BOTTOM_SIDE",
+      "LEFT_SIDE",
+      "TOP_SIDE"
+    ]
+  },
+  "tileset_cell_neighbours": {
+    "BOTTOM_LEFT_CORNER": 7,
+    "BOTTOM_RIGHT_CORNER": 3,
+    "BOTTOM_SIDE": 4,
+    "LEFT_SIDE": 8,
+    "RIGHT_SIDE": 0,
+    "TOP_LEFT_CORNER": 11,
+    "TOP_RIGHT_CORNER": 15,
+    "TOP_SIDE": 12
+  },
+  "tileset_terrain_modes": {
+    "MATCH_CORNERS": 1,
+    "MATCH_CORNERS_AND_SIDES": 0,
+    "MATCH_SIDES": 2
+  }
+}

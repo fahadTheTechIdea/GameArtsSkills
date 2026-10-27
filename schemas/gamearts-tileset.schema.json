@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts tileset",
+  "description": "The layout, terrains and neighbour labels of a sheet of tiles. Geometry (rectangles) lives in the atlas this file names; tile id is the atlas frame index.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "name",
+    "atlas",
+    "tile_size",
+    "layout",
+    "terrains",
+    "tiles"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "atlas": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The atlas file of the sheet, in the same folder."
+    },
+    "tile_size": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "layout": {
+      "enum": [
+        "single",
+        "variants",
+        "wang_corner_16",
+        "wang_edge_16",
+        "blob_47",
+        "dual_grid_16"
+      ]
+    },
+    "terrains": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "description": "terrains[0] is what the pieces are made of; terrains[1], when there is one, is what lies around them."
+    },
+    "full_bleed": {
+      "type": "boolean",
+      "description": "True (the default) when tiles fill their whole square with no key colour, as ground tiles do."
+    },
+    "columns": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Tiles per row of the sheet, which is a regular grid of tile-sized cells with no spacing."
+    },
+    "tiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "terrain"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "terrain": {
+            "type": "string",
+            "minLength": 1
+          },
+          "neighbours": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "The terrain at each of the eight places around the tile, named clockwise from the top. Only the places the layout uses carry a label.",
+            "properties": {
+              "top": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "top_right": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "right": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "bottom_right": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "bottom": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "bottom_left": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "left": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "top_left": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

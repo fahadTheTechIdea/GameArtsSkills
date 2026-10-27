@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts style preset",
+  "description": "A look a game can start from: values for the project's art_style policy fields, the cameras and world kinds it suits, what the image tool must avoid and which checks the art is measured with. Data only: the project copies the values at setup.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "description",
+    "art_style",
+    "cameras",
+    "world_kinds",
+    "native_size_guidance",
+    "animation_approach",
+    "avoid",
+    "required_checks",
+    "soft_edges"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "maxLength": 40
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 320,
+      "description": "Plain words for a person choosing a look, at most 40 words."
+    },
+    "art_style": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "pixel_art",
+            "hand_painted",
+            "illustrated",
+            "vector",
+            "rendered_2d",
+            "custom"
+          ]
+        },
+        "outline_policy": {
+          "type": "string"
+        },
+        "shading_policy": {
+          "type": "string"
+        },
+        "texture_policy": {
+          "type": "string"
+        },
+        "pixel_density": {
+          "type": "string"
+        },
+        "palette_reference": {
+          "type": "string"
+        }
+      }
+    },
+    "cameras": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "orthogonal_3_4_oblique",
+          "isometric_3_4",
+          "top_down",
+          "side",
+          "custom"
+        ]
+      }
+    },
+    "world_kinds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "grid_world",
+          "free_world",
+          "layered_scene",
+          "screen_space"
+        ]
+      }
+    },
+    "native_size_guidance": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tile_px": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "minItems": 2,
+      "maxItems": 2,
+      "description": "Smallest and largest tile size in pixels that suit this look, when it is tile based."
+    },
+    "animation_approach": {
+      "enum": [
+        "frame_by_frame",
+        "cut_out",
+        "either",
+        "none"
+      ]
+    },
+    "avoid": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Instructions for the image tool, each phrased as something not to do."
+    },
+    "required_checks": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "palette_exact",
+          "palette_near",
+          "colour_count_max",
+          "pixel_grid",
+          "integer_scale",
+          "loop_seam",
+          "pivot_drift",
+          "clipping"
+        ]
+      },
+      "description": "Measured checks the style's art is held to; each runs only where the framework can measure it."
+    },
+    "check_parameters": {
+      "type": "object",
+      "description": "Per-check numbers (tolerances and limits), keyed by check name.",
+      "propertyNames": {
+        "enum": [
+          "palette_exact",
+          "palette_near",
+          "colour_count_max",
+          "pixel_grid",
+          "integer_scale",
+          "loop_seam",
+          "pivot_drift",
+          "clipping"
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "number"
+        }
+      }
+    },
+    "soft_edges": {
+      "type": "boolean",
+      "description": "True when the look needs partial transparency at its edges (antialiased edges, glow, smoke)."
+    }
+  }
+}

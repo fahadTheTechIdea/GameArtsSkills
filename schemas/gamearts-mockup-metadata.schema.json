@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts Mockup Metadata",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "mockup_id",
+    "revision",
+    "scope",
+    "status",
+    "file",
+    "sha256",
+    "prompt",
+    "tool_mode",
+    "created_at_utc"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "mockup_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^v[0-9]{3,}$"
+    },
+    "scope": {
+      "enum": [
+        "world",
+        "scene",
+        "asset",
+        "character",
+        "ui_screen",
+        "ui_flow",
+        "mixed",
+        "style"
+      ]
+    },
+    "status": {
+      "const": "generated"
+    },
+    "file": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "settings_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "description": "Optional. `register` computes and stores the canonical hash of the material settings."
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prompt_origin": {
+      "enum": [
+        "imagegen_prompt",
+        "agent_brief",
+        "external_provider"
+      ]
+    },
+    "imagegen_prompt_captured": {
+      "type": "boolean"
+    },
+    "tool_mode": {
+      "enum": [
+        "built_in_image_gen",
+        "cli_image_gen",
+        "connected_tool",
+        "external_import"
+      ]
+    },
+    "tool_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The connector or plugin tool used; required when tool_mode is connected_tool."
+    },
+    "created_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "blueprint": {
+      "type": "string"
+    },
+    "source_references": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "string"
+    },
+    "storyboard_scene_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "description": "Approved storyboard scene this mockup depicts."
+    },
+    "provenance": {
+      "type": "object",
+      "description": "How the artwork was produced (standard: generation provenance).",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "seed": {
+          "type": [
+            "string",
+            "integer"
+          ]
+        },
+        "edit_mode": {
+          "type": "string"
+        },
+        "conditioning_images": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          }
+        },
+        "captured_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "rights": {
+      "type": "object",
+      "description": "Usage-rights note for supplied references and generated art.",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "owned",
+            "licensed",
+            "user_supplied",
+            "unknown"
+          ]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "additionalProperties": true,
+  "if": {
+    "properties": {
+      "tool_mode": {
+        "const": "connected_tool"
+      }
+    },
+    "required": [
+      "tool_mode"
+    ]
+  },
+  "then": {
+    "required": [
+      "tool_name"
+    ]
+  }
+}

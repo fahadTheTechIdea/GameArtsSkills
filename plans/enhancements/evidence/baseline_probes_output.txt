@@ -1,0 +1,96 @@
+# Baseline defect probes - observed output
+date_utc: 2026-10-23T17:42:03Z  host: Windows 11  python: Python 3.14.4  Pillow: 12.2.0  jsonschema: 4.26.0
+command: python plans/enhancements/evidence/baseline_probes.py   (read-only against the repo; fixtures in temp dirs)
+revision: HEAD not recorded (git not run per owner rule); tree identified by baseline_files.sha256 (taken before CLAUDE.md was edited by this task)
+
+=== P1 rotation 0->360 / 0->270 keyframes (build_component_bundle.animate)
+  0->360: [0.0, 0.0, 0.0, 0.0, 360.0]
+  0->270: [0.0, -22.5, -45.0, -67.5, 270.0]
+  0->180: [0.0, -45.0, -90.0, -135.0, 180.0]
+
+=== P2 validate_sheet_atlas accepts non-#FF00FF pixels in spacing gaps
+  validator exit 0 | PASS geometric/alpha checks: 20x8, frames=2. Visual pixel mask correctness NOT proven.
+
+=== P3 prepare_reference_crop.verify rejects a fully painted (no pink corner) terrain/UI candidate
+  prompt demands pink background for terrain: True
+  verify REJECTED: Generated candidate corners are not exact opaque #FF00FF
+  packet reference_crop is absolute: True
+
+=== P4 lifecycle.select() with no id aborts on one failing approved asset
+  select(all approved) RAISED instead of skipping/reporting: Approved asset metadata audit failed: workshop_v001.blueprint.json: blueprint still reports unapproved status; workshop_
+
+=== P5 nested `files` entries: approve accepts, revoke refuses
+  approve with bundle containing only b'asset' bytes at sub/shell.png -> approved
+  revoke RAISED: Bundle missing required artifact(s); refuse incomplete revocation
+
+=== P6 setup_gamearts.validate vs schema/docs (isometric) and owner-confirmation gate
+  legacy validate() on schema-valid isometric config: ['world.grid invalid']
+  lifecycle refuses wizard-style config: Game Arts settings must be owner_confirmed before mockup registration or approval; run the
+  lifecycle ACCEPTS garbage owner_confirmed project.json (no schema check): True
+
+=== P7 mockup_id contract: lifecycle metadata regex vs prepare_reference_crop slug
+  'city.scene': lifecycle-valid=True crop-valid=False
+  'City_Scene': lifecycle-valid=False crop-valid=True
+  'city-scene': lifecycle-valid=True crop-valid=True
+
+=== P8 Pillow getdata() deprecation (warning promoted to error)
+   DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+
+=== P9 sync_local_agents lock is never recovered after an unclean exit
+  stale lock blocks every future sync: Another Game Arts sync is running; try next session
+  hook command embeds absolute interpreter path: C:\Python314\python.exe C:\Users\f_ald\AppData\Local\Temp\tmpc3nhdwir\scripts\sync_local_agents.py u
+
+=== P10 reference packet breaks when the candidate folder moves generated -> approved
+  verify before move -> candidate_pending_visual_review
+  verify after move REJECTED: File or SHA256 changed since preparation: C:\Users\f_ald\AppData\Local\Temp\tmp5e6gcd9s\generated\asset_v001\r
+
+=== P11 single-component real bundle with parent_cleanup 'pending' is approved by lifecycle.approve
+  bundle validation.parent_cleanup: pending | visual_review_protocol: None
+  approve -> approved
+
+=== P12 re-indenting project.json (identical content) flags an already approved mockup
+  audit-mockup before: []
+  audit-mockup after re-indent: ['mockup settings hash disagrees with current owner-confirmed settings', 'mockup metadata invalid: Mockup metadata settings_sha256 does not match current .gamearts/project.json']
+
+=== P13 updater: a renamed master strands the installed updater; upstream deletions are not propagated
+  sync against a tree whose master was renamed RAISES: Source must be a separate complete GameArtsSkills checkout
+  helper.py removed upstream, still present in the game after sync: True
+
+=== P14 cleanup validator: a sprite whose colour exists nowhere in the source passes; plate may be a byte-identical copy
+  master.png and plate.png byte-identical, validator still accepts them: True
+  strict validation with an unrelated-colour sprite -> passed
+
+=== P15 schema checks are silently skipped (jsonschema missing, or schemas absent from the game root)
+  validate_blueprint without jsonschema: exit 0 | PASS basic checks. Full JSON schema validation NOT RUN (jsonschema not installed)
+  register with invalid metadata, schemas present + jsonschema installed: refused (Mockup metadata schema validation failed: 123 is not of type)
+  register with invalid metadata, schemas present + jsonschema missing: ACCEPTED
+  register with invalid metadata, schemas absent from the game root (as in every test fixture): ACCEPTED
+
+=== P16 cleanup validator runtime versus image size (strict props, one detached prop)
+  512x512:   0.20 s  (passed)
+  1024x1024:   0.65 s  (passed)
+  2048x2048:   2.57 s  (passed)
+
+=== P17 two concurrent register() calls (both read the manifest before either writes)
+  writer results: {'second': 'PermissionError: [WinError 32] The process cannot access the file because it ', 'third': "ValueError: Expected one exact mockups record for 'test-game-third', got"}
+  records left in manifest: ['test-game-colony'] (3 expected if both registrations had been kept)
+  reconcile issues: ['Unregistered mockup image: .gamearts/outputs/mockups/generated/test_ga', 'Unregistered mockup image: .gamearts/outputs/mockups/generated/test_ga']
+
+=== P18 revoking a mockup says nothing about the approved assets that depend on it
+  asset audit before revoking its source mockup: []
+  revoke result keys: ['from', 'id', 'manifest_backup', 'path', 'status']
+  asset audit afterwards: ['asset refers to a missing or nonapproved mockup']
+
+=== P19 interleaved read-modify-write: register() overwrites a concurrent registration (OS-independent)
+  B registered: generated
+  A registered: generated
+  records left in manifest: ['test-game-colony', 'test-game-a'] (B reported success, then disappeared)
+  reconcile issues: ['Unregistered mockup image: .gamearts/outputs/mockups/generated/test_ga']
+
+=== P20 updater: a mid-run failure leaves unrecorded files that later report as user conflicts
+  first sync aborted: simulated disk failure
+  state file exists right after the aborted run: False
+  files already written by the aborted run: ['.agents\\skills\\game-arts\\SKILL.md', '.claude\\skills\\game-arts\\SKILL.md']
+  second sync reports user conflicts for files nobody edited: ['.agents/skills/game-arts/SKILL.md (local change or unowned file)']
+
+exit status: 0

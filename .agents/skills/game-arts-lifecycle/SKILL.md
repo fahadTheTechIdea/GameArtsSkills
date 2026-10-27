@@ -1,103 +1,51 @@
 ---
 name: game-arts-lifecycle
-description: Manage generated, approved, revoked Game Arts mockups and production assets; descriptive naming; explicit user approval, replacement, and revocation; cross-linked mockup and asset manifests. Use for generating, approving, rejecting, restoring, finding or replacing any visual Game Arts revision.
+description: Manage generated, approved and revoked Game Arts mockups and production assets - register, audit, approve, reject, revoke, restore, list and select revisions, import outside mockups, and keep the mockup and asset manifests consistent. Use for any approval, rejection, replacement, restoration or lookup of a visual Game Arts revision.
 ---
 
-# Game Arts Mockup and Asset Lifecycle
+# Game Arts lifecycle
 
-## Essential rules
-Use the active game repository, never the shared GameArtsSkills repository. Read the canonical v7.3 standard plus `.gamearts/project.json` and active custom instructions. Handle all file management using the agent's available project filesystem tools; **do not ask users to run commands, move files, or edit JSON**.
+Policy: master *Asset and mockup lifecycle*, *External and user-supplied mockups*, *Human-verifiable silhouette and reconstructed-background review*, *Parent-artwork cleanup and separation gate*. Work in the active **game** repository, never this framework repository. Do the file work with the script; the user never moves files, edits JSON or types commands. Never claim a transition that the script did not report as done.
 
-Store:
-- `.gamearts/outputs/mockups/generated|approved|revoked/`
-- `.gamearts/outputs/assets/generated|approved|revoked/`
-- `.gamearts/outputs/manifests/mockups.json`
-- `.gamearts/outputs/manifests/assets.json`
+Storage and naming: `.gamearts/outputs/{mockups,assets}/{generated,approved,revoked}/` and `manifests/{mockups,assets}.json`; names `<game>_<content>[_<state>][_<direction>]_vNNN.png`, `<same>.atlas.json`, `<game>_<scope>_<content>_mockup_vNNN.png`; stable IDs, revisions `vNNN`. A mockup's `.metadata.json` is its generation record and keeps `status: generated` for good; the manifest owns the lifecycle status (`docs/ASSET_LIFECYCLE.md`), so a metadata file in `approved/` saying `generated` is correct.
 
-Each revision has a stable ID, descriptive game-related filename, monotonic version, manifest entry and explicit lifecycle state. Avoid guessing approval or using vague generated names.
+## Operations
+Run `python scripts/gamearts_asset_lifecycle.py <operation> --game-root <game> ...`:
 
-## Mockup lifecycle
-1. Export a new mockup revision to `mockups/generated` with its preliminary blueprint and metadata.
-2. On **explicit approval**, identify the exact revision and move its complete approved mockup package to `mockups/approved`, then verify/update manifest references.
-3. On rejection or supersession, move the revision to `mockups/revoked` with an audit reason. Do not erase historical artwork.
-4. Any production asset must reference the **specific approved mockup revision(s)** and relevant blueprint element IDs. Never derive final production from an unapproved mockup.
-5. Materially changed approved mockups require new approval; derived asset relationships must remain traceable.
+| Operation | Use |
+|---|---|
+| `check-settings` | Confirm `project.json` is valid and owner-confirmed; `warnings` lists what valid settings can still get wrong |
+| `confirm-settings --by WHO --user-confirmation-ref "<the owner's words>"` | Record the owner's confirmation with the real time; never type `confirmed_at` by hand |
+| `register --metadata M.json [--image I.png]` | Register a generated mockup (needs owner-confirmed settings) |
+| `register-generated --image PNG --id ID --revision vNNN --scope S --prompt-file P [--tool-mode M --tool-name N] [--storyboard-scene-id X]` | Register the picture an image tool just made: names, hashes, writes the metadata and registers it; the tool defaults to the owner's saved image generator and any other is refused |
+| `import-mockup --source FILE --id ID --revision vNNN --scope S [--rights R] [--storyboard-scene-id X] [--user-approval-ref "<user's statement>"]` | Bring in a mockup the user made elsewhere as a managed copy (see below) |
+| `audit-mockup --id ID --revision vNNN` | Check files, hashes, metadata, approval evidence; `review_flags` lists material settings changes |
+| `approve-mockup --id ID --revision vNNN --user-approval-ref "<user's actual message>"` | Promote the exact revision the user approved |
+| `register-asset --id ID --revision vNNN --bundle .gamearts/outputs/assets/generated/<folder> --source-mockup MOCKUP:vNNN [--extra provenance.json]` | Register a generated bundle; links approved mockups (hash-checked) and runs the technical gate |
+| `audit --id ID` | Audit an asset: files, hashes, source links, blueprint and validation consistency, review evidence |
+| `approve --id ID --user-approval-ref "<message>" [--visual-review PACKET DECISION]` | Promote a generated bundle after the technical artwork gate and review evidence |
+| `select --kind assets|mockups --stage approved|generated [--id ID --revision vNNN]` | Eligible records for production use; blocked ones are reported with reasons |
+| `list --kind … [--status …]` | Show records |
+| `import-asset --source SHEET --id ID --revision vNNN (--grid COLSxROWS \| --cell WxH \| --data FILE.json) --user-approval-ref "<the owner's words>" [--rights owned] [--rights-notes "…"] [--alpha-threshold N] [--anchor] [--extract-palette NAME]` | Adopt art the owner already has: transparency becomes the key colour, frames are re-assembled into a measured sheet and atlas, the picture is imported as an approved reference, and the asset is registered as `generated` (it still needs its own approval). `--anchor` also imports an approved style board and offers it as `art_style.anchor` (the owner confirms saving it). Needs `--game-root` and owner-confirmed settings. To check against the owner's own palette, extract it and save `art_style.palette_reference` first. When the game already has a palette file the result carries `palette_check`; a `failed` one will fail the exact-palette check at approval, so tell the owner now. `--extract-palette` takes colours from the imported art; for the owner's own palette picture run `gamearts_palette.py extract` on it |
+| `approve-batch --kind mockups\|assets --item ID:REV … --shown ID:REV … --user-approval-ref "<message>"` | Approve several exact revisions on one reference, each through the single approval; `--shown` lists what the owner was actually shown, anything else is left unapproved. A partial batch exits 1 and names each item left and why |
+| `export-runtime --id ID [--revision vNNN] [--replace]` | For an approved asset only: write engine-ready copies (the magenta made real transparency) to `.gamearts/outputs/runtime/…` and record them as `derived_exports`. Derived files: never approved, never a source for new art, checked by `reconcile-assets`, deleted if the asset is revoked. The result's `derived_exports` after `approve` says whether the engine profile made them automatically |
+| `revoke --kind … --id ID [--revision vNNN] --reason "…" [--replaced-by ID]` | Reject, withdraw or supersede; moves the whole bundle; for a mockup names the assets built on it |
+| `restore --kind … --id ID --revision vNNN --user-restore-ref "<message>"` | Revoked back to `generated`; it must be validated and approved again |
+| `reconcile`, `reconcile-assets` | Report unregistered files, missing metadata, manifest drift |
 
-## Asset lifecycle
-1. Create sprite sheets, component PNGs, matching measured atlas JSON and metadata as a complete candidate package inside `assets/generated`.
-2. Mark as approved **only on explicit approval** after appropriate validation. Move the **whole bundle** to `assets/approved`; validate asset/atlas image references and update active approved manifest pointers.
-3. On rejection, replacement, or withdrawal, move the entire bundle to `assets/revoked` and record the reason and replacement.
-4. Preserve the old approved revision until the replacement is confirmed complete. Never silently delete prior work, accidentally overwrite a revision, or leave its atlas behind.
-5. Revoked assets must not be used as an active reference in Godot; restoring one requires reapproval and validation.
+Every operation takes one shared lock, backs the manifest up, verifies its own result and rolls back on failure. An operation that changes a record also returns `ok`, a `next_step` sentence (use it as your closing line) and `report`, the rebuilt art report (`updated` and its `path`; mention it once when the user wants to see their art, and if `updated` is false pass on the `problem`; the change itself did succeed). An exit status other than 0 or a `BLOCKED` message means nothing changed (or names exactly what to inspect): report it, never paper over it.
 
-## Naming and metadata
-Use `<game-slug>_<descriptive-content>[_action][_direction]_vNNN.png`, `<same>.atlas.json`, and `<game-slug>_<scope>_<descriptive-content>_mockup_vNNN.png`. Sanitize names and avoid category-specific hardcoding. Keep stable IDs separately from filenames. Asset manifests record `source_mockups` (IDs, exact revisions, paths, and image regions), blueprint element IDs, validation status, dependencies and file hashes when available.
+## Mockups
+1. `register-generated` after the image tool produced a picture (owner-confirmed settings required; a `scene` mockup must name an approved storyboard scene when the game has a storyboard; the tool must be the owner's saved image generator). `register` is the lower-level form for a metadata file that already exists.
+2. The user approves a specific revision -> `approve-mockup` with a truthful reference to that message. Rejected or superseded -> `revoke` with the reason. Approval of a materially changed mockup is new. You may withdraw your own earlier candidate the same way when you replace it before the user has seen it; say so in the reason.
+3. **Outside mockup:** run `import-mockup`; it copies the file into managed storage (a PNG byte for byte; JPEG and other rasters become PNG without changing a decoded pixel, the original's hash and format are recorded), writes the metadata, which states honestly that no generation prompt exists, registers it, and never touches the original. Pass `--user-approval-ref` with the user's own words only when those words accept this exact image as the reference ("it's approved", "I'm happy with it, use it"); then it is also approved and you do not ask again. A vague "looks nice" or "maybe" is not approval: leave it generated, show it and ask once. Choose the scope that matches what it is; a `scene` import must name an approved storyboard scene (`--storyboard-scene-id`) when the game has a storyboard. Record rights as `owned` when the user says they made it or own it, `licensed` when they say they hold a licence (quote their words in `--rights-notes`, marked as their claim and not verified), otherwise `user_supplied`. Tell the user what `import_checks` reports (size, transparency, whether it holds exact key pixels) and any visible conflict with the saved style or scale; never change the image. Do not claim an import when the file could not be read.
 
-## Safe transitions
-Before moving, check file existence, expected status, destination collision and completeness. Stage/copy and verify all resources, update manifests as consistently as filesystem allows, then remove old locations. If interrupted, restore coherent references or mark the operation incomplete—**never claim a state transition that was not verified**. Explicitly report missing files or unavailable tools.
+## Assets
+1. After the technical work, put the complete bundle (PNGs, atlases, bundle JSON, blueprint, validation report, cleanup evidence, review files) in `assets/generated/<folder>` and `register-asset` it with its approved source mockup(s). When the game's image generator is `user_supplied`, build the bundle from the frames the owner gave you and pass `--extra` holding `{"provenance": {"provider": "supplied by the user", "edit_mode": "none"}, "rights": {"status": "owned", "notes": "<their words>"}}` (`licensed` or `user_supplied` as they say; see the rights rule in *Mockups*, step 3).
+2. `approve` requires: a bundle that passes the technical artwork gate (a real sheet atlas, exact key colour on every sheet, the component approval gate when a `*.bundle.json` exists); for composite assets the parent-cleanup proof and the visual-review packet and decision (pass them with `--visual-review`); and the user's real approval reference. Never run it before the user approves, and never synthesize a decision file.
+3. After approval run `audit`. Anything it reports (a blueprint still `generated_needs_visual_review`, `pending_user_review` left in a validation report) blocks reuse until reconciled through the real approval event. Remaining honest limits (engine not tested, scale uncalibrated, inferred areas) stay recorded; never rewrite them as passes.
+4. `select` before every reference lookup, continuation or production step: only `approved` records are references; the in-progress one is `generated` and not rejected. **Never read, compose or regenerate from a revoked candidate**, even though its files remain. A new generated revision is not rejected because an older one was.
+5. A clear user rejection -> `revoke` at once with the reason (never leave a rejected candidate in `generated` with a note). `restore` only on the user's explicit request, then validate and approve again.
 
-## User-friendly requests
-- “Approve this mockup.”
-- “Show the generated sprites.”
-- “Approve this version.”
-- “Reject this image because its scale is wrong.”
-- “Replace the approved artwork.”
-- “Show revoked versions.”
-- “Restore the older version.”
-
-Respond with concise human-friendly filenames and status rather than raw JSON. Ask only when identity or approval is genuinely ambiguous. Users should not need to know folder paths.
-
-## Quality requirements
-Universal exact opaque #FF00FF source PNG; JSON atlas measured from every actual sprite sheet; locked approved references, dynamic animated attachment hierarchies, directional coverage when applicable, and Godot validation remain mandatory. Approval decisions are separate from technical validation.
-
-## Connected workflow
-Mockup creator registers actual rendered previews as generated candidates; on explicit approval promote the exact revision, then hand off to mockup analyzer. Production art is registered separately as generated and requires its own approval. Keep both lifecycles and exact mockup-to-asset links distinct.
-
-
-## User-supplied / externally generated mockups
-A user may supply an existing mockup created outside Game Arts. **Do not regenerate it.** Import a managed **copy** into the target game's mockup lifecycle, preserving the original external source. If the user explicitly confirms this exact revision is already approved, register it directly under `.gamearts/outputs/mockups/approved/`; otherwise register it under `mockups/generated/` and show it for approval. Store source provenance, descriptive versioned filename, ID, hash when available and manifest record. Never claim the import was saved if the agent lacks source access or filesystem permissions. After approval, analyze all its visual details and use that locked reference for production. Any exported Game Arts PNG derivative must comply with exact opaque #FF00FF; preserve nonconforming original external files separately and do not silently alter source pixels.
-
-## Everyday user commands (natural language)
-
-Recognize the complete user-friendly command catalog in `docs/COMMANDS.md`, including: **set up / show / change game settings; add / show custom instructions; create world/scene/character/UI mockups; import an outside mockup; import an already approved mockup; revise / approve / reject mockups; generate production sprites, component animations, and measured atlases; approve / reject / restore assets; show generated/approved/revoked artwork; validate in Godot.** Do not require slash commands or special trigger keywords. Infer intent and invoke the correct skill(s), respecting exact revision identity. An already-approved imported mockup is not regenerated. Ask for approval only when a real new mockup or final asset needs it. Do not claim actions completed without successful tool execution.
-
-
-## Approved-source crop provenance (integrated)
-
-During approval/import, record verifiable `mockup_id`, `revision`, `status: approved`, managed `file` and source `sha256` in the game's current `mockups.json`. On production requests, verify these records and use `scripts/prepare_reference_crop.py` to prepare the actual approved source crop **inside** the corresponding `assets/generated/<asset-revision>/reference/` directory. Keep the crop, prompt, packet and any truthful image-tool receipt with that candidate and link its provenance to the original mockup; do not create a new lifecycle or falsely mark the crop as approved artwork. The generated sprite/artwork and atlas must still receive their own approval. Reference crops preserve source colors; only new game-art PNG exports require pink masking.
-
-
-## Enforce clean-parent gate BEFORE APPROVED transition
-
-Production assets with ANY independently movable, removable, interactive, replaceable or animated child/prop **cannot be approved** simply because separate component PNGs exist. Check the analyzed complete `separation_inventory` and insist each separated object is **actually missing from the static parent artwork**. Keep candidate in `assets/generated` until this is verified.
-
-For a standalone structure with separate props, internally run `scripts/validate_parent_cleanup.py` on the candidate's original composite, clean parent, independently approved clean plate, per-object masks and sprite evidence. For nested/directional sprite bundles invoke `scripts/validate_component_bundle.py --approval-gate` (plain geometric checks are insufficient), requiring proof for every parent view/frame plus declared detached inventory IDs, tied to the actual atlas source-frame hashes. Missing proof, residual original objects, unapproved clean plate, inaccurate fill, duplicated components, or inconsistent static parent geometry **blocks final approval**, even if a prior user likes the concept mockup.
-
-Also require a **visual inventory completeness audit** because pixels alone cannot reveal undeclared objects. Never generate fake masks/clean backgrounds to game the gate; instead revise artwork with real approved references. Applies identically to any art style. Preserve evidence with the existing asset bundle during generated/approved/revoked transitions, no new top-level folders.
-
-
-## Mandatory revoked/rejected asset exclusion (automatically enforced)
-
-**Before EVERY reference lookup, generated-candidate continuation, image tool call or production operation**, use the existing lifecycle manifest and the executable `scripts/gamearts_asset_lifecycle.py` to select **only eligible records**. Production source mockups and source assets must be `approved`; the current in-progress revision must be `generated` and not `visual_review: rejected`. **Do not read/compose/regenerate from `revoked` candidates**, even if their files remain for history. A rejected/superseded candidate is not active merely because its former PNG path is still accessible.
-
-**When the user explicitly rejects an image, asset, or revision**, route the precise ID/revision to `game-arts-lifecycle` and internally run the helper's `revoke` operation, with the recorded rejection reason. This validates bundle completeness, physically moves the entire managed version from generated/approved to `assets/revoked` (or `mockups/revoked`), backs up the manifest, updates its status/reason/path, and checks the transition. Never leave a clearly rejected candidate in `generated` with only a `visual_review: needs_revision` note, then silently reuse it. **Use exact revision identity** and do not mutate unrelated approved mockups or the next generated revision.
-
-A different generated revision awaiting approval is **not automatically rejected** because an earlier revision was rejected. It stays in `generated`, never silently becomes `approved`. Do not continue toward final assets if a required master/clean plate has been rejected or remains unapproved.
-
-The agent performs lifecycle actions using tools and verifies files; no user CLI or manual JSON required. If filesystem access is missing or errors occur, report the rejection intent and unsuccessful transition; do not claim that a revocation was persisted.
-
-
-## Learned from approved workshop: reconcile every file after approval
-Before treating any user-approved asset as reusable, run the bundled lifecycle audit against the actual approved asset. Match manifest status, blueprint status/production approval/clean-plate approval, validation visual-review status, physical folder and exact approved source mockup hashes. Inferred-but-accepted hidden geometry remains labeled inferred. If any file still says `generated_needs_visual_review`, `not_granted` or `pending_user_review`, reconcile it through the real user approval event with safe backups before selecting the asset again. Do not change `godot: not_tested` or scale calibration to passed. A clean mechanical/PNG check and a user visual approval are distinct gates. New production also uses reviewed local silhouettes rather than background-filled rectangular prop crops.
-
-
-## Visual-review packet gate for NEW accepted composite assets
-
-For newly produced art with removable/movable/interactive/replaceable/animated subparts, the agent must present the actual visual cleanup boards and obtain explicit user approval before `approved` status. Write an internal review decision only after a real user message approves the exact asset and specific inferred regions. Run `scripts/visual_review_cleanup.py verify` to check packet/source/board/mask hashes and completeness. Record `visual_review_protocol: "review_packet_v1"` and `visual_reviews: [{"packet":"<relative bundle path>","decision":"<relative bundle path>"}]` in the **existing assets.json record**. Store both files inside the same asset bundle; their relative links remain valid when moved to approved/revoked.
-
-The existing `scripts/gamearts_asset_lifecycle.py audit` checks this protocol for all newly approved assets that declare it, and prevents reusable selection when the review is missing, points to the wrong asset/revision, or no longer matches the pixels. Do NOT add the protocol to historical approved artwork merely to force it through a new gate retroactively. A user approval record in JSON is **agent-reported**, not cryptographically host-attested; never synthesize consent. Preserve genuine remaining Godot/scale limitations and exact accepted inferred details.
-
-
-## Finalize exact artwork acceptance through executable approval transition
-
-For a **newly generated** asset that the user has explicitly approved, do not just move its folder and write optimistic JSON. Use `scripts/gamearts_asset_lifecycle.py approve` **internally**, supplying the exact generated asset ID and a truthful reference to the actual user approval message. For composite artwork, the helper requires the current source/blueprint's visual-review protocol and a valid packet/decision binding to the exact user-reviewed sprites, clean plate and uncertainty list. The helper reconciles blueprint/QA visual states, copies full bundle into approved, records final-art hashes, checks original source provenance and immediately runs the existing lifecycle `audit`. It attempts rollback if the audit fails. A local user-approved artwork is not automatically engine-tested; preserve `Godot: not_tested` and uncalibrated scale. Never fabricate a user decision or run the approval step before the user actually approves. Old approved artwork remains accepted unless explicitly revoked.
+## Say it simply
+`list` and `select` on a game that has registered nothing yet return an empty result. Report filenames and status in plain words, not JSON: "Approved: city scene, revision 2", "Revoked with reason …", "Blocked because …". Ask only when identity or approval is genuinely ambiguous.

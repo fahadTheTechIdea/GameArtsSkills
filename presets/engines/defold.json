@@ -1,0 +1,183 @@
+{
+  "id": "defold",
+  "title": "Defold",
+  "summary": "Notes for using Game Arts files in Defold. Written from the manual pages read on 2026-10-24; nothing was run in the editor, so every mapping is documented and none is observed.",
+  "documented_against": {
+    "engine_version": "current manual (the pages read show no version number)",
+    "retrieved": "2026-10-24"
+  },
+  "import_guidance": [
+    {
+      "topic": "Animations from tags",
+      "applies_to": "all",
+      "text": "Make a tile source over a grid sheet (its tile width and height are the atlas cell size), then one animation per tag: Start Tile is the tag's first frame plus 1, End Tile its last frame plus 1, and Playback follows the tag (Loop Forward when it repeats forever, Once Forward when it plays once, Backward or Ping Pong for those directions).",
+      "source": "tilesource"
+    },
+    {
+      "topic": "Pivots and frame times",
+      "applies_to": "all",
+      "text": "A tile source has neither a pivot nor a time for each frame. Place the game object using the atlas pivot, and set one Fps for the animation.",
+      "source": "tilesource"
+    },
+    {
+      "topic": "Stretching panels",
+      "applies_to": "all",
+      "text": "Enter the frame's nine_slice margins as the sprite's Slice 9 (same order), and turn the image's Sprite Trim Mode off.",
+      "source": "sprite"
+    },
+    {
+      "topic": "Runtime copies",
+      "applies_to": "all",
+      "text": "Use the runtime copies the framework derives (real transparency instead of the magenta background) as the tile source image."
+    }
+  ],
+  "concept_map": [
+    {
+      "concept": "atlas_frame_rect",
+      "engine_term": "a tile source over the sheet: Tile Width, Tile Height, Tile Margin and Tile Spacing",
+      "support": "native",
+      "source": "tilesource",
+      "note": "Equal cells only, so a grid sheet. A trimmed or shelf-packed sheet cannot be read this way: add its pictures to an atlas instead."
+    },
+    {
+      "concept": "frame_pivot",
+      "engine_term": "no pivot on a tile source; an atlas image has a Pivot (0 to 1 from the top left, default 0.5, 0.5)",
+      "support": "needs_custom",
+      "source": "atlas",
+      "note": "Offset the game object from the atlas pivot, or add the individual pictures to an atlas and set each image's Pivot."
+    },
+    {
+      "concept": "frame_duration",
+      "engine_term": "one Fps for a whole animation",
+      "support": "needs_custom",
+      "source": "tilesource",
+      "note": "Neither the tile source nor the atlas page mentions a duration for each frame. Frames with different times need repeated frames or your own timing."
+    },
+    {
+      "concept": "animation_tag_range",
+      "engine_term": "a tile source animation: Id, Start Tile and End Tile",
+      "support": "native",
+      "source": "tilesource",
+      "note": "Tiles are numbered from 1 at the top left, row by row, so a tag's first and last frame numbers (from 0) each need 1 added."
+    },
+    {
+      "concept": "animation_tag_loop",
+      "engine_term": "animation Playback: Once ... or Loop ... modes",
+      "support": "native",
+      "source": "tilesource",
+      "note": "A tag that repeats forever is a Loop mode and a tag that plays once is a Once mode."
+    },
+    {
+      "concept": "animation_tag_reverse",
+      "engine_term": "Playback Once Backward and Loop Backward",
+      "support": "native",
+      "source": "tilesource",
+      "note": "Listed as modes of the animation."
+    },
+    {
+      "concept": "animation_tag_pingpong",
+      "engine_term": "Playback Once Ping Pong and Loop Ping Pong",
+      "support": "native",
+      "source": "tilesource",
+      "note": "The page describes them as first to last, then back to first. A tag that starts backward (pingpong_reverse) has no listed mode."
+    },
+    {
+      "concept": "animation_tag_repeat_count",
+      "engine_term": "the modes are once or looping",
+      "support": "needs_custom",
+      "source": "tilesource",
+      "note": "A tag that repeats a counted number of times above one needs your own counting."
+    },
+    {
+      "concept": "nine_slice",
+      "engine_term": "Slice 9 on a sprite or a GUI box node: left, top, right, bottom margins in pixels",
+      "support": "native",
+      "source": "sprite",
+      "note": "The order is the framework's [left, top, right, bottom]. The sprite's image must have Sprite Trim Mode off, which fits a nine-slice frame never being trimmed. Slice 9 acts when the size changes, not the scale."
+    },
+    {
+      "concept": "blend_normal",
+      "engine_term": "sprite Blend Mode Alpha",
+      "support": "native",
+      "source": "sprite",
+      "note": "Normal blending using the source alpha."
+    },
+    {
+      "concept": "blend_additive",
+      "engine_term": "sprite Blend Mode Add",
+      "support": "native",
+      "source": "sprite",
+      "note": "Brightens the background by adding the sprite's colours."
+    },
+    {
+      "concept": "blend_multiply",
+      "engine_term": "sprite Blend Mode Multiply",
+      "support": "native",
+      "source": "sprite",
+      "note": "Darkens the background by multiplying."
+    },
+    {
+      "concept": "blend_screen",
+      "engine_term": "sprite Blend Mode Screen",
+      "support": "native",
+      "source": "sprite",
+      "note": "The opposite of Multiply."
+    },
+    {
+      "concept": "blend_subtractive",
+      "engine_term": "not among the four listed modes",
+      "support": "needs_custom",
+      "source": "sprite",
+      "note": "The sprite manual lists Alpha, Add, Multiply and Screen only."
+    },
+    {
+      "concept": "blend_premultiplied",
+      "engine_term": "not among the four listed modes",
+      "support": "needs_custom",
+      "source": "sprite",
+      "note": "The sprite manual lists Alpha, Add, Multiply and Screen only."
+    },
+    {
+      "concept": "screen_base_resolution",
+      "engine_term": "game.project Display Width and Height, in pixels",
+      "support": "native",
+      "source": "project-settings",
+      "note": "The page states no default."
+    }
+  ],
+  "sources": [
+    {
+      "id": "atlas",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://defold.com/manuals/atlas/"
+    },
+    {
+      "id": "tilesource",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://defold.com/manuals/tilesource/"
+    },
+    {
+      "id": "sprite",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://defold.com/manuals/sprite/"
+    },
+    {
+      "id": "gui-box",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://defold.com/manuals/gui-box/"
+    },
+    {
+      "id": "project-settings",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://defold.com/manuals/project-settings/"
+    }
+  ],
+  "default_exports": [
+    "runtime"
+  ]
+}

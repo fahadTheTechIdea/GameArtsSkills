@@ -1,0 +1,44 @@
+{
+  "id": "rendered_2d",
+  "title": "Pre-rendered 3D look",
+  "description": "Sprites rendered from 3D models with one consistent camera and lighting, then used as 2D images.",
+  "art_style": {
+    "id": "rendered_2d",
+    "outline_policy": "Optional thin outline pass applied the same way to every asset.",
+    "shading_policy": "One light direction and one shading model used across the whole game.",
+    "texture_policy": "Material detail at one consistent texel size."
+  },
+  "cameras": [
+    "orthogonal_3_4_oblique",
+    "isometric_3_4",
+    "top_down",
+    "side"
+  ],
+  "world_kinds": [
+    "grid_world",
+    "free_world",
+    "layered_scene",
+    "screen_space"
+  ],
+  "native_size_guidance": "Draw at about twice the final display size and reduce once with a smooth filter; keep every asset in a set at the same scale.",
+  "animation_approach": "frame_by_frame",
+  "avoid": [
+    "Do not change the camera angle between assets.",
+    "Do not change the light direction between assets."
+  ],
+  "required_checks": [
+    "palette_near",
+    "loop_seam",
+    "pivot_drift",
+    "clipping"
+  ],
+  "check_parameters": {
+    "palette_near": {
+      "max_lab_distance": 16
+    },
+    "loop_seam": {
+      "max_ratio": 1.5
+    }
+  },
+  "soft_edges": true
+}

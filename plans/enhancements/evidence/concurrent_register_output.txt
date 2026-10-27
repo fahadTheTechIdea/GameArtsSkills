@@ -1,0 +1,23 @@
+# Concurrent register() probe - observed output (two threads, both read the manifest before either writes)
+date_utc: 2026-10-23T17:46:56Z
+command: python concurrent_register_probe.py <scripts dir>   (stdlib only; temp fixtures; repo untouched)
+
+## Windows (this host)
+platform: Windows-11-10.0.26200-SP0 | python 3.14.4
+writer results: {'second': 'PermissionError: [WinError 32] The process cannot access the file because it is being u', 'third': "PermissionError: [WinError 5] Access is denied: 'C:\\\\Users\\\\f_ald\\\\AppData\\\\Local\\\\Temp"}
+records left in manifest: ['race-first']
+reconcile issues: ['Unregistered mockup image: .gamearts/outputs/mockups/generat', 'Unregistered mockup image: .gamearts/outputs/mockups/generat']
+
+## Linux (WSL2 Ubuntu; scripts copied to /tmp, no bytecode written)
+-- run 
+writer results: {'second': "FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmpmoro82wk/.gamearts/outpu", 'third': 'JSONDecodeError: Expecting value: line 1 column 1 (char 0)'}
+records left in manifest: ['race-first']
+reconcile issues: ['Unregistered mockup image: .gamearts/outputs/mockups/generat', 'Unregistered mockup image: .gamearts/outputs/mockups/generat']
+-- run 
+writer results: {'second': "FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmpr8ic5cjt/.gamearts/outpu", 'third': "ValueError: Expected one exact mockups record for 'race-third', got 0"}
+records left in manifest: ['race-first']
+reconcile issues: ['Unregistered mockup image: .gamearts/outputs/mockups/generat', 'Unregistered mockup image: .gamearts/outputs/mockups/generat']
+-- run 
+writer results: {'second': 'generated', 'third': 'generated'}
+records left in manifest: ['race-first', 'race-second']
+reconcile issues: ['Unregistered mockup image: .gamearts/outputs/mockups/generat']

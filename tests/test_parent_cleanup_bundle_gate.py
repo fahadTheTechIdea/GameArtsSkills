@@ -25,20 +25,18 @@ def prepare_cleanup_evidence(root, config):
             workspace = root / "proof" / f"{part_id}_{direction}_0"
             workspace.mkdir(parents=True)
             parent_source = root / f"{part_id}_{suffix}.png"
-            child_source = root / f"{child_id}_{suffix}.png"
             clean = Image.open(parent_source).convert("RGBA")
             composite = clean.copy()
             composite.putpixel((4, 4), (220, 65, 33, 255))
             composite.save(workspace / "source.png")
             shutil.copy2(parent_source, workspace / "master.png")
             shutil.copy2(parent_source, workspace / "plate.png")
-            child = Image.open(child_source).convert("RGBA")
+            # The detached sprite is exactly the source pixel it removes, sitting at source_offset in the composite.
+            child = Image.new("RGBA", (3, 3), PINK)
+            child.putpixel((1, 1), (220, 65, 33, 255))
             child.save(workspace / "child.png")
             silhouette = Image.new("L", child.size, 0)
-            for py in range(child.height):
-                for px in range(child.width):
-                    if child.getpixel((px, py)) != PINK:
-                        silhouette.putpixel((px, py), 255)
+            silhouette.putpixel((1, 1), 255)
             silhouette.save(workspace / "child_silhouette.png")
             mask = Image.new("L", clean.size, 0)
             mask.putpixel((4, 4), 255)
@@ -53,7 +51,8 @@ def prepare_cleanup_evidence(root, config):
                     "removal_mask": "remove.mask.png",
                     "sprite_silhouette_mask": "child_silhouette.png",
                     "silhouette_review": "approved",
-                    "silhouette_reference_id": child_id + "_observed_source"
+                    "silhouette_reference_id": child_id + "_observed_source",
+                    "source_offset": [3, 3]
                 }]
             }
             (workspace / "cleanup.json").write_text(json.dumps(job))

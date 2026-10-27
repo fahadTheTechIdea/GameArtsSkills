@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts reference packet (paths are relative: the crop to this folder, project files to the game root)",
+  "type": "object",
+  "required": [
+    "asset_id",
+    "asset_class",
+    "approved_mockup",
+    "region",
+    "reference_crop",
+    "reference_crop_sha256",
+    "settings_file",
+    "settings_sha256",
+    "resolved_style",
+    "resolved_camera",
+    "resolved_directions"
+  ],
+  "properties": {
+    "asset_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "asset_class": {
+      "enum": [
+        "static_structure",
+        "fixed_machinery",
+        "mobile_directional",
+        "ui_presentation",
+        "terrain",
+        "prop",
+        "effect",
+        "tileset",
+        "parallax_layer",
+        "portrait_set",
+        "icon_set",
+        "card_layer_set"
+      ]
+    },
+    "approved_mockup": {
+      "type": "object",
+      "required": [
+        "id",
+        "revision",
+        "image",
+        "sha256",
+        "lifecycle_manifest",
+        "lifecycle_manifest_sha256"
+      ]
+    },
+    "region": {
+      "type": "object"
+    },
+    "reference_crop": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/\\\\:][^\\\\:]*$"
+    },
+    "reference_crop_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "settings_file": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/\\\\:][^\\\\:]*$"
+    },
+    "settings_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "export_rule": {
+      "enum": [
+        "key_background",
+        "full_bleed"
+      ]
+    },
+    "conditioning_status": {
+      "type": "string"
+    },
+    "visual_review": {
+      "type": "string"
+    },
+    "production_approval": {
+      "type": "string"
+    },
+    "style_anchor": {
+      "type": "object",
+      "required": [
+        "id",
+        "revision",
+        "image",
+        "sha256"
+      ],
+      "description": "The approved style board copied beside the crop as a second reference image (paths relative to this folder).",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^/\\:][^\\:]*$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "source_image": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

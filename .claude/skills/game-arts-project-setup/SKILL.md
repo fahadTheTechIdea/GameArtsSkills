@@ -1,69 +1,35 @@
 ---
 name: game-arts-project-setup
-description: Friendly conversational Game Arts project setup wizard inside Claude Code or Codex. Use for setup, configuration, changing settings, or when starting art work in a game with no project configuration. Ask simple questions, offer sensible defaults, and save selections in the game repository without asking the user to run commands.
+description: Friendly in-chat Game Arts project setup - choose and save a game's kind of world, look (style preset), viewpoint, facing directions, animation preference, image generator and engine, and confirm them as the owner. Use for setup, showing or changing settings, or when a game has no confirmed configuration and an art task needs it.
 ---
 
-# Game Arts Project Setup — In-chat Wizard
+# Game Arts project setup (in chat)
 
-## Essential experience
-**Run inside the currently active Claude Code or Codex chat.** The user should not need Python, terminal commands, JSON editing, git expertise, or a separate interface.
+Policy: master *Project settings and the owner-confirmation gate*, *Art-style profiles*, *World geometry, projection and scale*. Run inside the current Claude Code or Codex chat. The user needs no Python, terminal, JSON or git. Be brief and friendly; one clear question at a time (several short ones may travel in one message when each has a recommended answer); recommended answers are the default; advanced settings only when asked or needed. Never claim a setting is saved unless the write succeeded and you read it back.
 
-Be friendly, brief and understandable to nontechnical users. Ask **one clear question at a time**, or use a small native choice control when available. Avoid long technical questionnaires. Make recommended selections the default. Explain technical concepts in everyday language and reveal advanced settings only if requested or materially needed.
+## Start
+1. Find the game project (not this framework repository) and read `<game>/.gamearts/project.json`. If it exists, use it in normal requests; for a configuration request summarize it simply and ask what to change, never re-run the whole wizard needlessly.
+2. If it is missing, start the short setup; do not stop brainstorming or early concept talk because optional settings are absent. If the user names another game folder of theirs, read only its `project.json` and offer its engine, image generator and look as defaults to confirm.
+3. Read the installed `schemas/gamearts-project.schema.json` before saving.
 
-## Starting and existing settings
-1. Find the target game project (not the shared skills repository) from the current workspace.
-2. Read `<game-root>/.gamearts/project.json` if available. If found, use it automatically in normal game-art requests. For a configuration request, summarize it simply and ask what the user wants to change; never re-run the full wizard unnecessarily.
-3. If missing, start a friendly, short project setup in this same chat. Don't stop ordinary brainstorming or early mockups solely because optional settings are absent.
-4. Read the Game Arts master standard and `schemas/gamearts-project.schema.json` from the installed package before saving.
+## Questions (only the meaningful ones, in this order)
+1. **"What kind of game is it?"** A genre from `docs/GENRE_RECIPES.md`, or a description. It decides `world_kind`: a tile map (`grid_world`, the default), free movement without tiles (`free_world`), scrolling layers (`layered_scene`) or no ground at all, such as cards, match-3 or a visual novel (`screen_space`, which also needs the base screen size as `screen.base_resolution_px`; ask for it only then). Skip the viewpoint and direction questions for `screen_space`.
+2. **"Which look do you want?"** Run `python scripts/gamearts_presets.py list --kind styles --world-kind <kind>` (add `--camera <profile>` once the viewpoint is known), show at most six that suit the game in the entries' own words, plus "something else" (`custom`). When the chosen look has `soft_edges: true`, say the master's one sentence about soft edges (*Masking and PNG export policy*) and save the answer. Copy the chosen preset's `art_style` values into `art_style`, set `art_style.preset`, and let the user's own words override any copied field. Use a style reference if one exists.
+3. **"What viewpoint?"** (`grid_world`, `free_world`, `layered_scene`) `orthogonal_square` + `orthogonal_3_4_oblique` (default: seen from above and a little in front, so the fronts of walls and objects show), `isometric` + `isometric_3_4`, `orthogonal_square` + `top_down` (straight down: roofs and floors, no fronts), `hex_pointy` or `hex_flat` for hexagon tiles, `orthogonal_square` + `side`, or `custom`. A user who only says "top-down" gets the first and the third in these words and chooses, because it changes every image. Keep an already approved view.
+4. **"Will characters face several directions?"** Offer the named sets: eight (`dirs_8`), four (`dirs_4`), left and right (`dirs_2_side`), one side only (`dirs_1_side`), one front (`dirs_1_front`), or decide per object (recommended for mixed projects, which saves `dirs_8`). `directions` is only the default for free-facing mobile assets (the master's *World geometry, projection and scale* says what takes it); a mobile asset that needs another count needs an approved limited profile.
+5. **"How should movement look?"** let Game Arts choose (recommended, `hybrid`), frame animation (`frame_based`) or transform animation (`transform_based`); the chosen look's `animation_approach` is the suggestion.
+6. **"Which image generator should Game Arts use for this game?"** the agent's own built-in image tool (`built_in_image_gen`, Codex's `image_gen`), Codex's command-line fallback (`cli_image_gen`, needs an OpenAI API key), a connector or plugin tool you name (`connected_tool` with `tool_name`), or "I make the pictures myself" (`user_supplied`). Recommend the built-in tool when the agent has one; when it has none, offer `user_supplied` and the connected tools you can see (the master's *Project settings and the owner-confirmation gate*) and never choose a paid one for the owner. Save an optional note for the tool (a model or quality choice) as `notes`. The answer is remembered and used for every image.
+7. **"Which engine or tool will use this art?"** Run `python scripts/gamearts_presets.py list --kind engines`, show the titles, and add "something else" and "not decided yet" (save nothing for the latter). Save the chosen id as `engine_target.profile`. An engine that has no profile is saved by its lowercase name anyway; tell the user no profile is installed and that everything works as before.
+Ask for the tile size in pixels only when a tile-map game states none; pixels per meter and snap follow from it as the master's *World geometry, projection and scale* says and are shown back as proposals, not asked. Ask about frame counts only if an answer requires it. Offer **Use recommended settings**. For `custom` record the full projection, tile geometry and camera and never guess. The framework supports every preset; the project selects one.
 
-## Friendly starter questions
-Ask only meaningful choices, typically:
-1. **"What look do you want for your game?"** Pixel art (recommended if appropriate), illustrated, painted, vector/flat, rendered sprites, or other. If a style reference exists, use it.
-2. **"What viewpoint should the game use?"** Elevated 3/4, directly overhead, side view, or other. If an approved project view already exists, keep it.
-3. **"Will objects need multiple facing directions?"** Yes, no, or decide separately per object (recommended for mixed projects).
-4. **"How should movement look?"** Let Game Arts choose the best method (recommended), or prefer frame animation / engine movement.
-Only ask about terrain dimensions, pixels-per-meter, exact frame counts, folders, shaders or other expert settings if a chosen answer actually requires it. Otherwise use the currently approved game profile as default. Mockup scope is inferred from the next task rather than forcing an up-front question.
+## Fields written to `.gamearts/project.json`
+`schema_version` "1.0", `project_id`, `world_kind` (omit for the default `grid_world`), `art_style` (`id`, `preset`, optional `reference`, `outline_policy`, `shading_policy`, `texture_policy`, `pixel_density`, `ui_camera`), `world` (`grid`, `camera_profile`, `object_camera` and `ground_camera` as plain-language camera text used in every prompt, `logical_tile_m`, `ground_tile_px`, `pixels_per_meter`, `construction_snap_m`; `layers` for a layered scene), `screen` (`base_resolution_px`, `scaling`), `directions` (a named set or a list), `animation` (`preferred_method`, `animated_attachment_anchors: true`), `workflow` (`mockup_approval_required: true`, `detail_decomposition_required: true`), `export` (`background_hex: "#FF00FF"`, `background_alpha: 255`, `atlas_per_sheet: true`, `no_zip: true`), `image_generation` (`tool`, `tool_name` for a connected tool, optional `notes`), `engine_target` (`profile`, optional `version_note`) and the confirmation fields below. Which blocks a game needs depends on its `world_kind`; the schema says so. `project_id` is the game's name as a short lowercase slug of letters, digits and hyphens (it prefixes managed file names, so keep it stable); with no name yet, the folder's name written the same way. A palette stated in words goes in `art_style.palette_reference`; any other stated constraint in `prompting.additional_constraints`. Preserve existing settings, unknown user fields, approvals and asset-specific profiles; update only what was selected.
 
-Offer **Use recommended settings** as an easy path whenever possible.
+## Confirm and save
+1. Fields the user did not answer take the recommended default (`hybrid`, the eight directions, the viewpoint closest to their words) and are shown back as proposals. Summarize in plain language ("Pixel art, 16-bit look, elevated viewpoint, automatic animation") and ask for a short confirmation before saving new or materially changed settings; a clear request to save those exact answers counts. If the user defers the confirmation ("I confirm once you show them back"), show the summary, ask once and wait; if the settings must be saved meanwhile, save them with `settings_status: "inferred"` and no `confirmed_at` or `confirmed_by`, and never record the deferred confirmation as given. Work that needs no confirmed settings, such as a storyboard, can continue; `check-settings` reports `owner_confirmed: false` until they answer, which is correct.
+2. Write the file with the normal project file tools. After a real owner confirmation run `confirm-settings --by <owner or role> --user-confirmation-ref "<their words>"`, which stamps the real time; never type `confirmed_at` or `confirmed_by` by hand or invent them. A scripted or simulated acceptance is not an owner confirmation: save such settings as `inferred`. After a later material change (`art_style`, `world`, `world_kind`, `screen`, `directions`, `animation`, `export`) set `needs_review` until the owner reconfirms; existing approved art is flagged for review, never silently revoked. `image_generation` and `engine_target` are not material: when only one of them changes (or is added to a game that lacks it), the owner's answer is the confirmation; keep `settings_status` as it is and verify with `check-settings`.
+3. Verify: `python scripts/gamearts_asset_lifecycle.py check-settings --game-root <game>` must report valid and owner-confirmed. It also names the engine profile it found and the import notes for the chosen look; pass the notes on to the user once. Read the file back and tell the user in simple terms what was saved and where. If the write failed, say nothing was saved.
+4. Mention once that "Add a Game Arts instruction" customizes the pipeline for this game (`game-arts-custom-instructions`).
 
-## Confirmation and saving
-1. Summarize selections in plain language (e.g. “Pixel art, elevated viewpoint, automatically chosen animations”).
-2. Ask for a concise confirmation before saving new or materially changed settings; a clear user request to save these exact answers counts as confirmation.
-3. Use Claude Code's or Codex's normal project file tools to create/update `<game-root>/.gamearts/project.json`. **Do not ask the user to run scripts or commands.**
-4. Preserve existing settings, unknown user-owned fields, approvals and asset-specific profiles; update only selected fields.
-5. Validate JSON structure and required fields with available agent tools; internal validation scripts may run automatically if supported, never as a user prerequisite.
-6. Read the saved file back; confirm in simple terms what was saved and where. If tools cannot write the file, clearly state that no settings were saved.
-7. Use these settings automatically in every future Game Arts request in the same game project, provided the agent can access its files.
-
-## Mandatory standards (not choices in the wizard)
-- Mockup-first explicit approval for new final artwork; comprehensive detail decomposition afterward.
-- Exact opaque `#FF00FF`, RGB (255,0,255), alpha 255, for unused pixels in delivered PNGs.
-- Matching measured JSON atlas for every sprite sheet.
-- Locked reference masters, correct modular animation and animated directional attachments where applicable.
-- Native-scale world geometry and profile-specific directions/frames.
-- Honest Godot/technical validation; no ZIP-only delivery.
-
-## Usability rules
-- Default to doing the work, not teaching users command syntax.
-- Never present the raw JSON unless the user requests it.
-- Don't ask questions whose answers are already in the current project configuration or approved references.
-- Show the user only the decisions they can meaningfully make.
-- Provide plain-language options to view settings, change art style, reset optional choices, or revisit setup.
-- Never claim settings persist when they have not been written successfully.
-
-## Optional custom instructions
-After saving the basic game profile, mention once that the user can say **“Add a Game Arts instruction”** to customize the pipeline for this game. Do not force a separate questionnaire. Use the `game-arts-custom-instructions` skill to persist approved rules in `.gamearts/instructions/`, not in `.gamearts/project.json` or the shared skills repository.
-
-## When to launch
-Use this conversational wizard when the user requests project setup/changes or a truly necessary project-wide setting is unknown. **Do not require setup before creating an initial mockup.** On first normal art request, the orchestrator may use established defaults and route to game-arts-mockup-creator instead.
-
-
-## Selected game settings drive prompt generation (mandatory)
-Before **every** image-generation/edit call, read `<game-root>/.gamearts/project.json`, applicable active custom instructions, approved mockup crop/locked master and asset-specific profile. Resolve the exact selected `art_style.id`, `art_style.reference`, style appearance settings (palette/outline/shading/texture/pixel density if present), `world.object_camera`, scale, asset-specific directions, `animation.preferred_method` and `export.*`. **Insert these actual resolved values into the tool prompt, not merely into commentary.** Use the hierarchy and conflict-resolution guidance under "Mandatory saved-settings resolution for EVERY image prompt" in the one canonical master.
-
-Never hardcode Oilfield Days, pixel-art style, oblique projection, an isometric ban, or a direction count in generic prompts. Oilfield Days is a project-specific example, only applicable when that project/style is selected. If settings are missing, use verified approved references, then plainly marked defaults; ask the friendly wizard only for an essential missing choice. Never secretly replace a saved style. Check the actual prompt matches resolved values before sending it, and review the resulting image against the exact project-specific constraints afterward.
-
-
-## Source crop gate is part of the installed framework
-
-The saved style must be available to every actual production image prompt. Keep `art_style.id`, `art_style.reference`, `world.object_camera` and any approved reference settings intact. Optional `art_style.ui_camera` and `world.ground_camera` are available for UI portraits and ground tiles, respectively. No additional setup wizard for cropping is needed: when a user later generates assets from an approved mockup, the existing orchestrator automatically loads the installed `scripts/prepare_reference_crop.py` and uses the current game's settings. Check helper/Pillow availability at that time; do not ask users to enter source-pixel crop boxes or operate the script manually.
+## Rules
+Do the work, not syntax lessons. Never show raw JSON unless asked. Do not re-ask what the settings or approved references already say. Explain a word from `docs/GLOSSARY.md` in one clause the first time you use it. The mandatory standards (mockup-first approval, exact opaque `#FF00FF`, a measured atlas per sheet, locked masters, honest validation, no ZIP-only delivery) are not wizard choices.

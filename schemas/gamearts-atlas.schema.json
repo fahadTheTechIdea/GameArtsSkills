@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts sprite-sheet atlas",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "name",
+    "image",
+    "image_size",
+    "frames",
+    "mask_color"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "image": {
+      "type": "string",
+      "minLength": 1
+    },
+    "image_size": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "cell_size": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "mask_color": {
+      "const": "#FF00FF"
+    },
+    "frames": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "index",
+          "rect",
+          "pivot",
+          "anchors",
+          "duration_ms"
+        ],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "rect": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "pivot": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "anchors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "source_size": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "source_ink_bounds": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "integer"
+            }
+          },
+          "trim": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 4,
+            "maxItems": 4,
+            "description": "[x, y, w, h] of the part of the source frame kept in the sheet (its art joined with the pivot). Absent means the whole source frame."
+          },
+          "trimmed": {
+            "type": "boolean",
+            "description": "True when `trim` is smaller than the source frame."
+          },
+          "nine_slice": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minItems": 4,
+            "maxItems": 4,
+            "description": "[left, top, right, bottom] margins in pixels of the source frame; the centre stretches. Checked by gamearts_atlas.ui_problems."
+          },
+          "state": {
+            "enum": [
+              "normal",
+              "hover",
+              "pressed",
+              "disabled",
+              "focus"
+            ],
+            "description": "Which state of a control this frame draws."
+          },
+          "control": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The control (a button, a slider) this frame is a state of; declared in the atlas `controls`."
+          },
+          "set": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A family whose frames must share one size and one padding, such as an icon set."
+          }
+        }
+      }
+    },
+    "allow_near_key": {
+      "type": "boolean"
+    },
+    "full_bleed": {
+      "type": "boolean"
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "engine_validation": {
+          "enum": [
+            "not_tested",
+            "passed",
+            "failed"
+          ],
+          "description": "Reported by the game project; this framework only ever writes not_tested."
+        }
+      }
+    },
+    "layout": {
+      "enum": [
+        "grid",
+        "shelf"
+      ],
+      "description": "How the frames sit in the sheet. Absent means grid: equal cells in rows and columns. Shelf: cells of their own size in rows of similar height."
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "from",
+          "to",
+          "direction"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "to": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "direction": {
+            "enum": [
+              "forward",
+              "reverse",
+              "pingpong",
+              "pingpong_reverse"
+            ]
+          },
+          "repeat": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "How many times the run plays; 0 or absent repeats forever."
+          }
+        }
+      },
+      "description": "Named runs of frames (inclusive frame indexes), as Aseprite's frame tags. Cross-checks (range, unique names) are in gamearts_atlas.tag_problems."
+    },
+    "controls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "states"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "states": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "normal",
+                "hover",
+                "pressed",
+                "disabled",
+                "focus"
+              ]
+            }
+          }
+        }
+      },
+      "description": "Controls whose states are frames of this sheet, with the full state set each must have."
+    },
+    "blend_mode": {
+      "enum": [
+        "normal",
+        "additive",
+        "subtractive",
+        "multiply",
+        "screen",
+        "premultiplied"
+      ],
+      "description": "How the game project should draw this sheet over what is behind it. Advisory: nothing in this framework applies it, and the pixels are delivered over the key colour exactly as for any other sheet. Absent means normal."
+    },
+    "runtime": {
+      "type": "object",
+      "required": [
+        "derived"
+      ],
+      "additionalProperties": true,
+      "description": "Present only in a runtime copy: the sheet beside it has real transparency instead of the key colour. Records the hashes of the delivered sheet and atlas it was made from.",
+      "properties": {
+        "derived": {
+          "const": true
+        },
+        "rule": {
+          "type": "string"
+        },
+        "source_sheet": {
+          "type": "string"
+        },
+        "source_sheet_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_atlas_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

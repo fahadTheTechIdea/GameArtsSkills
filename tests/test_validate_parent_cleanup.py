@@ -26,23 +26,25 @@ def example(folder, style="illustrated"):
         ("screw", (7, 6, 9, 8), (150, 159, 169, 255))
     ):
         mask = Image.new("L", base.size, 0)
+        offset = (rectangle[0] - 1, rectangle[1] - 1)
+        isolated = Image.new("RGBA", (4, 4), PINK)
+        stencil = Image.new("L", isolated.size, 0)
         for x in range(rectangle[0], rectangle[2]):
             for y in range(rectangle[1], rectangle[3]):
                 source.putpixel((x, y), color)
                 mask.putpixel((x, y), 255)
+                isolated.putpixel((x - offset[0], y - offset[1]), color)
+                stencil.putpixel((x - offset[0], y - offset[1]), 255)
         mask.save(folder / (identifier + ".mask.png"))
-        isolated = Image.new("RGBA", (8, 8), PINK)
-        isolated.putpixel((3, 3), color)
         isolated.save(folder / (identifier + ".png"))
-        stencil = Image.new("L", isolated.size, 0)
-        stencil.putpixel((3, 3), 255)
         stencil.save(folder / (identifier + ".silhouette.png"))
         components.append({"id": identifier, "kind": "removable",
                            "sprite": identifier + ".png",
                            "removal_mask": identifier + ".mask.png",
                            "sprite_silhouette_mask": identifier + ".silhouette.png",
                            "silhouette_review": "approved",
-                           "silhouette_reference_id": identifier + "_source_review"})
+                           "silhouette_reference_id": identifier + "_source_review",
+                           "source_offset": list(offset)})
     source.save(folder / "source.png")
     base.save(folder / "master.png")
     base.save(folder / "plate.png")
@@ -188,7 +190,7 @@ class ParentCleanupTests(unittest.TestCase):
             data = json.loads(path.read_text())
             data["detached_components"] = []
             path.write_text(json.dumps(data))
-            with self.assertRaisesRegex(ValueError, "At least one"):
+            with self.assertRaisesRegex(ValueError, "detached_components.*non-empty"):
                 mod.validate(path)
 
     def test_transparent_master_is_rejected(self):
@@ -199,6 +201,66 @@ class ParentCleanupTests(unittest.TestCase):
             base.save(Path(folder) / "master.png")
             with self.assertRaisesRegex(ValueError, "fully opaque"):
                 mod.validate(path)
+
+    def test_strict_requires_source_offset(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = example(folder)
+            job = json.loads(path.read_text())
+            del job["detached_components"][0]["source_offset"]
+            path.write_text(json.dumps(job))
+            with self.assertRaisesRegex(ValueError, "source_offset"):
+                mod.validate(path, strict_props=True)
+            self.assertEqual(mod.validate(path)["technical_status"], "passed")  # non-strict does not need it
+
+    def test_strict_rejects_sprite_that_is_not_the_source_pixels(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = example(folder)
+            sprite_path = Path(folder) / "workbench.png"
+            sprite = Image.open(sprite_path)
+            sprite.putpixel((1, 1), (1, 2, 3, 255))  # still inside the silhouette, but not what the source holds
+            sprite.save(sprite_path)
+            with self.assertRaisesRegex(ValueError, "differ from the source composite"):
+                mod.validate(path, strict_props=True)
+
+    def test_strict_rejects_sprite_placed_over_the_wrong_source_region(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = example(folder)
+            job = json.loads(path.read_text())
+            job["detached_components"][0]["source_offset"] = [0, 6]
+            path.write_text(json.dumps(job))
+            with self.assertRaisesRegex(ValueError, "differ from the source composite"):
+                mod.validate(path, strict_props=True)
+
+    def test_strict_rejects_sprite_ink_outside_removal_mask(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = example(folder)
+            mask_path = Path(folder) / "workbench.mask.png"
+            mask = Image.open(mask_path)
+            mask.putpixel((3, 3), 0)  # the parent keeps this pixel, so the object would stay in the static parent
+            mask.save(mask_path)
+            with self.assertRaisesRegex(ValueError, "outside its removal mask"):
+                mod.validate(path, strict_props=True)
+
+    def test_source_offset_outside_composite_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = example(folder)
+            job = json.loads(path.read_text())
+            job["detached_components"][0]["source_offset"] = [10, 10]
+            path.write_text(json.dumps(job))
+            with self.assertRaisesRegex(ValueError, "outside the source composite"):
+                mod.validate(path, strict_props=True)
+
+    def test_identical_plate_and_parent_is_reported_not_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            result = mod.validate(example(folder), strict_props=True)
+            self.assertTrue(result["clean_plate_identical_to_parent"])
+            self.assertEqual(result["sprite_source_tie"]["status"], "passed")
+
+    def test_report_hashes_are_relative_names(self):
+        with tempfile.TemporaryDirectory() as folder:
+            hashes = mod.validate(example(folder), strict_props=True)["artifact_hashes"]
+            self.assertTrue(all("/" not in key and "\\" not in key for key in hashes))
+            self.assertIn("source.png", hashes)
 
     def test_unverified_workflows_cannot_get_technical_pass(self):
         with tempfile.TemporaryDirectory() as folder:

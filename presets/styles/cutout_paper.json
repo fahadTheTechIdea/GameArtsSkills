@@ -1,0 +1,45 @@
+{
+  "id": "cutout_paper",
+  "title": "Paper cut-out",
+  "description": "Shapes that look cut from paper or card, with visible edges, simple shadows and fine paper grain.",
+  "art_style": {
+    "id": "illustrated",
+    "outline_policy": "No ink outline; a thin lighter paper edge instead.",
+    "shading_policy": "Soft drop shadow under each layer; flat colour on each paper piece.",
+    "texture_policy": "Fine paper grain at one consistent scale."
+  },
+  "cameras": [
+    "orthogonal_3_4_oblique",
+    "isometric_3_4",
+    "top_down",
+    "side",
+    "custom"
+  ],
+  "world_kinds": [
+    "grid_world",
+    "free_world",
+    "layered_scene",
+    "screen_space"
+  ],
+  "native_size_guidance": "Draw at about twice the final display size and reduce once with a smooth filter; keep every asset in a set at the same scale.",
+  "animation_approach": "cut_out",
+  "avoid": [
+    "Do not use gradients inside a paper piece.",
+    "Do not draw fine detail a paper cutter could not cut."
+  ],
+  "required_checks": [
+    "palette_near",
+    "loop_seam",
+    "pivot_drift",
+    "clipping"
+  ],
+  "check_parameters": {
+    "palette_near": {
+      "max_lab_distance": 14
+    },
+    "loop_seam": {
+      "max_ratio": 2.0
+    }
+  },
+  "soft_edges": true
+}

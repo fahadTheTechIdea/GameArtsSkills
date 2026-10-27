@@ -1,0 +1,848 @@
+{
+  "checks": [
+    {
+      "detail": "[32, 32]",
+      "name": "ground_corner: the engine-ready PNG loads as RGBA at the delivered size",
+      "ok": true
+    },
+    {
+      "detail": "transparent 0 of 0 key pixels, partial 0",
+      "name": "ground_corner: every key-colour pixel is fully transparent and every other pixel is opaque",
+      "ok": true
+    },
+    {
+      "detail": "[64, 48]",
+      "name": "ground_blob: the engine-ready PNG loads as RGBA at the delivered size",
+      "ok": true
+    },
+    {
+      "detail": "transparent 64 of 64 key pixels, partial 0",
+      "name": "ground_blob: every key-colour pixel is fully transparent and every other pixel is opaque",
+      "ok": true
+    },
+    {
+      "detail": "[112, 56]",
+      "name": "hero: the engine-ready PNG loads as RGBA at the delivered size",
+      "ok": true
+    },
+    {
+      "detail": "transparent 5472 of 5472 key pixels, partial 0",
+      "name": "hero: every key-colour pixel is fully transparent and every other pixel is opaque",
+      "ok": true
+    },
+    {
+      "detail": "[108, 72]",
+      "name": "ui: the engine-ready PNG loads as RGBA at the delivered size",
+      "ok": true
+    },
+    {
+      "detail": "transparent 5216 of 5216 key pixels, partial 0",
+      "name": "ui: every key-colour pixel is fully transparent and every other pixel is opaque",
+      "ok": true
+    },
+    {
+      "detail": "4 vs 4",
+      "name": "tag walk: frames as the atlas says",
+      "ok": true
+    },
+    {
+      "detail": "True vs True",
+      "name": "tag walk: loop as the atlas says",
+      "ok": true
+    },
+    {
+      "detail": "[0, 1, 2, 3] vs [0, 1, 2, 3]",
+      "name": "tag walk: frame_indexes as the atlas says",
+      "ok": true
+    },
+    {
+      "detail": "[24, 24] vs [24, 24]",
+      "name": "tag walk: region_sizes as the atlas says",
+      "ok": true
+    },
+    {
+      "detail": "[2.0, 2.0, 3.0, 2.0] vs [2.0, 2.0, 3.0, 2.0]",
+      "name": "tag walk: frame durations are the atlas times relative to the base time",
+      "ok": true
+    },
+    {
+      "detail": "[[30, 200, 90, 255], [55, 180, 100, 255], [80, 160, 110, 255], [105, 140, 120, 255]]",
+      "name": "tag walk: each frame region shows that frame's colour in the engine-ready sheet",
+      "ok": true
+    },
+    {
+      "detail": "2 vs 2",
+      "name": "tag hit: frames as the atlas says",
+      "ok": true
+    },
+    {
+      "detail": "False vs False",
+      "name": "tag hit: loop as the atlas says",
+      "ok": true
+    },
+    {
+      "detail": "[5, 4] vs [5, 4]",
+      "name": "tag hit: frame_indexes as the atlas says",
+      "ok": true
+    },
+    {
+      "detail": "[24, 24] vs [24, 24]",
+      "name": "tag hit: region_sizes as the atlas says",
+      "ok": true
+    },
+    {
+      "detail": "[2.0, 4.0] vs [2.0, 4.0]",
+      "name": "tag hit: frame durations are the atlas times relative to the base time",
+      "ok": true
+    },
+    {
+      "detail": "[[155, 100, 140, 255], [130, 120, 130, 255]]",
+      "name": "tag hit: each frame region shows that frame's colour in the engine-ready sheet",
+      "ok": true
+    },
+    {
+      "detail": "2 vs 2",
+      "name": "tag blink: frames as the atlas says",
+      "ok": true
+    },
+    {
+      "detail": "True vs True",
+      "name": "tag blink: loop as the atlas says",
+      "ok": true
+    },
+    {
+      "detail": "[6, 7] vs [6, 7]",
+      "name": "tag blink: frame_indexes as the atlas says",
+      "ok": true
+    },
+    {
+      "detail": "[24, 24] vs [24, 24]",
+      "name": "tag blink: region_sizes as the atlas says",
+      "ok": true
+    },
+    {
+      "detail": "[2.0, 6.0] vs [2.0, 6.0]",
+      "name": "tag blink: frame durations are the atlas times relative to the base time",
+      "ok": true
+    },
+    {
+      "detail": "[[180, 80, 150, 255], [205, 60, 160, 255]]",
+      "name": "tag blink: each frame region shows that frame's colour in the engine-ready sheet",
+      "ok": true
+    },
+    {
+      "detail": "reported, not a pass of a native feature",
+      "name": "a pingpong tag has no engine setting, so the game plays it forward then back itself",
+      "ok": true
+    },
+    {
+      "detail": "[8, 7, 8, 7]",
+      "name": "ui: NinePatchRect margins are the frame's nine_slice",
+      "ok": true
+    },
+    {
+      "detail": "[32, 32]",
+      "name": "ui: the nine-patch texture is the whole frame, untrimmed",
+      "ok": true
+    },
+    {
+      "detail": "{'is_ours': True, 'margins': [6.0, 5.0, 6.0, 5.0], 'texture_size': [24, 16]}",
+      "name": "ui: Button style box 'normal' takes the state's frame and margins",
+      "ok": true
+    },
+    {
+      "detail": "{'is_ours': True, 'margins': [6.0, 5.0, 6.0, 5.0], 'texture_size': [24, 16]}",
+      "name": "ui: Button style box 'hover' takes the state's frame and margins",
+      "ok": true
+    },
+    {
+      "detail": "{'is_ours': True, 'margins': [6.0, 5.0, 6.0, 5.0], 'texture_size': [24, 16]}",
+      "name": "ui: Button style box 'pressed' takes the state's frame and margins",
+      "ok": true
+    },
+    {
+      "detail": "{'is_ours': True, 'margins': [6.0, 5.0, 6.0, 5.0], 'texture_size': [24, 16]}",
+      "name": "ui: Button style box 'disabled' takes the state's frame and margins",
+      "ok": true
+    },
+    {
+      "detail": "engine [0.0, 2.0, 5.0, 8.0, 10.0, 8.0, 5.0, 2.0, 0.0] framework [0.0, 2.0, 5.0, 8.0, 10.0, 8.0, 5.0, 2.0, 0.0]",
+      "name": "curves: linear matches the framework's sampled values",
+      "ok": true
+    },
+    {
+      "detail": "engine [0.0, 0.4, 2.5, 6.4, 10.0, 9.6, 7.5, 3.6, 0.0] framework [0.0, 0.4, 2.5, 6.4, 10.0, 9.6, 7.5, 3.6, 0.0]",
+      "name": "curves: ease_in matches the framework's sampled values",
+      "ok": true
+    },
+    {
+      "detail": "engine [0.0, 3.6, 7.5, 9.6, 10.0, 6.4, 2.5, 0.4, 0.0] framework [0.0, 3.6, 7.5, 9.6, 10.0, 6.4, 2.5, 0.4, 0.0]",
+      "name": "curves: ease_out matches the framework's sampled values",
+      "ok": true
+    },
+    {
+      "detail": "engine [0.0, 0.8, 5.0, 9.2, 10.0, 9.2, 5.0, 0.8, 0.0] framework [0.0, 0.8, 5.0, 9.2, 10.0, 9.2, 5.0, 0.8, 0.0]",
+      "name": "curves: ease_in_out matches the framework's sampled values",
+      "ok": true
+    },
+    {
+      "detail": "engine [0.0, 0.0, 0.0, 0.0, 10.0, 10.0, 10.0, 10.0, 0.0] framework [0.0, 0.0, 0.0, 0.0, 10.0, 10.0, 10.0, 10.0, 0.0]",
+      "name": "curves: nearest matches the framework's sampled values",
+      "ok": true
+    },
+    {
+      "detail": "engine [0.0, 1.04, 5.0, 8.96, 10.0, 8.96, 5.0, 1.04, 0.0] framework [0.0, 2.32, 6.25, 9.28, 10.0, 9.28, 6.25, 2.32, 0.0]",
+      "name": "curves: the engine's cubic is NOT the framework's (the profile marks it needs_custom)",
+      "ok": true
+    },
+    {
+      "detail": "64 of 64",
+      "name": "ground_corner: every neutral label is accepted as a peering bit and reads back",
+      "ok": true
+    },
+    {
+      "detail": "16",
+      "name": "ground_corner: the tileset and the atlas agree on the number of tiles",
+      "ok": true
+    },
+    {
+      "detail": "wrong cells: []",
+      "name": "ground_corner: painting a 3 x 3 block of grass makes the engine choose, for every cell, the tile whose labels describe its surroundings",
+      "ok": true
+    },
+    {
+      "detail": "376 of 376",
+      "name": "ground_blob: every neutral label is accepted as a peering bit and reads back",
+      "ok": true
+    },
+    {
+      "detail": "47",
+      "name": "ground_blob: the tileset and the atlas agree on the number of tiles",
+      "ok": true
+    },
+    {
+      "detail": "wrong cells: []",
+      "name": "ground_blob: painting a 3 x 3 block of grass makes the engine choose, for every cell, the tile whose labels describe its surroundings",
+      "ok": true
+    }
+  ],
+  "command": "H:\\dev\\Godot\\Godot_v4.7.2-stable_mono_win64_console.exe --headless --path <scratch project> --script res://verify_integration.gd",
+  "exit_status": 0,
+  "failed": [],
+  "framework": {
+    "curves": {
+      "cubic": [
+        0.0,
+        2.32,
+        6.25,
+        9.28,
+        10.0,
+        9.28,
+        6.25,
+        2.32,
+        0.0
+      ],
+      "ease_in": [
+        0.0,
+        0.4,
+        2.5,
+        6.4,
+        10.0,
+        9.6,
+        7.5,
+        3.6,
+        0.0
+      ],
+      "ease_in_out": [
+        0.0,
+        0.8,
+        5.0,
+        9.2,
+        10.0,
+        9.2,
+        5.0,
+        0.8,
+        0.0
+      ],
+      "ease_out": [
+        0.0,
+        3.6,
+        7.5,
+        9.6,
+        10.0,
+        6.4,
+        2.5,
+        0.4,
+        0.0
+      ],
+      "linear": [
+        0.0,
+        2.0,
+        5.0,
+        8.0,
+        10.0,
+        8.0,
+        5.0,
+        2.0,
+        0.0
+      ],
+      "nearest": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        0.0
+      ]
+    },
+    "tags": {
+      "blink": {
+        "centre_colours": [
+          [
+            180,
+            80,
+            150,
+            255
+          ],
+          [
+            205,
+            60,
+            160,
+            255
+          ]
+        ],
+        "durations": [
+          2.0,
+          6.0
+        ],
+        "frame_indexes": [
+          6,
+          7
+        ],
+        "frames": 2,
+        "loop": true,
+        "region_sizes": [
+          24,
+          24
+        ],
+        "speed": 25.0
+      },
+      "hit": {
+        "centre_colours": [
+          [
+            155,
+            100,
+            140,
+            255
+          ],
+          [
+            130,
+            120,
+            130,
+            255
+          ]
+        ],
+        "durations": [
+          2.0,
+          4.0
+        ],
+        "frame_indexes": [
+          5,
+          4
+        ],
+        "frames": 2,
+        "loop": false,
+        "region_sizes": [
+          24,
+          24
+        ],
+        "speed": 25.0
+      },
+      "walk": {
+        "centre_colours": [
+          [
+            30,
+            200,
+            90,
+            255
+          ],
+          [
+            55,
+            180,
+            100,
+            255
+          ],
+          [
+            80,
+            160,
+            110,
+            255
+          ],
+          [
+            105,
+            140,
+            120,
+            255
+          ]
+        ],
+        "durations": [
+          2.0,
+          2.0,
+          3.0,
+          2.0
+        ],
+        "frame_indexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "frames": 4,
+        "loop": true,
+        "region_sizes": [
+          24,
+          24
+        ],
+        "speed": 25.0
+      }
+    }
+  },
+  "godot": "4.7.2-stable (official)",
+  "observed": {
+    "curves": {
+      "cubic": [
+        0.0,
+        1.04,
+        5.0,
+        8.96,
+        10.0,
+        8.96,
+        5.0,
+        1.04,
+        0.0
+      ],
+      "ease_in": [
+        0.0,
+        0.4,
+        2.5,
+        6.4,
+        10.0,
+        9.6,
+        7.5,
+        3.6,
+        0.0
+      ],
+      "ease_in_out": [
+        0.0,
+        0.8,
+        5.0,
+        9.2,
+        10.0,
+        9.2,
+        5.0,
+        0.8,
+        0.0
+      ],
+      "ease_out": [
+        0.0,
+        3.6,
+        7.5,
+        9.6,
+        10.0,
+        6.4,
+        2.5,
+        0.4,
+        0.0
+      ],
+      "linear": [
+        0.0,
+        2.0,
+        5.0,
+        8.0,
+        10.0,
+        8.0,
+        5.0,
+        2.0,
+        0.0
+      ],
+      "nearest": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        0.0
+      ]
+    },
+    "godot": "4.7.2-stable (official)",
+    "runtime_png": {
+      "ground_blob": {
+        "has_alpha_format": true,
+        "opaque": 3008,
+        "partial": 0,
+        "size": [
+          64,
+          48
+        ],
+        "transparent": 64
+      },
+      "ground_corner": {
+        "has_alpha_format": true,
+        "opaque": 1024,
+        "partial": 0,
+        "size": [
+          32,
+          32
+        ],
+        "transparent": 0
+      },
+      "hero": {
+        "has_alpha_format": true,
+        "opaque": 800,
+        "partial": 0,
+        "size": [
+          112,
+          56
+        ],
+        "transparent": 5472
+      },
+      "ui": {
+        "has_alpha_format": true,
+        "opaque": 2560,
+        "partial": 0,
+        "size": [
+          108,
+          72
+        ],
+        "transparent": 5216
+      }
+    },
+    "tags": {
+      "_names": [
+        "blink",
+        "hit",
+        "walk"
+      ],
+      "blink": {
+        "centre_colours": [
+          [
+            180,
+            80,
+            150,
+            255
+          ],
+          [
+            205,
+            60,
+            160,
+            255
+          ]
+        ],
+        "durations": [
+          2.0,
+          6.0
+        ],
+        "frame_indexes": [
+          6,
+          7
+        ],
+        "frames": 2,
+        "loop": true,
+        "region_sizes": [
+          24,
+          24
+        ],
+        "speed": 25.0
+      },
+      "hit": {
+        "centre_colours": [
+          [
+            155,
+            100,
+            140,
+            255
+          ],
+          [
+            130,
+            120,
+            130,
+            255
+          ]
+        ],
+        "durations": [
+          2.0,
+          4.0
+        ],
+        "frame_indexes": [
+          5,
+          4
+        ],
+        "frames": 2,
+        "loop": false,
+        "region_sizes": [
+          24,
+          24
+        ],
+        "speed": 25.0
+      },
+      "walk": {
+        "centre_colours": [
+          [
+            30,
+            200,
+            90,
+            255
+          ],
+          [
+            55,
+            180,
+            100,
+            255
+          ],
+          [
+            80,
+            160,
+            110,
+            255
+          ],
+          [
+            105,
+            140,
+            120,
+            255
+          ]
+        ],
+        "durations": [
+          2.0,
+          2.0,
+          3.0,
+          2.0
+        ],
+        "frame_indexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "frames": 4,
+        "loop": true,
+        "region_sizes": [
+          24,
+          24
+        ],
+        "speed": 25.0
+      }
+    },
+    "tilesets": {
+      "ground_blob": {
+        "atlas_frames": 47,
+        "peering_bits_read_back_equal": 376,
+        "peering_bits_read_back_total": 376,
+        "peering_bits_set": 376,
+        "picked_tile_ids": [
+          [
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          [
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          [
+            -1,
+            -1,
+            35,
+            34,
+            42,
+            -1,
+            -1
+          ],
+          [
+            -1,
+            -1,
+            2,
+            0,
+            13,
+            -1,
+            -1
+          ],
+          [
+            -1,
+            -1,
+            7,
+            5,
+            18,
+            -1,
+            -1
+          ],
+          [
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          [
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ]
+        ],
+        "tile_count": 47
+      },
+      "ground_corner": {
+        "atlas_frames": 16,
+        "peering_bits_read_back_equal": 64,
+        "peering_bits_read_back_total": 64,
+        "peering_bits_set": 64,
+        "picked_tile_ids": [
+          [
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          [
+            -1,
+            11,
+            9,
+            13,
+            15,
+            -1
+          ],
+          [
+            -1,
+            3,
+            0,
+            12,
+            15,
+            -1
+          ],
+          [
+            -1,
+            7,
+            6,
+            14,
+            15,
+            -1
+          ],
+          [
+            -1,
+            15,
+            15,
+            15,
+            15,
+            -1
+          ],
+          [
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ]
+        ],
+        "tile_count": 16
+      }
+    },
+    "ui": {
+      "patches": {
+        "panel": {
+          "margins": [
+            8,
+            7,
+            8,
+            7
+          ],
+          "size": [
+            64.0,
+            64.0
+          ],
+          "texture_size": [
+            32,
+            32
+          ]
+        }
+      },
+      "states": {
+        "disabled": {
+          "is_ours": true,
+          "margins": [
+            6.0,
+            5.0,
+            6.0,
+            5.0
+          ],
+          "texture_size": [
+            24,
+            16
+          ]
+        },
+        "hover": {
+          "is_ours": true,
+          "margins": [
+            6.0,
+            5.0,
+            6.0,
+            5.0
+          ],
+          "texture_size": [
+            24,
+            16
+          ]
+        },
+        "normal": {
+          "is_ours": true,
+          "margins": [
+            6.0,
+            5.0,
+            6.0,
+            5.0
+          ],
+          "texture_size": [
+            24,
+            16
+          ]
+        },
+        "pressed": {
+          "is_ours": true,
+          "margins": [
+            6.0,
+            5.0,
+            6.0,
+            5.0
+          ],
+          "texture_size": [
+            24,
+            16
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,43 +1,33 @@
 #!/usr/bin/env python3
 """Universal Game Arts static-parent cleanup validator.
 
-Pixel-check a decomposed source against the cleaned static parent and an
-independently approved clean plate. Applies after raster export to ALL art
-styles (pixel, painted, illustrated, vector, rendered, custom).
+Pixel-check a decomposed source against the cleaned static parent and an independently reviewed clean plate. Applies
+after raster export to ALL art styles (pixel, painted, illustrated, vector, rendered, custom).
 
-This does NOT infer omitted props, certify an independently reviewed plate,
-or remove artwork. Visual inventory and clean-plate review remain mandatory.
+Strict mode (`--strict-props`, required for new production) additionally requires, per detached sprite, a reviewed
+silhouette mask AND the sprite's position in the source composite, and then proves the sprite is the source pixels
+under its removal mask. This does NOT infer omitted props or certify that the reviewed plate is artistically correct;
+visual inventory and clean-plate review remain mandatory.
 """
 import argparse
-import hashlib
-import json
+import sys
 from pathlib import Path
 
-from PIL import Image, ImageChops
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from PIL import Image, ImageChops  # noqa: E402
 
-PINK = (255, 0, 255, 255)
+import gamearts_common as common  # noqa: E402
+
 KINDS = {"movable", "removable", "interactive", "replaceable", "animated", "independent_prop"}
-
-
-def digest(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def require_path(folder, ref, label):
     if not isinstance(ref, str) or not ref.strip():
         raise ValueError(f"{label} must specify a file")
-    file = (folder / ref).resolve()
+    file = common.safe_member(folder, ref, label)
     if not file.is_file():
         raise ValueError(f"{label} is missing: {file}")
     return file
-
-
-def rgba(path, label):
-    with Image.open(path) as image:
-        result = image.convert("RGBA")
-    if result.getchannel("A").getextrema() != (255, 255):
-        raise ValueError(f"{label} must be fully opaque; use a separate mask")
-    return result
 
 
 def mask_image(path, size, label):
@@ -47,101 +37,100 @@ def mask_image(path, size, label):
         image = src.convert("L")
     if image.size != size:
         raise ValueError(f"{label} dimensions differ from parent master")
-    if any(color not in (0, 255) for _, color in image.getcolors(image.width * image.height) or []):
+    if image.point(lambda p: 255 if p not in (0, 255) else 0).getbbox():
         raise ValueError(f"{label} must be binary black/white")
     return image
 
 
+def both(a, b):
+    return ImageChops.multiply(a, b)
+
+
 def checked_report(manifest_path, strict_props=False):
     manifest_path = Path(manifest_path).resolve()
-    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    data = common.read_json(manifest_path)
     if not isinstance(data, dict) or data.get("schema_version") != "1.0":
         raise ValueError("Cleanup manifest must be version 1.0 JSON object")
-    if data.get("method") != "pixel_exact":
-        raise ValueError("Only pixel_exact is technically certified; other methods need independent evidence")
+    common.validate_schema(data, "gamearts-cleanup")
     if data.get("clean_plate_review") != "approved":
         raise ValueError("Independently reviewed clean plate must have approved status")
-    if not data.get("clean_plate_reference_id"):
-        raise ValueError("Clean plate needs independent approved reference ID")
     directory = manifest_path.parent
-    source = require_path(directory, data.get("source_composite"), "source_composite")
-    parent = require_path(directory, data.get("static_parent"), "static_parent")
-    plate = require_path(directory, data.get("clean_plate"), "clean_plate")
+    source = require_path(directory, data["source_composite"], "source_composite")
+    parent = require_path(directory, data["static_parent"], "static_parent")
+    plate = require_path(directory, data["clean_plate"], "clean_plate")
     if parent == plate or source == plate:
         raise ValueError("Clean plate must be distinct source, not alias of original or parent")
-    src, dst, bg = rgba(source, "source_composite"), rgba(parent, "static_parent"), rgba(plate, "clean_plate")
+    src, dst, bg = (common.load_rgba(p, n) for p, n in ((source, "source_composite"), (parent, "static_parent"), (plate, "clean_plate")))
     if src.size != dst.size or src.size != bg.size:
         raise ValueError("Source, parent and plate must have identical pixel dimensions")
-    parts = data.get("detached_components")
-    if not isinstance(parts, list) or not parts:
-        raise ValueError("At least one separated component is required")
+    size = src.size
+    src_vs_parent = common.diff_mask(src, dst)       # pixels the cleanup changed
+    parent_vs_plate = common.diff_mask(dst, bg)      # pixels where the parent departs from the reviewed plate
+    union = Image.new("L", size, 0)
+    hashes = {p.name: common.sha256_file(p) for p in (source, parent, plate)}
+    counts, silhouettes, ties, masks = {}, {}, {}, {}
     identifiers = set()
-    total = src.width * src.height
-    union = bytearray(total)
-    counts = {}
-    hashes = {str(source): digest(source), str(parent): digest(parent), str(plate): digest(plate)}
-    masks = {}
-    silhouettes = {}
-    for part in parts:
-        if not isinstance(part, dict):
-            raise ValueError("Each detached component must be an object")
-        identifier = part.get("id")
-        if not isinstance(identifier, str) or not identifier.strip() or identifier in identifiers:
+    for part in data["detached_components"]:
+        identifier = part["id"]
+        if identifier in identifiers:
             raise ValueError("Each separated component requires distinct nonempty ID")
         identifiers.add(identifier)
-        if part.get("kind") not in KINDS:
+        if part["kind"] not in KINDS:
             raise ValueError(f"{identifier}: invalid component classification")
-        part_file = require_path(directory, part.get("sprite"), f"{identifier}.sprite")
-        mask_file = require_path(directory, part.get("removal_mask"), f"{identifier}.removal_mask")
-        component = rgba(part_file, f"{identifier}.sprite")
+        part_file = require_path(directory, part["sprite"], f"{identifier}.sprite")
+        mask_file = require_path(directory, part["removal_mask"], f"{identifier}.removal_mask")
+        component = common.load_rgba(part_file, f"{identifier}.sprite")
+        ink = common.nonkey_mask(component)
+        if ink.getbbox() is None:
+            raise ValueError(f"{identifier}: detached sprite contains no non-pink artwork")
         if strict_props:
-            # A foreground stencil must be independently checked against
-            # the approved source, not generated from the exported sprite.
             if part.get("silhouette_review") != "approved" or not part.get("silhouette_reference_id"):
                 raise ValueError(f"{identifier}: independently approved silhouette reference required")
-            ink_mask = require_path(directory, part.get("sprite_silhouette_mask"),
-                                    f"{identifier}.sprite_silhouette_mask")
-            binary = mask_image(ink_mask, component.size, f"{identifier}.sprite_silhouette_mask")
-            ink = [pixel != PINK for pixel in component.getdata()]
-            expected = [v == 255 for v in binary.getdata()]
-            leaked = sum(1 for actual, allowed in zip(ink, expected) if actual and not allowed)
-            empty_expected = sum(1 for actual, allowed in zip(ink, expected) if allowed and not actual)
-            if leaked or empty_expected:
-                raise ValueError(f"{identifier}: detached sprite silhouette mismatch: "
-                                 f"{leaked} colored pixels outside approved mask, "
-                                 f"{empty_expected} missing inside")
-            silhouettes[identifier] = {"status": "passed", "ink_pixels": sum(ink),
-                                       "mask_sha256": digest(ink_mask)}
-            hashes[str(ink_mask)] = digest(ink_mask)
-        if ImageChops.difference(component.convert("RGB"), Image.new("RGB", component.size, PINK[:3])).getbbox() is None:
-            raise ValueError(f"{identifier}: detached sprite contains no non-pink artwork")
-        mask = mask_image(mask_file, src.size, f"{identifier}.removal_mask").tobytes()
-        area = 0
-        for index, value in enumerate(mask):
-            if value:
-                if union[index]:
-                    raise ValueError(f"{identifier}: overlapping separation masks require layered evidence")
-                union[index] = 1
-                area += 1
+            stencil_file = require_path(directory, part.get("sprite_silhouette_mask"), f"{identifier}.sprite_silhouette_mask")
+            stencil = mask_image(stencil_file, component.size, f"{identifier}.sprite_silhouette_mask")
+            leaked = common.mask_count(both(ink, ImageChops.invert(stencil)))
+            missing = common.mask_count(both(ImageChops.invert(ink), stencil))
+            if leaked or missing:
+                raise ValueError(f"{identifier}: detached sprite silhouette mismatch: {leaked} colored pixels outside approved "
+                                 f"mask, {missing} missing inside")
+            silhouettes[identifier] = {"status": "passed", "ink_pixels": common.mask_count(ink), "mask_sha256": common.sha256_file(stencil_file)}
+            hashes[stencil_file.name] = silhouettes[identifier]["mask_sha256"]
+        mask = mask_image(mask_file, size, f"{identifier}.removal_mask")
+        if both(union, mask).getbbox() is not None:
+            raise ValueError(f"{identifier}: overlapping separation masks require layered evidence")
+        area = common.mask_count(mask)
         if not area:
             raise ValueError(f"{identifier}: empty removal mask")
+        union = ImageChops.lighter(union, mask)
         masks[identifier] = mask
-        counts[identifier] = {"removal_pixels": area, "source_changed_pixels": 0,
-                              "clean_plate_mismatch_pixels": 0}
-        hashes[str(part_file)] = digest(part_file)
-        hashes[str(mask_file)] = digest(mask_file)
-    original, cleaned, background = src.tobytes(), dst.tobytes(), bg.tobytes()
-    changed_outside, wrong_inside, removed_changed = 0, 0, 0
-    for i in range(total):
-        p = 4*i
-        before, after, plate_px = original[p:p+4], cleaned[p:p+4], background[p:p+4]
-        if union[i]:
-            if before != after:
-                removed_changed += 1
-            if after != plate_px:
-                wrong_inside += 1
-        elif after != before:
-            changed_outside += 1
+        if strict_props:
+            offset = part.get("source_offset")
+            if offset is None:
+                raise ValueError(f"{identifier}: strict props require source_offset (where the sprite sits in source_composite)")
+            ox, oy = offset
+            if ox < 0 or oy < 0 or ox + component.width > size[0] or oy + component.height > size[1]:
+                raise ValueError(f"{identifier}: source_offset places the sprite outside the source composite")
+            tolerance = part.get("source_tolerance", 0)
+            region = src.crop((ox, oy, ox + component.width, oy + component.height))
+            mismatch = common.diff_mask(region, component, tolerance)
+            bad = common.mask_count(both(ink, mismatch))
+            if bad:
+                raise ValueError(f"{identifier}: sprite pixels differ from the source composite at its offset at {bad} ink pixels")
+            placed = Image.new("L", size, 0)
+            placed.paste(ink, (ox, oy))
+            outside = common.mask_count(both(placed, ImageChops.invert(mask)))
+            if outside:
+                raise ValueError(f"{identifier}: {outside} sprite pixels lie outside its removal mask, so they would stay in the parent")
+            ties[identifier] = {"status": "passed", "offset": [ox, oy], "tolerance": tolerance}
+        counts[identifier] = {"removal_pixels": area,
+                              "source_changed_pixels": common.mask_count(both(src_vs_parent, mask)),
+                              "clean_plate_mismatch_pixels": common.mask_count(both(parent_vs_plate, mask))}
+        hashes[part_file.name] = common.sha256_file(part_file)
+        hashes[mask_file.name] = common.sha256_file(mask_file)
+    outside_union = ImageChops.invert(union)
+    changed_outside = common.mask_count(both(src_vs_parent, outside_union))
+    wrong_inside = common.mask_count(both(parent_vs_plate, union))
+    removed_changed = common.mask_count(both(src_vs_parent, union))
     failures = []
     if changed_outside:
         failures.append(f"static parent changed outside removal masks at {changed_outside} pixels")
@@ -149,33 +138,22 @@ def checked_report(manifest_path, strict_props=False):
         failures.append(f"static parent differs from approved clean plate inside masks at {wrong_inside} pixels")
     if not removed_changed:
         failures.append("no detached component was actually removed from the original parent artwork")
-    for identifier, mask in masks.items():
-        removed = sum(1 for i, v in enumerate(mask) if v and
-                      original[4*i:4*i+4] != cleaned[4*i:4*i+4])
-        wrong = sum(1 for i, v in enumerate(mask) if v and
-                    cleaned[4*i:4*i+4] != background[4*i:4*i+4])
-        counts[identifier]["source_changed_pixels"] = removed
-        counts[identifier]["clean_plate_mismatch_pixels"] = wrong
-        if not removed:
+    for identifier, row in counts.items():
+        if not row["source_changed_pixels"]:
             failures.append(f"{identifier}: separate sprite exists but object remains in static parent")
     return {
-        "schema_version": "1.0",
-        "manifest": str(manifest_path),
-        "manifest_sha256": digest(manifest_path),
+        "schema_version": "1.0", "manifest": manifest_path.name, "manifest_sha256": common.sha256_file(manifest_path),
         "technical_status": "failed" if failures else "passed",
         "visual_inventory_completeness": "not_verified",
         "independent_plate_visual_approval": "agent_declared_not_attested",
+        "clean_plate_identical_to_parent": parent_vs_plate.getbbox() is None,
         "style": data.get("art_style_id", "selected_project_style"),
-        "sprite_isolation": {"status": "passed" if strict_props else "not_verified",
-                             "components": silhouettes},
-        "image_size": list(src.size),
-        "components": counts,
+        "sprite_isolation": {"status": "passed" if strict_props else "not_verified", "components": silhouettes},
+        "sprite_source_tie": {"status": "passed" if strict_props else "not_verified", "components": ties},
+        "image_size": list(size), "components": counts,
         "unchanged_pixels_altered_outside_masks": changed_outside,
-        "parent_pixels_unrestored_inside_masks": wrong_inside,
-        "separated_pixels_modified": removed_changed,
-        "artifact_hashes": hashes,
-        "failures": failures,
-    }
+        "parent_pixels_unrestored_inside_masks": wrong_inside, "separated_pixels_modified": removed_changed,
+        "artifact_hashes": hashes, "failures": failures}
 
 
 def validate(manifest_path, strict_props=False):
@@ -190,13 +168,12 @@ def main():
     p.add_argument("manifest", type=Path)
     p.add_argument("--report", type=Path)
     p.add_argument("--strict-props", action="store_true",
-                   help="Require independently reviewed per-prop silhouette masks")
+                   help="Require reviewed silhouettes and source offsets (required for new production)")
     args = p.parse_args()
     try:
         result = checked_report(args.manifest, strict_props=args.strict_props)
         if args.report:
-            args.report.parent.mkdir(parents=True, exist_ok=True)
-            args.report.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+            common.atomic_write_json(args.report, result)
         if result["failures"]:
             for issue in result["failures"]:
                 print("FAIL", issue)
@@ -204,9 +181,9 @@ def main():
         print("PASS: separated component artwork is absent from static parent inside declared masks")
         print("NOT VERIFIED: omitted objects or artistic validity of approved clean plate")
         if not args.strict_props:
-            print("NOT VERIFIED: independent prop silhouettes (use --strict-props for new production)")
+            print("NOT VERIFIED: independent prop silhouettes and source tie (use --strict-props for new production)")
         return 0
-    except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as err:
+    except (OSError, ValueError, TypeError, KeyError) as err:  # ValueError covers JSON and contract errors
         print("BLOCKED", str(err))
         return 2
 

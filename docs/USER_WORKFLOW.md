@@ -1,136 +1,49 @@
-# Game Arts — Integrated Everyday Workflow
+# Game Arts — everyday workflow
 
-**User experience:** Open a game in Claude Code or Codex and ask normally. Game Arts uses its saved configuration, creates visual mockups, asks for explicit visual approval, analyzes the approved artwork, creates production assets and manages approval automatically. The user doesn't have to choose skills or run commands.
+Open your game in Claude Code or Codex and ask normally. Game Arts uses the game's saved settings, shows real mockups, asks for your explicit approval, breaks the approved art down, builds measured production files and manages approval. You never choose skills, run commands, move files or edit JSON. The rules are in the master standard (`GAME_ARTS_MASTER_STANDARD.md`); this page shows the flow.
 
-## What happens for each request
+## What the agent does first (silently)
+1. Finds the game project and reads its settings and active custom instructions.
+2. Finds the approved mockups, masters and assets the request relates to.
+3. Classifies the request and calls the right specialist skill; loads only what it needs.
 
-| User asks | What agent does |
-|---|---|
-| "Set up my game art" | Short conversational wizard; save approved defaults to `.gamearts/project.json`. |
-| "Create a world/scene/character/UI mockup" | Generate a real preview using available tools, save generated candidate and show it for approval. |
-| "Generate this sprite" with no approved visual | Make a suitable mockup first; ask approval before final sprite production. |
-| "Approve" or "Change..." | Promote that exact mockup revision or generate a new revision; update manifest. |
-| "Make the detailed assets" | Analyze the approved mockup into visible surfaces, textures, objects, actions, and separate animation candidates; preserve its reference IDs. |
-| "Animate this" | Reuse locked masters, choose animation method, generate moving component/directional frames and attachment metadata. |
-| "Approve the final art" | Verify technical quality and user approval, promote the complete PNG+atlas+metadata bundle. |
-| "Show my settings/rules/approved sprites" | Read project files, show a short human-friendly result, and ask no redundant questions. |
-| "Always do this for my game" | Save an active scoped custom instruction in the game project. |
+Missing optional settings never block a first mockup. Generating, registering or approving a mockup needs owner-confirmed settings (a short summary and one "yes").
 
-## Invisible preflight
-
-When a visual task starts, the orchestrator silently:
-1. Resolves the target game repository.
-2. Reads existing project settings and active relevant custom instructions.
-3. Finds the relevant approved mockup/master/asset IDs from manifests when any exist.
-4. Classifies the requested task and calls the correct specialist skill(s).
-5. Uses only the necessary references, not every skill and image.
-
-**Missing optional configuration must not prevent an initial visual mockup.** Ask for essential art decisions only; when the user requests game configuration use the conversational setup wizard. Avoid imposing a setup questionnaire on normal art requests.
-
-## Mockup-to-asset lifecycle
-
+## The flow
 ```text
-Open game → ask for art
-   ↓
-Generate real visual mockup (mockups/generated)
-   ↓
-Show preview → approve / revise / reject
-   ↓
-Approved mockup (mockups/approved)
-   ↓
-Detailed evidence-grounded blueprint
-   ↓
-Reference-conditioned masters, components, animation
-   ↓
-Measured sheets + JSON, Godot checks (assets/generated)
-   ↓
-Show result → approve / revise / reject
-   ↓
-Approved production asset (assets/approved)
+a game, campaign or story? -> storyboard -> approve scenes (ordered)
+        |
+choosing a look? -> 2-4 style boards on one sheet -> you pick a letter -> style anchor
+        |
+Real mockup (mockups/generated) -> approve / revise / reject
+        |
+Approved mockup (mockups/approved) -> detailed blueprint, coverage audit
+        |
+Reference crop -> one master -> compare with the crop -> approve master
+        |
+Clean static parent + separate parts -> components, key poses, directions
+        |
+Measured sheets, atlases, bundle (assets/generated) -> mechanical and style checks, animation previews
+        |
+Review boards for composite art -> your approve / revise / reject
+        |
+Approved asset (assets/approved)   (rejected or replaced -> revoked)
 ```
+Revoked mockups and assets keep their history and are never used as a source. Every asset links to the exact approved mockup revision it came from.
 
-Revoked/replaced mockups and assets move to their own revoked folders. Production asset bundles link to the exact approved mockup revision and blueprint elements. All generated files use descriptive game-related names.
+## What you'll be asked
+- To approve a **mockup revision**, a **storyboard sequence**, a **master**, and the **final art**: each is a separate, explicit decision about the exact thing shown.
+- To confirm the settings once, and to trust the update hook if you enable automatic updates.
+- Nothing else, unless a choice would change the result.
 
-## Hard rules
-
-- Do not claim a picture was generated unless an image-capable tool created it.
-- Do not approve a draft merely because it looks polished.
-- Do not bypass new-mockup approval before final asset production.
-- Do not skip detailed extraction of small mockup content.
-- Exact opaque #FF00FF background for every exported PNG's unused areas.
-- Measured per-sheet atlas JSON, accurate animated attachments, proper directional coverage and honest Godot testing.
-- No ZIP-only deliverables.
-- Do not demand user-run commands, manual file moving, manual JSON editing or repeated approvals for already accepted material.
+## What the agent will not do
+Claim a picture was made without an image tool; approve a draft because it looks polished; skip mockup approval for new art; use a text description instead of the real approved pixels; ask an image model for a finished sprite sheet or atlas; leave a prop painted into the base while also exporting it; reuse a rejected version; claim an engine test it did not run; deliver only a ZIP; or ask you to run commands.
 
 ## Bring your own mockup
+Point the agent at artwork you made elsewhere. A managed copy is imported, your original stays untouched, and an approved version becomes the production reference. If you say it is already approved, it is recorded as approved and not recreated.
 
-**Bring your own mockup:** Upload or point the agent to artwork you created elsewhere. Game Arts imports a managed copy into the mockup lifecycle, preserves your original, and uses the approved version as its production reference—no unnecessary recreation.
+## Seeing your art
+After every change Game Arts rebuilds one offline page, the art report (`.gamearts/system/report/index.html` in your game). It shows your settings in plain words, every mockup and asset with its status, a preview (the magenta key colour is shown as a checkerboard there; your files are never changed) and the words you approved it with, and what happens next. Open it in any browser; it needs no internet and is kept out of version control. Say "Show me my art" and the agent points you to it.
 
-When the user supplies an existing external mockup, **import a copy rather than generating a replacement**. Respect explicit prior approval; if not approved, ask for approval of that actual revision. Keep source provenance and a traceable managed reference. Do not claim an import succeeded unless file access and write operations were completed. Follow the v7.5 external mockup intake rules and require detailed decomposition before final art production.
-
-
-## Prompting and production-image quality gates
-
-When an approved mockup is the reference, create a **source-conditioned prompt packet** using its actual image or accurately isolated region, approved revision, camera projection, style, identity invariants, output type, exact allowed changes and artifact constraints. See **Mandatory reference-controlled image prompting** in `GAME_ARTS_MASTER_STANDARD_v7.7.md`. If a tool supports an attached reference image, pass it; merely saying "match the mockup" is insufficient.
-
-For static buildings/fixed machinery, generate **one fixed camera master first**, with separate moving components only after the master has been visually checked and approved. For freely moving objects with directional gameplay, generate and approve a coherent eight-view locked master prior to separate action animations. For UI illustration, use independent UI-appropriate art/view rules. Do not ask image generation to produce a complete annotated animation sheet, companion JSON or mechanically accurate attachment measurements; assemble verified sheets and metadata with the executable tools.
-
-Before advancing, compare style, silhouette, geometry, camera, materials, colors, perspective, moving-part mounts, static unchanged pixels and expected #FF00FF export. A deviation means reject/revise the candidate. Never claim image conditioning or technical verification unless performed.
-
-
-## Actual prompt inheritance from project configuration
-
-Before an image-generation tool call, the orchestrator resolves the current game's saved `art_style`, `world.object_camera`, reference imagery, visual detail rules, relevant instructions, asset profile/directions, animation preferences and chroma-pink export constraints. These are included as actual prompt instructions, with attached reference crops where supported. An agent must not substitute a generic art style or hardcoded perspective. Conflict or unknowns are surfaced and only essential missing choices are asked conversationally. After generation, compare output to resolved settings and approved visual references before advancing to master approval.
-
-## Automatic reference crop after mockup approval — integrated stage
-
-**Only when production is derived from an already approved visual**: the existing analyzer records the object/region and its exact source-pixel box; the existing lifecycle verifies its approved ID/revision, managed image path and source hash in `mockups.json`; the agent runs `scripts/prepare_reference_crop.py` internally to create a pixel-preserving reference crop, provenance packet and resolved style-aware prompt under the corresponding `assets/generated/<revision>/reference/` candidate subfolder. The crop is then passed as a real input image to a reference-capable tool; printing its file path in a prompt is not equivalent to attachment.
-
-**User-created mockups** are first imported through the existing approved/generated lifecycle. **Brand-new concepts** are still generated through the existing mockup creator; do not demand a registered approved crop before producing the first *mockup*. A crop is required before reference-locked *production*, not before mockup brainstorming.
-
-A recorded tool-call receipt with crop/image hashes supports traceability and basic file checks but does **not** prove the image provider conditioned on the crop or that the appearance matches. Review against the same crop and request approval of the master separately. Once locked, produce moving parts and real sprite/atlas files through existing specialist skills. If the framework helper, Pillow or image-conditioning access is absent, address availability internally or transparently report what could not be performed.
-
-UI artwork inherits the chosen UI camera; terrain uses the approved ground camera/grid; world structures use the approved object camera. The selected game project's settings are read before every production image prompt. Do not introduce a parallel file lifecycle or hardcoded game-specific viewpoint.
-
-
-## Framework auto-updates after one-time trusted enrollment
-
-On a locally accessible game project, users may request **“Enable automatic updates for Game Arts in Claude and Codex.”** The agent detects current framework paths, runs the bundled updater bootstrap with permission and installs non-destructive `SessionStart` hooks for both clients. Existing game-specific `project.json`, custom instructions, approved mockups and assets remain untouched; colliding locally modified framework files are backed up only with permission or reported as conflicts.
-
-On future starts/resumes either trusted agent checks the latest GameArtsSkills `main` commit, synchronizes both local agent skill trees plus framework scripts/master/docs, and reports failures. A remote GitHub edit alone cannot update a disconnected PC; the next trusted local session or an explicitly requested refresh is the update trigger. The user doesn't need to run update commands for routine use. See `README_INSTALL.md`.
-
-
-## Mandatory separation-and-removal check for ALL asset styles
-
-From the approved visual mockup, automatically inventory all independently movable, removable, interactive, replaceable and animated details—including small interior props and tools, not only obvious mechanical moving parts. Build a **clean static parent** with those items actually removed from its pixels; separately create each component as its own independently addressable artwork. Reconstruct the exposed wall/floor/background from reviewed source material and preserve the parent elsewhere. Do not treat an object as separated when its copy remains baked in the parent.
-
-Before completing production: for each generated parent view/frame, run `scripts/validate_parent_cleanup.py` using the declared masks, cleaned parent, approved clean plate and detached sprites. For a multi-part animated bundle also run `scripts/validate_component_bundle.py --approval-gate`, which ties the cleaned parent to its atlas source hash and enforces direction/frame coverage. Missing proof means **not approved**. Separately review the completeness of the detachable inventory and correctness of exposed backgrounds; pixel checks can't identify an omitted asset. The same workflow applies to any selected medium (pixel art, illustrated, painted, vector, 3D-to-2D, custom). No user-run commands or new folders.
-
-
-## Rejected versions are ignored
-
-At the beginning of a task, the agent consults the actual lifecycle manifest through the bundled eligibility check. **Only an approved mockup/reference** can drive production; **only an eligible generated candidate** can be continued. Explicit rejection triggers immediate revocation of the exact version: move its whole bundle into `revoked/`, update its status and reason, verify manifest and files, and never use that revision again unless an explicit restoration/reapproval flow succeeds. Do not continue work on rejected artwork. Preserve other pending or approved versions independently.
-
-
-## Acceptance gates learned from a real workshop extraction
-
-A faithful composite workflow separates **visual design, measurable geometry, and runtime readiness**. For a supplied approved reference, first lock the exact source/camera and remove every independent item from the structural base. A screenshot rectangle or naive bounding-box crop alone is **not** an isolated sprite; independent props must use a source-grounded foreground silhouette, preserving the selected art style and rendering edges. Preview each tiny part at native size and nearest/appropriate enlarged view; inspect for floor patches, compressed JPEG fringes, shadows of unrelated objects or incomplete hidden edges.
-
-When removing an object reveals unobserved background (floor, hidden cabinet side, tabletop), record separately which pixels are **source-observed** and **reconstructed**; obtain visual approval of the resulting clean plate. User approval may explicitly accept known limitations. Preserve those exact caveats in the record and do **not** keep the blueprint marked pending.
-
-Require the deterministic PNG/atlas checks **plus** `scripts/validate_parent_cleanup.py --strict-props` for newly generated standalone assets or the component bundle's `--approval-gate` for modular assets. Strict masks are an additional approved source-segmentation input, not an automatically reliable image-semantic detector. Revoked predecessors must be excluded from every build and validation dependency. After a real approval move, run `scripts/gamearts_asset_lifecycle.py audit` internally: all manifest, blueprint, clean-plate and QA statuses must agree, while `Godot: not_tested` and scale not calibrated remain honest limitations. Revisions are independent; don't automatically reject already approved legacy art under a newly introduced checker.
-
-
-## Trustworthy visual QA of isolated parts and reconstructed surfaces
-
-For new composite art (structures, mobile equipment, UI assemblies, machinery, all styles), run an independent second-pass inventory **from the original approved image**, not from the list of already extracted parts. Record every visually separate object and a source-pixel mask for each unknown or reconstructed background area; an explicitly empty uncertainty list is allowed only after an actual completed occlusion audit.
-
-After the existing strict parent/prop pixel checks, prepare a review through `scripts/visual_review_cleanup.py`: two QA images compare original versus cleaned parent and clean plate, highlighted removed/uncertain regions, and every extracted object next to its original context. Show the images to the user for **one coherent review** of silhouettes, missing details, style, and inferred surfaces. If anything is rejected, revise the generated candidate; don't auto-approve or reuse previous decision records. If user explicitly approves, record that exact user message/asset revision, all reviewed components/unknowns, and packet hash. Verify immediately; changing any input image, mask, spec or board invalidates that acceptance.
-
-Final `assets.json` for newly reviewed assets declares `visual_review_protocol: "review_packet_v1"` and relative `visual_reviews` packet/decision paths; the existing lifecycle audit blocks approved-source reuse on missing/invalid evidence. QA boards are not production PNGs. The user is never asked to prepare JSON, draw masks, or run scripts. No algorithm guarantees full semantic recognition; the user evaluates the final hidden-surface reconstructions before approving them.
-
-
-### Exact approved reference is part of the review
-The internal visual-review spec must include `approved_reference` with the actual approved source crop's `file`, `sha256`, `mockup_id` and `mockup_revision`. This cropped image is prepared through the existing approved-reference crop gate, kept with the **current** asset candidate, and displayed as the first panel on the QA board. A mask-only comparison of a newly redrawn source is insufficient: the reviewer must see the original authoritative mockup too. The lifecycle audit compares that approved mockup ID/revision to the asset's actual registered `source_mockups` so a different source cannot be silently substituted.
-
-The new-protocol bundle builder marks new modular assets with `visual_review_protocol: "review_packet_v1"` automatically. The lifecycle audit derives the requirement from the bundle or blueprint metadata even if an asset-manifest writer accidentally omits the flag, then blocks approved reuse until the actual exact-user review is complete. This requirement does not retroactively revoke existing approved revisions.
+## Keeping Game Arts current
+After a one-time trusted enrollment, each Claude Code or Codex session start checks the framework's `main` branch and updates both agents' skills, scripts, schemas, docs and the master. Your settings, instructions, storyboard, approved mockups and assets are never touched. A framework file you edited is kept and reported. A change on GitHub cannot reach a computer that is offline; it applies at the next trusted session or when you say "Update my installed Game Arts skills now". See `README_INSTALL.md` in the Game Arts repository.

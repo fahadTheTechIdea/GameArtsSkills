@@ -13,7 +13,11 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "7.2"
+      "enum": [
+        "1.0",
+        "7.2"
+      ],
+      "description": "Format marker; 7.2 is accepted on read for existing blueprints."
     },
     "mockup_id": {
       "type": "string",
@@ -39,7 +43,8 @@
         "character",
         "ui_screen",
         "ui_flow",
-        "mixed"
+        "mixed",
+        "style"
       ]
     },
     "subscopes": {

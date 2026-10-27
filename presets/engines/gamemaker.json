@@ -1,0 +1,102 @@
+{
+  "id": "gamemaker",
+  "title": "GameMaker",
+  "summary": "Notes for using Game Arts files in GameMaker. Written from the manual pages read on 2026-10-24; nothing was run in the IDE, so every mapping is documented and none is observed. Only what those pages state is mapped.",
+  "documented_against": {
+    "engine_version": "LTS manual",
+    "retrieved": "2026-10-24"
+  },
+  "import_guidance": [
+    {
+      "topic": "Frame times",
+      "applies_to": "all",
+      "text": "A sprite has one speed. If frames in an animation need different times, repeat the longer frames or set the speed to suit the shortest and repeat the others.",
+      "source": "sprites"
+    },
+    {
+      "topic": "Origin",
+      "applies_to": "all",
+      "text": "Set the sprite's Origin from the atlas pivot; the default is the top left corner.",
+      "source": "sprites"
+    },
+    {
+      "topic": "Runtime copies",
+      "applies_to": "all",
+      "text": "Use the runtime copies the framework derives (real transparency instead of the magenta background) when importing images."
+    }
+  ],
+  "concept_map": [
+    {
+      "concept": "frame_pivot",
+      "engine_term": "the sprite's Origin x and y",
+      "support": "native",
+      "source": "sprites",
+      "note": "Default top left; typed values may be negative to put the origin outside the sprite. Set it from the atlas pivot (the cell pivot minus the picture's offset in its cell)."
+    },
+    {
+      "concept": "frame_duration",
+      "engine_term": "one animation speed per sprite, in frames per second or frames per game frame",
+      "support": "needs_custom",
+      "source": "sprites",
+      "note": "The sprite page describes no time for each frame."
+    },
+    {
+      "concept": "nine_slice",
+      "engine_term": "the sprite editor's Nine Slice section, with a guide offset for each edge",
+      "support": "native",
+      "source": "sprites",
+      "note": "Not available for non-bitmap sprites. The page does not state an order for the four margins: enter each on its own edge."
+    },
+    {
+      "concept": "blend_normal",
+      "engine_term": "bm_normal",
+      "support": "native",
+      "source": "blendmode",
+      "note": "The default blend mode."
+    },
+    {
+      "concept": "blend_additive",
+      "engine_term": "bm_add",
+      "support": "native",
+      "source": "blendmode",
+      "note": "Additive blending."
+    },
+    {
+      "concept": "blend_subtractive",
+      "engine_term": "bm_subtract",
+      "support": "native",
+      "source": "blendmode",
+      "note": "Source subtracted from the destination."
+    },
+    {
+      "concept": "tileset_blob",
+      "engine_term": "the 47-tile auto tile template of the tile set editor",
+      "support": "native",
+      "source": "autotiles",
+      "note": "You click each template cell and pick the tile for it, so the tile for every arrangement is chosen by hand. The template's own cell order was not read here."
+    }
+  ],
+  "sources": [
+    {
+      "id": "sprites",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://manual.gamemaker.io/lts/en/The_Asset_Editors/Sprites.htm"
+    },
+    {
+      "id": "blendmode",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://manual.gamemaker.io/lts/en/GameMaker_Language/GML_Reference/Drawing/GPU_Control/gpu_set_blendmode.htm"
+    },
+    {
+      "id": "autotiles",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://manual.gamemaker.io/lts/en/The_Asset_Editors/Tile_Set_Editors/Auto_Tiles.htm"
+    }
+  ],
+  "default_exports": [
+    "runtime"
+  ]
+}

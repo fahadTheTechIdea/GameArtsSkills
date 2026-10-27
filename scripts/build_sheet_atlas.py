@@ -1,172 +1,233 @@
 #!/usr/bin/env python3
-"""Build a chroma-pink PNG sprite sheet AND its measured JSON atlas.
+"""Build an exact-key PNG sprite sheet AND its measured JSON atlas.
 
 Usage (normally invoked automatically by Claude/Codex):
   python scripts/build_sheet_atlas.py path/to/frames.json --output-dir path/to/generated
 
-See docs/ATLAS_GENERATION.md for the input contract. Requires Pillow.
+Input contract: schemas/gamearts-frames-job.schema.json (see docs/ATLAS_GENERATION.md). Requires Pillow and jsonschema.
 """
 import argparse
-import hashlib
 import json
+import sys
 from pathlib import Path
-from PIL import Image
 
-PINK = (255, 0, 255, 255)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from PIL import Image  # noqa: E402
+
+import gamearts_atlas as atlas_rules  # noqa: E402
+import gamearts_common as common  # noqa: E402
+
+DEFAULT_MAX_WIDTH = 2048
 
 
 def integer_pair(value, name):
-    if not isinstance(value, (list, tuple)) or len(value) != 2 or any(
-        type(x) is not int for x in value
-    ):
+    if not isinstance(value, (list, tuple)) or len(value) != 2 or any(type(x) is not int for x in value):
         raise ValueError(f"{name}: expected two integer coordinates")
     return list(value)
 
 
-def hash_file(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def ink_bounds(image):
-    # Exclusive right/bottom bounds; no alpha transparency.
-    px = image.load()
-    xmin, ymin, xmax, ymax = image.width, image.height, -1, -1
-    for y in range(image.height):
-        for x in range(image.width):
-            if px[x, y] != PINK:
-                xmin, ymin = min(xmin, x), min(ymin, y)
-                xmax, ymax = max(xmax, x), max(ymax, y)
-    if xmax < xmin:
-        return None
-    return [xmin, ymin, xmax + 1 - xmin, ymax + 1 - ymin]
+    """[x, y, width, height] of all non-key pixels, or None when the frame is entirely key colour."""
+    box = common.ink_bbox(image)
+    return None if box is None else [box[0], box[1], box[2] - box[0], box[3] - box[1]]
 
 
-def load_frame(item, base):
-    if not isinstance(item, dict) or not item.get("file"):
-        raise ValueError("Each frame must include a file path")
-    path = (base / item["file"]).resolve()
+def load_frame(item, base, allow_near_key):
+    path = common.safe_member(base, item["file"], "frame file")
     if not path.is_file():
         raise ValueError(f"Missing source frame: {path}")
-    with Image.open(path) as src:
-        image = src.convert("RGBA")
-    if image.getchannel("A").getextrema() != (255, 255):
-        raise ValueError(f"{path}: source must be fully opaque; no alpha pixels allowed")
-    return path, image, ink_bounds(image)
+    image = common.load_rgba(path, str(path))
+    report = common.key_policy_report(image, allow_near_key=allow_near_key)
+    if report["issues"]:
+        raise ValueError(f"{path.name}: " + "; ".join(report["issues"]))
+    bounds = ink_bounds(image)
+    if bounds is None and not item.get("allow_empty"):
+        raise ValueError(f"{path.name}: frame contains no artwork (set allow_empty for a deliberately blank frame)")
+    return path, image, bounds
+
+
+UI_FIELDS = ("nine_slice", "state", "control", "set")
+
+
+def with_ui_fields(entry, item):
+    """The atlas entry with the UI fields the job gave this frame (a frame without them gets none, so older jobs build as before)."""
+    for key in UI_FIELDS:
+        if key in item:
+            entry[key] = item[key]
+    return entry
+
+
+def trimmed_cell(image, bounds, pivot, padding):
+    """For one frame: the box of the source frame to keep (its art joined with its pivot, so the pivot stays inside the cell), the cell size,
+    the pivot in cell coordinates and where the source frame's top-left corner falls in the cell (negative when pixels were cut away)."""
+    width, height = image.size
+    if bounds is None:  # a deliberately blank frame keeps one pixel at its pivot
+        x0, y0 = min(pivot[0], width - 1), min(pivot[1], height - 1)
+        x1, y1 = x0 + 1, y0 + 1
+    else:
+        x0, y0 = min(bounds[0], pivot[0]), min(bounds[1], pivot[1])
+        x1, y1 = max(bounds[0] + bounds[2], pivot[0]), max(bounds[1] + bounds[3], pivot[1])
+    box = (x0, y0, x1 - x0, y1 - y0)
+    offset = [padding - x0, padding - y0]
+    return box, (box[2] + 2 * padding, box[3] + 2 * padding), [pivot[0] + offset[0], pivot[1] + offset[1]], offset
+
+
+def shelf_positions(sizes, spacing, max_width):
+    """Top-left corner of every cell when cells are placed left to right in rows ('shelves'), tallest first, wrapping at `max_width`.
+    Deterministic: ties keep job order. Returns (positions by index, sheet width, sheet height)."""
+    order = sorted(range(len(sizes)), key=lambda i: (-sizes[i][1], -sizes[i][0], i))
+    positions, x, y, shelf_height, used = {}, 0, 0, 0, 0
+    for i in order:
+        width, height = sizes[i]
+        if x and x + width > max_width:
+            y += shelf_height + spacing
+            x = shelf_height = 0
+        positions[i] = (x, y)
+        x += width + spacing
+        shelf_height = max(shelf_height, height)
+        used = max(used, x - spacing)
+    return positions, used, y + shelf_height
 
 
 def build(manifest, output_dir):
     if not isinstance(manifest, dict):
         raise ValueError("Input manifest must be a JSON object")
+    common.validate_schema(manifest, "gamearts-frames-job")
     base = Path(manifest["_input_dir"])
-    name = manifest.get("name")
-    if not isinstance(name, str) or not name or any(c not in
-          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-" for c in name):
-        raise ValueError("name must be a simple descriptive file slug (letters/numbers/_/-)")
-    frames = manifest.get("frames")
-    if not isinstance(frames, list) or not frames:
-        raise ValueError("frames must be a nonempty list")
+    name = manifest["name"]
+    frames = manifest["frames"]
     cols = manifest.get("columns", len(frames))
-    if type(cols) is not int or not (1 <= cols <= len(frames)):
+    if not 1 <= cols <= len(frames):
         raise ValueError("columns must be 1..frame count")
-    padding = manifest.get("padding", 2)
-    if type(padding) is not int or not (0 <= padding <= 2048):
-        raise ValueError("padding must be an integer >= 0 and <= 2048")
-    spacing = manifest.get("spacing", 0)
-    if type(spacing) is not int or not (0 <= spacing <= 2048):
-        raise ValueError("spacing must be an integer >= 0 and <= 2048")
+    padding, spacing = manifest.get("padding", 2), manifest.get("spacing", 0)
+    allow_near_key = bool(manifest.get("allow_near_key", False))
+    full_bleed = bool(manifest.get("full_bleed", False))
+    pack, trim = manifest.get("pack", "grid"), bool(manifest.get("trim", False))
+    if pack == "shelf" and "columns" in manifest:
+        raise ValueError("columns applies to the grid layout only; a shelf layout is limited by max_width instead")
+    if trim and pack != "shelf":
+        raise ValueError("trim needs pack 'shelf': trimmed cells differ in size, and a grid has equal cells")
+    max_width = manifest.get("max_width", DEFAULT_MAX_WIDTH)
+    tags = manifest.get("tags")
+    if tags is not None:
+        tag_problems = atlas_rules.tag_problems(tags, len(frames))
+        if tag_problems:
+            raise ValueError("tags: " + "; ".join(tag_problems))
+    seen_names = set()
     rest = []
     for i, item in enumerate(frames):
-        path, image, bounds = load_frame(item, base)
+        frame_name = item.get("name", f"frame_{i:03d}")
+        if frame_name in seen_names:
+            raise ValueError(f"duplicate frame name: {frame_name}")
+        seen_names.add(frame_name)
+        path, image, bounds = load_frame(item, base, allow_near_key)
         pivot = integer_pair(item.get("pivot", [image.width // 2, image.height - 1]), f"frame {i}.pivot")
+        if not (0 <= pivot[0] <= image.width and 0 <= pivot[1] <= image.height):
+            raise ValueError(f"frame {i}: pivot {pivot} lies outside its {image.width}x{image.height} image")
         anchors = item.get("anchors", {})
-        if not isinstance(anchors, dict):
-            raise ValueError(f"frame {i}.anchors must be a mapping")
         for key, v in anchors.items():
-            if not isinstance(key, str) or not key:
-                raise ValueError(f"frame {i}: invalid anchor name")
             integer_pair(v, f"frame {i} anchor {key}")
-        if "duration_ms" in item and (type(item["duration_ms"]) is not int or item["duration_ms"] <= 0):
-            raise ValueError(f"frame {i}: duration_ms must be a positive integer")
-        rest.append((item, path, image, bounds, pivot, anchors))
+        rest.append((item, frame_name, path, image, bounds, pivot, anchors))
 
-    # One canonical pivot location per cell; never change the physical pixel scale.
-    left = max(p[4][0] for p in rest) + padding
-    top = max(p[4][1] for p in rest) + padding
-    right = max(p[2].width - p[4][0] for p in rest) + padding
-    bottom = max(p[2].height - p[4][1] for p in rest) + padding
-    cell_w, cell_h = left + right, top + bottom
-    rows = (len(rest) + cols - 1) // cols
-    sheet_w = cols * cell_w + max(0, cols - 1) * spacing
-    sheet_h = rows * cell_h + max(0, rows - 1) * spacing
-    sheet = Image.new("RGBA", (sheet_w, sheet_h), PINK)
-    result_frames = []
-    for i, (item, source, image, bounds, pivot, anchors) in enumerate(rest):
-        col, row = i % cols, i // cols
-        cell_x, cell_y = col * (cell_w + spacing), row * (cell_h + spacing)
-        dx, dy = cell_x + left - pivot[0], cell_y + top - pivot[1]
-        # Frames have opaque pink mask; paste only non-key colored pixels.
-        # Avoid overwriting another layer with pink; no compositing is performed here.
-        sheet.paste(image, (dx, dy))
-        anchor_positions = {key: [dx - cell_x + v[0], dy - cell_y + v[1]]
-                            for key, v in anchors.items()}
-        frame = {
-            "index": i,
-            "name": item.get("name", f"frame_{i:03d}"),
-            "direction": item.get("direction"),
-            "action": item.get("action"),
-            "rect": [cell_x, cell_y, cell_w, cell_h],
-            "source_size": [image.width, image.height],
-            "source_ink_bounds": bounds,
-            "source_offset_in_cell": [dx - cell_x, dy - cell_y],
-            "pivot": [left, top],
-            "anchors": anchor_positions,
-            "duration_ms": item.get("duration_ms", manifest.get("duration_ms", 125)),
-            "source_file": item["file"],
-            "source_sha256": hash_file(source)
-        }
-        result_frames.append(frame)
+    if pack == "shelf":
+        cells = [trimmed_cell(p[3], p[4], p[5], padding) if trim and not p[0].get("nine_slice") else None for p in rest]  # a nine-slice frame keeps every pixel
+        for i, (item, frame_name, source, image, bounds, pivot, anchors) in enumerate(rest):
+            if cells[i] is None:  # untrimmed shelf: every cell holds its whole frame
+                cells[i] = ((0, 0, image.width, image.height), (image.width + 2 * padding, image.height + 2 * padding),
+                            [pivot[0] + padding, pivot[1] + padding], [padding, padding])
+            if cells[i][1][0] > max_width:
+                raise ValueError(f"frame {frame_name}: its cell is {cells[i][1][0]} px wide, wider than max_width {max_width}")
+        positions, sheet_w, sheet_h = shelf_positions([c[1] for c in cells], spacing, max_width)
+        sheet = Image.new("RGBA", (sheet_w, sheet_h), common.KEY_RGBA)
+        result_frames, rects = [], []
+        for i, (item, frame_name, source, image, bounds, pivot, anchors) in enumerate(rest):
+            box, (cell_w, cell_h), cell_pivot, offset = cells[i]
+            cell_x, cell_y = positions[i]
+            sheet.paste(image.crop((box[0], box[1], box[0] + box[2], box[1] + box[3])), (cell_x + padding, cell_y + padding))
+            rects.append((cell_x, cell_y, cell_w, cell_h))
+            entry = {"index": i, "name": frame_name, "direction": item.get("direction"), "action": item.get("action"),
+                     "rect": [cell_x, cell_y, cell_w, cell_h], "source_size": [image.width, image.height],
+                     "source_ink_bounds": bounds, "source_offset_in_cell": offset, "pivot": cell_pivot,
+                     "anchors": {key: [offset[0] + v[0], offset[1] + v[1]] for key, v in anchors.items()},
+                     "duration_ms": item.get("duration_ms", manifest.get("duration_ms", 125)),
+                     "source_file": item["file"], "source_sha256": common.sha256_file(source)}
+            if trim:
+                entry["trim"] = list(box)
+                entry["trimmed"] = list(box) != [0, 0, image.width, image.height]
+            result_frames.append(with_ui_fields(entry, item))
+        cell_w = cell_h = rows = None
+    else:
+        # One canonical pivot location per cell; never change the physical pixel scale.
+        left = max(p[5][0] for p in rest) + padding
+        top = max(p[5][1] for p in rest) + padding
+        right = max(p[3].width - p[5][0] for p in rest) + padding
+        bottom = max(p[3].height - p[5][1] for p in rest) + padding
+        cell_w, cell_h = left + right, top + bottom
+        rows = (len(rest) + cols - 1) // cols
+        sheet_w = cols * cell_w + max(0, cols - 1) * spacing
+        sheet_h = rows * cell_h + max(0, rows - 1) * spacing
+        sheet = Image.new("RGBA", (sheet_w, sheet_h), common.KEY_RGBA)
+        result_frames, rects = [], []
+        for i, (item, frame_name, source, image, bounds, pivot, anchors) in enumerate(rest):
+            col, row = i % cols, i // cols
+            cell_x, cell_y = col * (cell_w + spacing), row * (cell_h + spacing)
+            dx, dy = cell_x + left - pivot[0], cell_y + top - pivot[1]
+            sheet.paste(image, (dx, dy))
+            rects.append((cell_x, cell_y, cell_w, cell_h))
+            result_frames.append(with_ui_fields({
+                "index": i, "name": frame_name, "direction": item.get("direction"), "action": item.get("action"),
+                "rect": [cell_x, cell_y, cell_w, cell_h], "source_size": [image.width, image.height],
+                "source_ink_bounds": bounds, "source_offset_in_cell": [dx - cell_x, dy - cell_y],
+                "pivot": [left, top],
+                "anchors": {key: [dx - cell_x + v[0], dy - cell_y + v[1]] for key, v in anchors.items()},
+                "duration_ms": item.get("duration_ms", manifest.get("duration_ms", 125)),
+                "source_file": item["file"], "source_sha256": common.sha256_file(source)}, item))
+    report = common.key_policy_report(sheet, rects, allow_near_key=allow_near_key, full_bleed=full_bleed)
+    if report["issues"]:
+        raise ValueError("Assembled sheet violates the exact-key contract: " + "; ".join(report["issues"]))
     atlas = {
-        "schema_version": "1.0",
-        "generator": "GameArtsSkills/build_sheet_atlas.py",
-        "asset_id": manifest.get("asset_id", name),
-        "name": name,
-        "image": name + ".png",
-        "image_size": [sheet_w, sheet_h],
-        "cell_size": [cell_w, cell_h],
-        "columns": cols,
-        "rows": rows,
-        "mask_color": "#FF00FF",
-        "background_alpha": 255,
-        "coordinate_system": "top_left_pixels_exclusive_bounds",
-        "pivot_coordinate_space": "frame_cell_local",
-        "pixels_per_meter": manifest.get("pixels_per_meter"),
-        "component": manifest.get("component"),
-        "parent_attachment": manifest.get("parent_attachment"),
-        "attachment_tracks": manifest.get("attachment_tracks", {}),
-        "source_mockups": manifest.get("source_mockups", []),
-        "frames": result_frames,
-        "validation": {"geometry": "generated_from_source_pixels",
-                       "visual_review": "not_performed",
-                       "godot_runtime": "not_tested"}
-    }
+        "schema_version": "1.0", "generator": "GameArtsSkills/build_sheet_atlas.py",
+        "asset_id": manifest.get("asset_id", name), "name": name, "image": name + ".png",
+        "image_size": [sheet_w, sheet_h], "cell_size": [cell_w, cell_h], "columns": cols, "rows": rows,
+        "mask_color": common.KEY_HEX, "background_alpha": 255,
+        "coordinate_system": "top_left_pixels_exclusive_bounds", "pivot_coordinate_space": "frame_cell_local",
+        "pixels_per_meter": manifest.get("pixels_per_meter"), "component": manifest.get("component"),
+        "parent_attachment": manifest.get("parent_attachment"), "attachment_tracks": manifest.get("attachment_tracks", {}),
+        "source_mockups": manifest.get("source_mockups", []), "frames": result_frames,
+        "validation": {"geometry": "generated_from_source_pixels", "key_policy": "passed",
+                       "visual_review": "not_performed", "engine_validation": "not_tested"}}
+    if pack == "shelf":  # a shelf has no equal cells, so no cell size, columns or rows
+        for key in ("cell_size", "columns", "rows"):
+            del atlas[key]
+        atlas["layout"] = "shelf"
+    if tags is not None:
+        atlas["tags"] = tags
+    if manifest.get("controls") is not None:
+        atlas["controls"] = manifest["controls"]
+    if "blend_mode" in manifest:
+        atlas["blend_mode"] = manifest["blend_mode"]
+    common.validate_schema(atlas, "gamearts-atlas")  # the shape first, so the cross-checks below can rely on it
+    ui = atlas_rules.ui_problems(atlas)
+    if ui:
+        raise ValueError("ui: " + "; ".join(ui))
+    if allow_near_key:
+        atlas["allow_near_key"] = True
+    if full_bleed:
+        atlas["full_bleed"] = True
+    common.validate_schema(atlas, "gamearts-atlas")
     output_dir.mkdir(parents=True, exist_ok=True)
     image_path = output_dir / (name + ".png")
     atlas_path = output_dir / (name + ".atlas.json")
     if image_path.exists() or atlas_path.exists():
-        raise FileExistsError("Output version already exists; choose a new descriptive revision/name")
-    # Atomic-ish pair: write temporary files, then rename; clean up on any failure.
+        raise FileExistsError("Output revision already exists; choose a new descriptive revision/name")
     tmp_png = output_dir / (name + ".build-tmp.png")
-    tmp_json = output_dir / (name + ".atlas.build-tmp.json")
     try:
         sheet.save(tmp_png)
-        tmp_json.write_text(json.dumps(atlas, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        tmp_png.replace(image_path)
-        tmp_json.replace(atlas_path)
-    except Exception:
-        tmp_png.unlink(missing_ok=True)
-        tmp_json.unlink(missing_ok=True)
-        image_path.unlink(missing_ok=True)
-        atlas_path.unlink(missing_ok=True)
+        common.replace_file(tmp_png, image_path)
+        common.atomic_write_json(atlas_path, atlas)
+    except BaseException:
+        for leftover in (tmp_png, image_path, atlas_path):
+            leftover.unlink(missing_ok=True)
         raise
     return image_path, atlas_path
 
@@ -178,10 +239,12 @@ def main():
     args = parser.parse_args()
     try:
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict):
+            raise ValueError("Input manifest must be a JSON object")
         manifest["_input_dir"] = str(args.manifest.resolve().parent)
         png, atlas = build(manifest, args.output_dir.resolve())
         print(f"BUILT {png} and {atlas}")
-    except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, KeyError, TypeError) as exc:  # ValueError covers JSON and contract errors
         parser.exit(1, f"ERROR: {exc}\n")
 
 

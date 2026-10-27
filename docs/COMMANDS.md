@@ -1,121 +1,92 @@
-# Game Arts — Everyday Commands
+# Game Arts — everyday commands
 
-No special command syntax is required. **Say what you want in natural language inside Claude Code or Codex** while working in your game project. The agent selects the skills and handles files in the background.
+No command syntax is needed. Say what you want, in plain words, inside Claude Code or Codex while working in your game project. The agent picks the skills and handles every file. The rules behind each request are in the master standard (`GAME_ARTS_MASTER_STANDARD.md`); this page only lists what you can say.
 
 ## Start and personalize
-
-| Say | Agent behavior |
+| Say | What happens |
 |---|---|
-| "Set up Game Arts for this game." | Ask a few friendly questions in chat; save confirmed project defaults. |
-| "Use the recommended settings." | Use established game profile defaults; ask only for missing essential decisions. |
-| "Show my game art settings." | Read and summarize saved project settings. |
-| "Change my game's art style." | Change only the selected setting, confirm and save. |
-| "Always make the UI icons simple." | Save a scoped custom instruction in the game project. |
-| "Show my custom art instructions." | Summarize applicable saved custom rules. |
+| "Set up Game Arts for this game." | A few friendly questions; the confirmed choices are saved to `.gamearts/project.json`. |
+| "Use the recommended settings." | Recommended defaults; only missing essentials are asked. |
+| "I'm making a card game / a platformer / a farming sim." | The agent starts from the matching [genre recipe](GENRE_RECIPES.md): the kind of world, suitable looks, facing directions and the art to make first. |
+| "Show me the looks." / "Use the 16-bit pixel look." | Lists the ready-made looks that suit your game and saves the one you pick as your starting point. |
+| "We use <engine or tool>." / "Change the engine." | Saves the engine you use (any name is fine); you get its import advice if a profile for it is installed. Your art and approvals are not affected. |
+| "Start from my other game's choices." | Offers the engine, image generator and look of a game folder you name as defaults to confirm. |
+| "Show my game art settings." | Your saved settings, summarized. |
+| "Change my game's art style." | Only that setting changes, after your confirmation. |
+| "Always make the UI icons simple." | A scoped custom instruction is saved in the game project. |
+| "Show / change / stop using my custom art instructions." | Lists, edits or deactivates saved rules. |
+| "For this one image only, use a darker palette." | Applied once, never saved. |
 
-## Mockups (created by the agent or provided by you)
-
-| Say | Agent behavior |
+## Storyboard (a game, campaign, story or several scenes)
+| Say | What happens |
 |---|---|
-| "Create a mockup of my world." | Render an actual world-scale concept preview when image tools are available, save as a generated mockup and show for approval. |
-| "Create a city scene mockup." | Generate a reviewable scene mockup using the game's saved style and references. |
-| "Create a mockup of this character." | Preserve its reference identity and show visual design for approval. |
-| "Design a UI screen mockup." | Generate a screen mockup; UI geometry is screen-space, not world terrain geometry. |
-| "Here is a mockup I made. Use it." | Import a managed **copy** into `mockups/generated`, preserve the external original, show and ask approval unless already explicitly approved. |
-| "Here is my already approved mockup." | Import a managed copy directly into `mockups/approved`, record the approval and source; no unnecessary recreation or repeat approval. |
-| "Make the pavement wider and revise the mockup." | Produce a *new version* in generated; preserve old revision. |
-| "Approve this mockup." | Promote the exact identified revision to approved, update manifest, then extract a detailed blueprint. |
-| "Reject this mockup." | Move the managed version to revoked with the reason; preserve external original. |
-| "Show my approved mockups." | Show current approved mockup revisions from the manifest. |
+| "Create a storyboard for my game." | The agent drafts the key scenes from your prompt, shows the list, and waits for you. |
+| "Here is my storyboard." | A managed copy of your document is imported and turned into scenes; your original is untouched. |
+| "Change scene 3 so it happens at night." | The scene is edited; if it was approved it needs your approval again. |
+| "Approve scenes 1, 2 and 5." | Those scenes, in that order, become the approved sequence. |
+| "Make mockups for the approved scenes." | One scene mockup at a time, in order, each through the normal mockup approval. |
 
-## Production artwork, animations, and approvals
-
-| Say | Agent behavior |
+## Mockups
+| Say | What happens |
 |---|---|
-| "Generate game art from the approved mockup." | Decompose all meaningful visible details; generate production candidates tied to that exact mockup. |
-| "Create a sprite sheet for this object." | Find approved reference or show a mockup first; produce native-size art with needed directions and states. |
-| "Animate the moving components." | Discover applicable components, use correct directional images/animated mounts, generate validated animation resources. |
-| "Generate the atlas JSON." | Measure actual exported sprites and generate a matching atlas for each sheet. |
-| "Approve this sprite." | Require exact revision identity and appropriate validation; promote the complete PNG + atlas + metadata bundle. |
-| "Reject this sprite because its scale is wrong." | Revoke the whole managed bundle, record the reason and keep its mockup link. |
-| "Show my approved artwork." | Find active approved assets using the asset manifest, not temporary directory guesses. |
-| "Restore the earlier approved version." | Revalidate and obtain necessary reapproval, then safely restore its status. |
-| "Check this asset in Godot." | Use available Godot tools to validate; explain clearly if tests could not be run. |
+| "Create a mockup of my world / a city scene / this character / a UI screen." | A real preview is rendered with your chosen image generator (you are asked once if none is saved), saved as a generated mockup and shown for approval. |
+| "Use the Codex image generator for this game." / "Change the image generator." / "I will make the pictures myself." | The choice is saved in your game settings and used for every image from then on; earlier art stays valid. |
+| "Here is a mockup I made. Use it." | A managed copy is imported as generated and shown for your approval. |
+| "I already have a sprite sheet." / "Use my art as the look of the game." | You say how it is laid out (a grid, a cell size, or the data file Aseprite wrote beside it) and confirm it is yours. The sheet is read, never changed: its transparency becomes the magenta background, its frames are rebuilt into a checked sheet, and it is registered for you to approve. If you want it as the look of the game, it is also offered as the style anchor for you to confirm. |
+| "Here is my already approved mockup." | Imported as a managed copy and recorded as approved with your statement as the reference; nothing is recreated. Your game's settings must be confirmed first; if they are not, the agent shows them and asks once. |
+| "Show me a few ways it could look." / "Compare these looks." | Two to four style boards are made with your image generator and shown on one sheet under the letters A, B, C. The sheet is only for choosing; it is not game art. |
+| "I pick B." / "Use this as our look." | That board is approved with your words and saved as your game's style anchor. The others stay as they are unless you withdraw them. |
+| "Make a palette from our style board." | The colours of that approved picture are saved as the game's palette, so later art can be checked against it. |
+| "Make the pavement wider." | A new revision; the old one is kept. |
+| "Approve this mockup." / "Reject this mockup." | The exact revision just shown is promoted, or moved to revoked with the reason. |
+| "Show my approved mockups." | The current approved revisions. |
 
-## Automatic decision rules
+## Production art
+| Say | What happens |
+|---|---|
+| "How much work is this?" / "What will it cost?" | A plan card before anything is made: the lane (quick, standard or full), about how many pictures, which approvals you will be asked for, and who is billed for the pictures. It never states a price it does not know. |
+| "Generate game art from the approved mockup." | The mockup is broken down in detail; production candidates are tied to that exact revision. |
+| "Create a sprite sheet for this object." | Native-size art with the directions and states the asset needs, assembled into a measured sheet and atlas. |
+| "Animate the moving parts." | Components, directional art, animated mounts and a validated bundle. |
+| "Name the walk and the hit in the sheet." / "Make the walk loop and the hit play once." | Named runs of frames (tags) are written into the sheet's data, each with how it plays; another tool can read them. |
+| "Pack the sheet tighter." | Each frame gets a cell sized to its art (never cutting off its pivot) and the cells are packed in rows. The default grid is unchanged unless you ask. |
+| "Make the buttons with all their states." / "Make the panel stretch." | Frames for normal, hover, pressed, disabled and focus, checked to have the same size and the same stretch margins; a stretching panel gets its four margins. |
+| "Make a tileset for grass and water." | The tiles for the layout you choose are collected into a sheet that is checked for missing tiles and for tiles that do not line up. See [TILESETS.md](TILESETS.md). |
+| "Make this glow additive." | The sheet says how it should be blended; your game applies it. |
+| "Make the engine-ready files." | Copies of the approved sheets with real transparency instead of the magenta background, for your engine to import. Derived files, not new art. |
+| "Export it for Aseprite." / "Export the tileset for Tiled." | A data file in the shape that tool reads, written beside the sheet. Best effort until you have opened one in the tool. |
+| "Show me how the walk plays." | Each animation is drawn as a still strip and a looping GIF, with the empty background shown as a checkerboard. It is a way to look, not game art. |
+| "Does the loop jump?" / "Is anything cut off?" | The motion is measured: the jump where the loop restarts, a foot that drifts, art touching the edge of its cell, repeated frames. It informs; it does not decide for you. |
+| "This pixel art came back too big." / "It looks blurry." | The pixel size is measured; if the picture was drawn large, a clean native-size copy is made for you to look at. Your original is kept, and a picture with no regular pixel grid is refused with the reason. |
+| "Does this match our palette?" | The sheet's colours are compared with the game's palette and colour limit. A failed check blocks approval and says what was measured; a check that cannot be measured says why. |
+| "Make the workshop into separate usable sprites." | Every movable or removable piece is removed from the base and exported on its own. |
+| "Check the separate sprites are actually clean." / "Review the hidden areas." | Cleanup checks plus review boards for you to look at; one approve or revise decision. |
+| "Approve these three." / "Approve all of the sheets you showed me." | Each named revision is approved in turn on your words, each with its own checks. Anything you were not shown, or that fails its checks, is left as it was and named. |
+| "Approve this version." | After you reviewed that exact revision, the whole sprite, atlas and metadata package is promoted and audited. |
+| "Reject this version because the scale is wrong." | The whole package moves to revoked with the reason and is never used again. |
+| "Show my approved / generated / revoked artwork." | Read from the manifests. |
+| "Restore the earlier version." | It comes back as generated and needs a fresh approval. |
 
-1. **Every game-art request:** load available per-game settings, active applicable custom instructions, current approved references and lifecycle manifests when relevant.
-2. **New design with no approved visual:** create and show an *actual mockup* (not only a text description), save as generated, then ask for explicit approval.
-3. **User-supplied mockup:** import a managed copy. Already explicitly approved → approved; otherwise → generated and request approval. Do not regenerate it unnecessarily.
-4. **Approved mockup:** analyze detailed surfaces, geometry, textures, objects, UI elements, small details and possible real-world movement/state changes. Link every production asset to its exact approved revision and blueprint region.
-5. **Production:** generate locked masters, directional/animated components and measured atlas metadata, then validate and request **separate final art approval**.
-6. **Lifecycle:** generated / approved / revoked for both mockups and assets. Keep full dependent file bundles together, use meaningful game-related versioned names, and preserve revocation history.
-7. **Never assume "approved" means an unrelated item.** Resolve the target from the currently shown revision; ask only if the target is genuinely ambiguous.
-8. **Don't pretend to run tools.** If image/file/Godot tools are missing, report the limitation rather than claiming files, previews or tests were created.
-9. **Never require technical commands** or manual file editing from normal users. The agent manages the technical steps.
-10. **Maintain universal requirements:** opaque exact #FF00FF pixels for unused PNG areas, measured JSON atlas per sprite sheet, valid animated attachment hierarchies, honest verification and no ZIP files.
+## See your art and check your setup
+| Say | What happens |
+|---|---|
+| "Show me my art." / "What's next?" / "What can I do now?" | The offline art report is opened or rebuilt: your settings in plain words, every mockup and asset with its status, a preview and your approval words, and the next steps. It is built only from the records, and it is rebuilt after every change. |
+| "Check that Game Arts works on this computer." | A read-only check of Python, the two packages, the folders, your settings and your engine profile, with the fix for anything missing. Nothing is installed without your go-ahead. |
 
-## Where files belong
+## Keep the framework current
+| Say | What happens |
+|---|---|
+| "Enable automatic Game Arts updates for Claude and Codex." | The one-time updater bootstrap; you are asked to trust the session-start hook in each tool. |
+| "Update my installed Game Arts skills now." | The updater runs once in the open session and reports what changed or what failed. |
 
-Inside each **game repository**, not this shared skills repository:
-
+## Where files live
+Inside each **game** repository, never this framework repository:
 ```text
 .gamearts/
   project.json
   instructions/
-  outputs/
-    mockups/{generated,approved,revoked}/
-    assets/{generated,approved,revoked}/
-    manifests/{mockups.json,assets.json}
+  storyboard/storyboard.json
+  outputs/mockups/{generated,approved,revoked}/   outputs/assets/{generated,approved,revoked}/
+  outputs/manifests/{mockups.json,assets.json}
 ```
-
-For installation details, see [README_INSTALL.md](../README_INSTALL.md). The canonical production requirements are in [GAME_ARTS_MASTER_STANDARD_v7.7.md](../GAME_ARTS_MASTER_STANDARD_v7.7.md).
-
-## Working sheet and atlas generator
-
-When approved source frames exist and a sprite sheet is requested, invoke the `sheet-atlas` skill and have the agent run `scripts/build_sheet_atlas.py` internally, then `scripts/validate_sheet_atlas.py`. This creates **real** native-scale opaque pink PNG sheets and companion measured JSON atlases. Save the pair together in the game project's generated asset bundle and request approval. See `docs/ATLAS_GENERATION.md`. The builder transforms **provided** pivot and anchor data into cell coordinates; it does not infer physical mount points or certify visual/Godot readiness. Never claim atlas generation unless files were actually written and checked. Users do not need to run commands.
-
-## Real moving component generation
-
-For assets with moving parts, Claude/Codex calls `scripts/build_component_bundle.py` internally with approved frames and verified attachment coordinates. This generates separate component PNG sheets, their matching measured atlas JSON files and a nested sampled-transform bundle; it is not merely an instruction to generate metadata. The user does not run commands. See [Component Animation](docs/COMPONENT_ANIMATION.md). Actual Godot tests remain a separate step.
-
-## Godot runtime component support (v7.7)
-
-For approved nested moving-part bundles, use the reusable `godot/addons/gamearts/game_arts_component.gd`, `.tscn` and `chroma_key.gdshader` in the target game's `res://addons/gamearts/` folder where integration is requested. Internally invoke `scripts/generate_godot_scene.py` to produce a native `.tscn` referencing the built bundle, and verify all file paths when the candidate is later approved/moved. The runtime supports per-direction component atlas regions, animated parent mounts, normalized playback and nested Node2D inheritance; actual Godot execution, physics, navigation, light/occlusion, and visual regression remain unverified until performed. See `docs/GODOT_COMPONENT_RUNTIME.md`. Keep the user-facing workflow conversational.
-
-
-## From an approved image to a real asset — nothing special to learn
-
-For **any** game and any selected style, you can say: **“Generate the workshop/vehicle/prop from this approved mockup.”** The framework automatically finds the approved source and its actual image pixels, measures the object's region, creates an internal reference crop, resolves saved style/camera settings, and passes that real crop to the connected image tool when available. A generated master is reviewed against the source before components, sheets and measured atlases are attempted.
-
-This is part of the existing lifecycle and skills; users never edit crop jobs, JSON, pixels or prompts manually. If the image provider cannot accept a reference image, the agent reports that production is blocked rather than returning unrelated art.
-
-
-## Keep installed Claude/Codex skills current
-
-Say **“Enable automatic Game Arts updates for both Claude and Codex in this game.”** The locally connected agent enrolls that workspace, checks both current skill trees and merges trusted session-start hooks. Once enrolled, each agent session checks for framework updates and synchronizes both agents; no recurring manual copying is needed. Changes made to GitHub are not pushed to PCs while offline. For an immediate refresh inside a currently open local session, say **“Update my installed Game Arts skills now.”** The agent must run the installed updater and verify results, never claim local success from a GitHub commit alone.
-
-
-## Automatic static-parent cleanup before approval
-
-When you ask **"Make this building/vehicle/scene into separate usable sprites,"** Game Arts now removes all independently moving, removable, interactive, replaceable or animated elements **from the base sprite** while exporting the pieces separately. For example, a workshop is created without the workbench, screws or spanners baked into its interior. This rule applies to every art style, not only pixel art. The agent automatically verifies actual removal before approval, and flags missing evidence or incomplete visual inventory rather than claiming completion. No extra command or manual setup is necessary.
-
-
-## Reject and exclude artwork
-
-“Reject this workshop version” means **move that exact generated candidate to revoked and ignore it** during future art generation, not merely add a note about the defect. “Show current generated artwork” excludes rejected/revoked versions. “Generate from the approved mockup” must use only the approved reference, never the last failed sprite. All actions are handled internally, without asking the user to move files or edit JSON.
-
-
-## Check a production bundle before approving
-
-Users can simply say **“Validate this asset package”** or **“Check the separate sprites are actually clean.”** The agent checks the current approved mockup, the exact non-revoked candidate, independently reviewed silhouette masks, cleaned static parent, animation frames, measured atlas and source hashes; it visually reviews composition and suspected missing objects too. **“Approve this version”** must synchronize the entire bundle's status and then run the lifecycle audit; it cannot leave the blueprint or QA saying pending. Explicitly accepted unknown/hidden details stay marked inferred, and Godot remains untested until actually checked.
-
-
-## Review the actual cutouts (built into the existing workflow)
-
-Say **“Show me the clean workshop and all its separate parts”**, **“Check whether any background leaked into the sprites”**, or **“Review the hidden areas before approving.”** Game Arts automatically prepares two comparison boards: original/cleaned structure, affected background and uncertain surfaces; then each source object next to its independently exported sprite. It asks for one approval/revision decision when the artwork is ready. If you approve, it binds the decision to those exact images and files so later changes cannot silently reuse your earlier approval. No manual masks, JSON, command syntax, duplicate workflow or extra master document.
-
-
-## Final approval now checks the real package
-
-Say **“Approve this version”** after actually reviewing the current generated images. Game Arts uses your approval for exactly that revision, verifies its visual review files, updates the existing blueprint/QA and asset manifest together, moves the full sprite/atlas package to approved and immediately runs the lifecycle integrity audit. Changed artwork, missing review files or conflicting statuses block completion. You do not run Python or edit JSON yourself.
+Install notes: `README_INSTALL.md` in the Game Arts repository.

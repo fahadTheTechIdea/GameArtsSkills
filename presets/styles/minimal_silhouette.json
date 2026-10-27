@@ -1,0 +1,47 @@
+{
+  "id": "minimal_silhouette",
+  "title": "Minimal shapes",
+  "description": "Very few colours and simple hard-edged shapes; a readable silhouette matters more than detail.",
+  "art_style": {
+    "id": "vector",
+    "outline_policy": "No outline; shapes are told apart by colour.",
+    "shading_policy": "Flat colour only.",
+    "texture_policy": "None."
+  },
+  "cameras": [
+    "orthogonal_3_4_oblique",
+    "isometric_3_4",
+    "top_down",
+    "side",
+    "custom"
+  ],
+  "world_kinds": [
+    "grid_world",
+    "free_world",
+    "layered_scene",
+    "screen_space"
+  ],
+  "native_size_guidance": "Draw at about twice the final display size and reduce once with a smooth filter; keep every asset in a set at the same scale.",
+  "animation_approach": "either",
+  "avoid": [
+    "Do not add detail beyond the main shapes.",
+    "Do not use more than the chosen colours.",
+    "Do not use gradients or soft edges."
+  ],
+  "required_checks": [
+    "palette_exact",
+    "colour_count_max",
+    "loop_seam",
+    "pivot_drift",
+    "clipping"
+  ],
+  "check_parameters": {
+    "colour_count_max": {
+      "max_colours": 8
+    },
+    "loop_seam": {
+      "max_ratio": 1.5
+    }
+  },
+  "soft_edges": false
+}

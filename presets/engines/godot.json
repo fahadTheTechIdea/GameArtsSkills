@@ -1,0 +1,390 @@
+{
+  "id": "godot",
+  "title": "Godot",
+  "summary": "Notes for using Game Arts files in Godot 4. Written from the official 4.7 documentation and checked in a headless 4.7.2 run, so each mapping says whether the engine does it itself or the game must supply something.",
+  "documented_against": {
+    "engine_version": "4.7",
+    "retrieved": "2026-10-24"
+  },
+  "import_guidance": [
+    {
+      "topic": "Texture filter",
+      "applies_to": "pixel_art",
+      "text": "The engine's default texture filter is Linear. For pixel art set the project's default texture filter (rendering/textures/canvas_textures/default_texture_filter) to Nearest, and for a pixel-perfect window set the stretch scale mode to integer. Turn on snap_2d_transforms_to_pixel if sprites move through fractional positions.",
+      "source": "headless-4-7-2"
+    },
+    {
+      "topic": "Compression and mipmaps",
+      "applies_to": "pixel_art",
+      "text": "Import sprite sheets with lossless compression and without mipmaps; the importing page recommends lossless for pixel art and suits 2D by default.",
+      "source": "importing-images"
+    },
+    {
+      "topic": "Texture filter and edges",
+      "applies_to": "smooth",
+      "text": "Keep the default Linear filter. Leave Fix Alpha Border on (it repairs darkened borders under bilinear filtering) unless it causes trouble, or use Premult Alpha together with a material set to the premultiplied blend mode.",
+      "source": "importing-images"
+    },
+    {
+      "topic": "Cutting frames",
+      "applies_to": "all",
+      "text": "Cut each frame from its sheet with an AtlasTexture whose region is the atlas cell rectangle, and turn on its filter_clip so neighbouring pixels do not bleed in.",
+      "source": "atlastexture"
+    },
+    {
+      "topic": "Key colour",
+      "applies_to": "all",
+      "text": "The importing page lists no colour-key option, so exact #FF00FF must be made transparent by something the game supplies, for example a canvas-item shader that discards that colour. Keep the delivered sheets unchanged.",
+      "source": "importing-images"
+    },
+    {
+      "topic": "Runtime copies",
+      "applies_to": "all",
+      "text": "Import the runtime copies the framework derives (the folder named in the asset's derived exports), not the key-colour sheets: they have real transparency, so no shader is needed to remove the magenta. They are derived files, not new art.",
+      "source": "importing-images"
+    },
+    {
+      "topic": "Animations from tags",
+      "applies_to": "all",
+      "text": "Make one SpriteFrames animation for each atlas tag. Loop it when the tag repeats forever (repeat 0 or absent) and not when it plays once. A reverse tag is play_backwards; a ping-pong tag or a count above one needs your own code.",
+      "source": "headless-4-7-2-animation-ui"
+    },
+    {
+      "topic": "UI kits",
+      "applies_to": "all",
+      "text": "Set a NinePatchRect's four patch margins to the frame's nine_slice values [left, top, right, bottom], and give each Button style box (normal, hover, pressed, disabled, focus) the frame of that state.",
+      "source": "headless-4-7-2-animation-ui"
+    },
+    {
+      "topic": "Tilesets",
+      "applies_to": "all",
+      "text": "Use a terrain set in Match Corners mode for wang_corner_16, Match Sides for wang_edge_16 and Match Corners and Sides for blob_47; the tile's neutral labels are the engine's peering bits one to one. dual_grid_16 uses the corner data but needs a second layer offset by half a tile.",
+      "source": "headless-4-7-2-animation-ui"
+    },
+    {
+      "topic": "Easing and stepped keys",
+      "applies_to": "all",
+      "text": "Animation key transitions of 2.0, 0.5 and -2.0 are the framework's ease_in, ease_out and ease_in_out; nearest and linear interpolation are the same as the framework's. The engine's cubic differs from the framework's reference curve.",
+      "source": "headless-4-7-2-animation-ui"
+    }
+  ],
+  "concept_map": [
+    {
+      "concept": "atlas_frame_rect",
+      "engine_term": "AtlasTexture.region (a Rect2)",
+      "support": "native",
+      "source": "headless-4-7-2",
+      "note": "The atlas cell [x, y, width, height] is the Rect2 of the region; a 20 x 10 cell gave a 20 x 10 texture."
+    },
+    {
+      "concept": "frame_pivot",
+      "engine_term": "Sprite2D or AnimatedSprite2D offset with centered turned off",
+      "support": "native",
+      "source": "headless-4-7-2",
+      "note": "Every frame of a sheet shares one cell-local pivot, so one node offset of minus the pivot places all of its frames."
+    },
+    {
+      "concept": "frame_anchor",
+      "engine_term": "a Marker2D placed from the atlas anchor",
+      "support": "needs_custom",
+      "source": "spriteframes",
+      "note": "SpriteFrames stores textures and durations only; the game reads the atlas anchors to place attachment points."
+    },
+    {
+      "concept": "frame_duration",
+      "engine_term": "SpriteFrames frame duration (relative) and animation speed (frames per second)",
+      "support": "native",
+      "source": "headless-4-7-2",
+      "note": "Set the speed to 1000 divided by the shortest duration_ms in the animation and each frame's duration to its duration_ms divided by that shortest value."
+    },
+    {
+      "concept": "direction_set",
+      "engine_term": "one SpriteFrames animation per action and direction",
+      "support": "needs_custom",
+      "source": "spriteframes",
+      "note": "The engine has no facing concept; name animations such as walk_e and choose one from the character's facing."
+    },
+    {
+      "concept": "texture_filter_pixel",
+      "engine_term": "default_texture_filter set to Nearest",
+      "support": "native",
+      "source": "headless-4-7-2",
+      "note": "The engine lists the options Nearest, Linear, Linear Mipmap and Nearest Mipmap, and its default is Linear."
+    },
+    {
+      "concept": "texture_filter_smooth",
+      "engine_term": "default_texture_filter set to Linear",
+      "support": "native",
+      "source": "headless-4-7-2",
+      "note": "Linear is the engine's default."
+    },
+    {
+      "concept": "key_colour_removal",
+      "engine_term": "a canvas-item shader that discards #FF00FF, or a preprocessing step",
+      "support": "needs_custom",
+      "source": "importing-images",
+      "note": "No colour-key import option is documented on the importing page."
+    },
+    {
+      "concept": "grid_hex_pointy",
+      "engine_term": "TileSet tile_shape Hexagon with tile_offset_axis Horizontal",
+      "support": "native",
+      "source": "headless-4-7-2",
+      "note": "Observed: with a 64 x 56 tile, cell (0,1) sits half a tile to the right of cell (0,0), so rows are staggered. Set tile_size to ground_tile_px."
+    },
+    {
+      "concept": "grid_hex_flat",
+      "engine_term": "TileSet tile_shape Hexagon with tile_offset_axis Vertical",
+      "support": "native",
+      "source": "headless-4-7-2",
+      "note": "Observed: with a 64 x 56 tile, cell (1,0) sits half a tile below cell (0,0), so columns are staggered."
+    },
+    {
+      "concept": "grid_isometric",
+      "engine_term": "TileSet tile_shape Isometric with tile_layout Diamond Down",
+      "support": "native",
+      "source": "headless-4-7-2",
+      "note": "Observed: with a 64 x 32 tile, cell (1,0) sits at +32,+16 and cell (0,1) at -32,+16 from it. Set tile_size to ground_tile_px."
+    },
+    {
+      "concept": "parallax_layer",
+      "engine_term": "Parallax2D scroll_scale, repeat_size and autoscroll",
+      "support": "native",
+      "source": "headless-4-7-2",
+      "note": "Our scroll_scale, repeat_px and autoscroll_px_per_s map one to one; the values were set and read back."
+    },
+    {
+      "concept": "screen_base_resolution",
+      "engine_term": "project settings viewport_width and viewport_height, with the stretch mode and scale mode",
+      "support": "native",
+      "source": "headless-4-7-2",
+      "note": "A scaling of integer corresponds to the scale mode integer; the engine's scale modes are fractional and integer."
+    },
+    {
+      "concept": "animation_tag_range",
+      "engine_term": "one SpriteFrames animation per tag, made with add_animation and add_frame for the frames from to to",
+      "support": "native",
+      "source": "headless-4-7-2",
+      "note": "The headless run built a named animation and added frames to it. The game does the building: nothing reads an atlas tag by itself."
+    },
+    {
+      "concept": "animation_tag_loop",
+      "engine_term": "SpriteFrames animation loop flag (set_animation_loop)",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "A tag that repeats forever (repeat 0 or absent) is loop on; a tag that plays once (repeat 1) is loop off. The loop flag read back as false after being set false."
+    },
+    {
+      "concept": "animation_tag_repeat_count",
+      "engine_term": "no setting: loop is a yes or no",
+      "support": "needs_custom",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "A tag that repeats a counted number of times above one has no engine setting; the game counts the plays and stops the animation."
+    },
+    {
+      "concept": "animation_tag_reverse",
+      "engine_term": "AnimatedSprite2D.play_backwards",
+      "support": "native",
+      "source": "animatedsprite2d",
+      "note": "The page documents play_backwards and a negative speed_scale; the headless run listed play_backwards among the node's methods."
+    },
+    {
+      "concept": "animation_tag_pingpong",
+      "engine_term": "no ping-pong in SpriteFrames or AnimatedSprite2D; Animation has loop_mode LOOP_PINGPONG",
+      "support": "needs_custom",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "AnimatedSprite2D has no ping-pong property. Frames driven by an Animation track in an AnimationPlayer can use LOOP_PINGPONG; otherwise the game plays the frames forward then backward itself."
+    },
+    {
+      "concept": "nine_slice",
+      "engine_term": "NinePatchRect patch_margin_left, patch_margin_top, patch_margin_right, patch_margin_bottom",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "The framework's [left, top, right, bottom] are the four margins in that order. Values 6, 5, 4, 3 read back as 6, 5, 4, 3."
+    },
+    {
+      "concept": "ui_state_set",
+      "engine_term": "the style boxes of a Button theme: normal, hover, pressed, disabled, focus",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "The default Button theme listed exactly these five style boxes, the same five names as the framework's states. The game assigns each state's frame to its style box."
+    },
+    {
+      "concept": "interpolation_nearest",
+      "engine_term": "Animation track interpolation_type INTERPOLATION_NEAREST",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "Between keys 0, 10, 0 at 0, 0.5, 1 the value read 0 until the second key and 10 from it: the held value the framework's stepped segment means."
+    },
+    {
+      "concept": "interpolation_linear",
+      "engine_term": "Animation track interpolation_type INTERPOLATION_LINEAR",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "The same keys read 2, 5, 8, 10, 5 at 0.1, 0.25, 0.4, 0.5, 0.75, which is the framework's linear curve."
+    },
+    {
+      "concept": "interpolation_cubic",
+      "engine_term": "Animation track interpolation_type INTERPOLATION_CUBIC, a different curve",
+      "support": "needs_custom",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "The engine has a cubic mode but it is not the framework's: through the same keys it read 5.0 at 0.25 where the framework's reference curve is 6.25. A game that must match the framework's sampled poses samples them itself."
+    },
+    {
+      "concept": "easing_named_curves",
+      "engine_term": "Animation key transition values 2.0 (ease_in), 0.5 (ease_out) and -2.0 (ease_in_out)",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "Across a 0 to 100 segment the transitions read 6.25, 25, 56.25 (2.0), 43.75, 75, 93.75 (0.5) and 12.5, 50, 87.5 (-2.0) at a quarter, a half and three quarters: exactly the framework's u squared, one minus the square of one minus u, and two u squared below one half curves."
+    },
+    {
+      "concept": "blend_normal",
+      "engine_term": "CanvasItemMaterial blend_mode BLEND_MODE_MIX",
+      "support": "native",
+      "source": "canvasitemmaterial",
+      "note": "The engine's default."
+    },
+    {
+      "concept": "blend_additive",
+      "engine_term": "CanvasItemMaterial blend_mode BLEND_MODE_ADD",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "The headless run set the mode and read ADD back."
+    },
+    {
+      "concept": "blend_subtractive",
+      "engine_term": "CanvasItemMaterial blend_mode BLEND_MODE_SUB",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "Listed by the engine as Subtract."
+    },
+    {
+      "concept": "blend_multiply",
+      "engine_term": "CanvasItemMaterial blend_mode BLEND_MODE_MUL",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "Listed by the engine as Multiply."
+    },
+    {
+      "concept": "blend_screen",
+      "engine_term": "no screen mode in CanvasItemMaterial; a canvas-item shader can do it",
+      "support": "needs_custom",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "The engine listed exactly Mix, Add, Subtract, Multiply and Premultiplied Alpha."
+    },
+    {
+      "concept": "blend_premultiplied",
+      "engine_term": "CanvasItemMaterial blend_mode BLEND_MODE_PREMULT_ALPHA",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "Listed by the engine as Premultiplied Alpha."
+    },
+    {
+      "concept": "tileset_wang_corner",
+      "engine_term": "TileSet terrain set mode Match Corners",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "Under this mode a tile exposed exactly the four corner peering bits, the places a wang_corner_16 tile labels."
+    },
+    {
+      "concept": "tileset_wang_edge",
+      "engine_term": "TileSet terrain set mode Match Sides",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "Under this mode a tile exposed exactly the four side peering bits, the places a wang_edge_16 tile labels."
+    },
+    {
+      "concept": "tileset_blob",
+      "engine_term": "TileSet terrain set mode Match Corners and Sides",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "Under this mode a tile exposed all eight peering bits, the places a blob_47 tile labels."
+    },
+    {
+      "concept": "tileset_dual_grid",
+      "engine_term": "no terrain mode places tiles on an offset grid",
+      "support": "needs_custom",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "The engine's terrain modes are the three above. A dual-grid layout uses the corner mode for its data, but drawing it on a layer offset by half a tile is the game's job."
+    },
+    {
+      "concept": "tile_neighbour_labels",
+      "engine_term": "TileSet.CellNeighbor TOP_SIDE, TOP_RIGHT_CORNER, RIGHT_SIDE, BOTTOM_RIGHT_CORNER, BOTTOM_SIDE, BOTTOM_LEFT_CORNER, LEFT_SIDE, TOP_LEFT_CORNER",
+      "support": "native",
+      "source": "headless-4-7-2-animation-ui",
+      "note": "The framework's eight neutral places (top, top_right, right, bottom_right, bottom, bottom_left, left, top_left) are these eight, one to one."
+    },
+    {
+      "concept": "runtime_transparency",
+      "engine_term": "a PNG with real alpha, imported as it is",
+      "support": "native",
+      "source": "importing-images",
+      "note": "The runtime copies the framework derives (the key colour made transparent) are what to import. The importer's Fix Alpha Border option handles colour fringes at filtered edges, so the copies hold black under transparent pixels and are not bled."
+    }
+  ],
+  "sources": [
+    {
+      "id": "headless-4-7-2",
+      "basis": "observed",
+      "retrieved": "2026-10-24",
+      "evidence": "Godot 4.7.2 stable (.NET build), headless console, a GDScript that built the objects and printed their values: AtlasTexture region 20 x 10; SpriteFrames durations 1 and 2 at 10 fps; Sprite2D centered false with offset -16,-31; hexagon TileSet positions for both offset axes; isometric Diamond Down positions; Parallax2D properties read back; the options the engine lists for default_texture_filter and the stretch settings. Script and output: plans/enhancements/evidence/godot_profile_verification."
+    },
+    {
+      "id": "importing-images",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/importing_images.html"
+    },
+    {
+      "id": "atlastexture",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.godotengine.org/en/stable/classes/class_atlastexture.html"
+    },
+    {
+      "id": "spriteframes",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.godotengine.org/en/stable/classes/class_spriteframes.html"
+    },
+    {
+      "id": "headless-4-7-2-animation-ui",
+      "basis": "observed",
+      "retrieved": "2026-10-24",
+      "evidence": "Godot 4.7.2 stable (.NET build), headless console, the same script as headless-4-7-2 extended: Animation interpolation enum values and the value read back at five times for keys 0, 10, 0 at times 0, 0.5, 1 under nearest, linear and cubic; the value read back at three times of a 0 to 100 segment for key transitions 0.5, 1, 2, -2, -0.5 and 0; the CanvasItemMaterial blend mode enum and its listed options; NinePatchRect margins read back after setting them; the style boxes of the default Button theme; the TileSet terrain modes and which of the eight peering bits a tile exposes under each; SpriteFrames loop and speed read back; the AnimatedSprite2D playback methods and whether it has a ping-pong property. Script and output: plans/enhancements/evidence/godot_profile_verification."
+    },
+    {
+      "id": "animation-class",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.godotengine.org/en/stable/classes/class_animation.html"
+    },
+    {
+      "id": "canvasitemmaterial",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.godotengine.org/en/stable/classes/class_canvasitemmaterial.html"
+    },
+    {
+      "id": "ninepatchrect",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.godotengine.org/en/stable/classes/class_ninepatchrect.html"
+    },
+    {
+      "id": "animatedsprite2d",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.godotengine.org/en/stable/classes/class_animatedsprite2d.html"
+    },
+    {
+      "id": "tileset-class",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.godotengine.org/en/stable/classes/class_tileset.html"
+    }
+  ],
+  "default_exports": [
+    "runtime"
+  ]
+}

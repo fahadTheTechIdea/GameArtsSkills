@@ -1,0 +1,29 @@
+# Game Arts — genre recipes
+
+Tell the agent what kind of game you are making and it starts from the matching recipe: the kind of world, the looks that suit it, the facing directions, and the art to make first. This page is **design guidance, not a rule**: it records what such games usually need, so you do not have to know it in advance. Your own choices always win, and a game that fits no row is simply described in your own words.
+
+The words used here are explained in the [glossary](GLOSSARY.md). The looks are the [style presets](../presets/styles/) (list them with the agent: "show me the looks"). The rules behind a recipe are in the master standard (`GAME_ARTS_MASTER_STANDARD.md`: *World geometry, projection and scale*, *Asset profiles, view and direction classification*).
+
+## How to read a row
+- **World**: `grid_world` is a tile map with a ground; `free_world` has no tile grid; `layered_scene` is scrolling layers; `screen_space` has no ground at all.
+- **Directions**: the facing set for characters and other free-moving things (`dirs_8`, `dirs_4`, `dirs_2_side`, `dirs_1_side`, `dirs_1_front`). Buildings, terrain and interface art do not use it.
+- **Make first, in order**: the asset classes that give the quickest playable look, then the rest.
+
+## Recipes
+| Genre | World and view | Looks that suit it | Directions | Make first, in order | Watch for |
+|---|---|---|---|---|---|
+| Top-down RPG or farming sim | `grid_world`, top-down or elevated 3/4 | `pixel_mid`, `pixel_hd`, `cel_shaded`, `painterly` | `dirs_4` (or `dirs_8`) | terrain and `tileset`, buildings (`static_structure`), characters and animals (`mobile_directional`), props, `icon_set` for items, interface | one tile size and scale for everything; growth stages and seasons as separate frames; doors and other movable parts exported on their own |
+| Platformer or metroidvania | `layered_scene` or `free_world`, side view | `pixel_mid`, `pixel_hd`, `painterly`, `cel_shaded`, `cutout_paper` | `dirs_1_side` or `dirs_2_side` | player and enemies, `tileset` for ground and platforms, `parallax_layer` backgrounds, props, effects, interface | a clear ground-contact point for every character; all layers of a scene at one scale; layers that move at different speeds |
+| Isometric tactics or city builder | `grid_world`, isometric 2:1 | `pixel_mid`, `pixel_hd`, `rendered_2d`, `cel_shaded` | `dirs_4` or `dirs_8` for units | ground `tileset`, buildings (one view each), units, props, interface | the same light direction on every asset; buildings never rotated; one footprint per building |
+| Tower defense | `grid_world`, top-down or elevated 3/4 | `cel_shaded`, `flat_vector`, `pixel_mid` | `dirs_4` or `dirs_8` for enemies | map `tileset`, towers (`static_structure`), enemies, projectiles and hits (`effect`), `icon_set`, interface | towers readable at small size; enemies told apart by silhouette; upgrade levels as clear steps |
+| Shoot-'em-up | `free_world` or `layered_scene`, top-down or side | `flat_vector`, `pixel_mid`, `cel_shaded` | `dirs_1_front` or `dirs_1_side` | player ship, enemies and bosses, bullets and explosions (`effect`), scrolling `parallax_layer` backgrounds, interface | bullets that stay readable against busy backgrounds; consistent sizes between waves; large bosses split into movable parts |
+| Fighting or beat-'em-up | `free_world`, side view | `pixel_hd`, `cel_shaded`, `painterly` | `dirs_2_side` | fighters (large, many poses), stage `parallax_layer`, hit sparks (`effect`), interface | identical proportions in every pose; the same character scale across all fighters; sprite size chosen before drawing |
+| Roguelike with rooms | `grid_world`, top-down | `pixel_low`, `pixel_mid` | `dirs_4` | room `tileset` with variants, props, characters, `icon_set`, interface | room pieces whose edges fit together; variants so the same tile does not repeat |
+| Card or board game | `screen_space` | `flat_vector`, `cel_shaded`, `painterly`, `ink_line` | none | `card_layer_set` (frame, art window, decoration), `icon_set` for costs and suits, board and menus (`ui_presentation`) | text stays live text, never painted into the art; every face is a picture of the same `card_layer_set`; one card size; art that still reads when the card is small |
+| Match-3 or puzzle | `screen_space` | `flat_vector`, `cel_shaded`, `minimal_silhouette` | none | `icon_set` for the pieces, effects for matches, `ui_presentation` | pieces told apart by shape as well as colour; readable at the smallest size they are shown |
+| Visual novel | `screen_space` | `painterly`, `cel_shaded`, `ink_line`, `cutout_paper` | none | `portrait_set` with an expression list, backgrounds (`ui_presentation`), `icon_set`, interface | every expression framed and sized the same; one outfit or state per portrait set; names and dialogue are live text, never painted; the expression list is written in the storyboard scene's list of assets needed |
+| Idle or clicker | `screen_space` | `flat_vector`, `cel_shaded`, `pixel_low`, `minimal_silhouette` | none | `icon_set` for upgrades and currencies, characters (`portrait_set`), effects, `ui_presentation` | many near-identical icons that must still be told apart; effects kept small and cheap |
+| Endless runner | `layered_scene`, side view | `flat_vector`, `cel_shaded`, `pixel_mid` | `dirs_1_side` | the runner, obstacles and pickups, `parallax_layer` backgrounds, ground pieces, effects, interface | background layers that repeat without a visible seam; obstacles readable at speed |
+
+## When your game is not in the table
+Describe it. The agent asks what the world is like (a tile map, open space, scrolling layers, or no ground at all), which look you want, and how characters face, then proposes the rest and shows it back for your yes. You can also name an existing game folder of yours and start from its choices.

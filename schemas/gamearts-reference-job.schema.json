@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts reference-crop job",
+  "type": "object",
+  "required": [
+    "asset_id",
+    "asset_class",
+    "approved_mockup",
+    "region"
+  ],
+  "properties": {
+    "asset_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "asset_class": {
+      "enum": [
+        "static_structure",
+        "fixed_machinery",
+        "mobile_directional",
+        "ui_presentation",
+        "terrain",
+        "prop",
+        "effect",
+        "tileset",
+        "parallax_layer",
+        "portrait_set",
+        "icon_set",
+        "card_layer_set"
+      ]
+    },
+    "approved_mockup": {
+      "type": "object",
+      "required": [
+        "id",
+        "revision",
+        "approval_status",
+        "file",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "approval_status": {
+          "const": "approved"
+        },
+        "file": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "region": {
+      "type": "object",
+      "required": [
+        "id",
+        "rect"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "rect": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "padding_px": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        }
+      }
+    },
+    "identity_lock": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "applicable_custom_instructions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "approved_camera": {
+      "type": "string"
+    },
+    "directions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rotation_policy": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

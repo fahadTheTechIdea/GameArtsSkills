@@ -1,0 +1,50 @@
+{
+  "id": "ink_line",
+  "title": "Ink and line art",
+  "description": "Dark ink lines with flat or hatched fills in a few colours, like a printed comic or woodcut.",
+  "art_style": {
+    "id": "illustrated",
+    "outline_policy": "Ink line of consistent weight; line weight is part of the style.",
+    "shading_policy": "Flat tones or hatching; no soft gradients.",
+    "texture_policy": "Hatching, stippling or screentone only."
+  },
+  "cameras": [
+    "orthogonal_3_4_oblique",
+    "isometric_3_4",
+    "top_down",
+    "side",
+    "custom"
+  ],
+  "world_kinds": [
+    "grid_world",
+    "free_world",
+    "layered_scene",
+    "screen_space"
+  ],
+  "native_size_guidance": "Draw at about twice the final display size and reduce once with a smooth filter; keep every asset in a set at the same scale.",
+  "animation_approach": "either",
+  "avoid": [
+    "Do not use soft gradients.",
+    "Do not vary the line weight between assets.",
+    "Do not use more than the chosen ink colours."
+  ],
+  "required_checks": [
+    "palette_near",
+    "colour_count_max",
+    "loop_seam",
+    "pivot_drift",
+    "clipping"
+  ],
+  "check_parameters": {
+    "palette_near": {
+      "max_lab_distance": 10
+    },
+    "colour_count_max": {
+      "max_colours": 16
+    },
+    "loop_seam": {
+      "max_ratio": 1.5
+    }
+  },
+  "soft_edges": true
+}

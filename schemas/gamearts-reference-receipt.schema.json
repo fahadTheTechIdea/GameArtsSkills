@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts image-tool receipt (recorded by the agent after a real image-tool call)",
+  "type": "object",
+  "required": [
+    "reference_crop_sha256",
+    "reference_image_path",
+    "image_input_attached",
+    "tool_invocation_id",
+    "candidate_image",
+    "candidate_sha256"
+  ],
+  "properties": {
+    "reference_crop_sha256": {
+      "type": "string"
+    },
+    "reference_image_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "image_input_attached": {
+      "type": "boolean"
+    },
+    "tool_invocation_id": {
+      "type": "string"
+    },
+    "candidate_image": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_sha256": {
+      "type": "string"
+    },
+    "style_anchor_attached": {
+      "type": "boolean",
+      "description": "Whether the style anchor image was passed to the tool call as well as the crop. Reported as it was, never assumed."
+    }
+  },
+  "additionalProperties": true
+}

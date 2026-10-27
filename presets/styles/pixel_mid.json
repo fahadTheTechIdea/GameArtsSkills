@@ -1,0 +1,58 @@
+{
+  "id": "pixel_mid",
+  "title": "Pixel art, 16-bit era",
+  "description": "Richer pixel art with a larger palette, shaded outlines and careful dithering, like 16-bit era games.",
+  "art_style": {
+    "id": "pixel_art",
+    "outline_policy": "One-pixel outline in a darker shade of the fill colour; selective outlining allowed on lit edges.",
+    "shading_policy": "Three to five tones per material with hue-shifted shadows and highlights; dithering allowed in small areas.",
+    "texture_policy": "Small repeating patterns and light noise at pixel scale.",
+    "pixel_density": "One art pixel is one game pixel; tiles 16 to 32 px, characters 16 to 48 px tall.",
+    "palette_reference": "A fixed palette of at most 64 colours, chosen once for the whole game."
+  },
+  "cameras": [
+    "orthogonal_3_4_oblique",
+    "top_down",
+    "side",
+    "isometric_3_4"
+  ],
+  "world_kinds": [
+    "grid_world",
+    "free_world",
+    "layered_scene",
+    "screen_space"
+  ],
+  "native_size_guidance": "Draw at the final pixel size: tiles of 16 or 32 px and characters one to two tiles tall. Never draw large and shrink.",
+  "tile_px": [
+    16,
+    32
+  ],
+  "animation_approach": "frame_by_frame",
+  "avoid": [
+    "Do not use anti-aliasing, blur or soft gradients.",
+    "Do not draw detail finer than one art pixel.",
+    "Do not mix pixel sizes: every art pixel is the same size across the whole image.",
+    "Do not add colours outside the fixed palette of 64."
+  ],
+  "required_checks": [
+    "palette_exact",
+    "colour_count_max",
+    "pixel_grid",
+    "integer_scale",
+    "loop_seam",
+    "pivot_drift",
+    "clipping"
+  ],
+  "check_parameters": {
+    "colour_count_max": {
+      "max_colours": 64
+    },
+    "pixel_grid": {
+      "min_aligned_share": 0.98
+    },
+    "loop_seam": {
+      "max_ratio": 1.5
+    }
+  },
+  "soft_edges": false
+}

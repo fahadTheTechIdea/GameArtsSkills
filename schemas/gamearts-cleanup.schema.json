@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts parent-cleanup manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "method",
+    "source_composite",
+    "static_parent",
+    "clean_plate",
+    "clean_plate_review",
+    "clean_plate_reference_id",
+    "detached_components"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "method": {
+      "const": "pixel_exact"
+    },
+    "source_composite": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/\\\\:][^\\\\:]*$"
+    },
+    "static_parent": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/\\\\:][^\\\\:]*$"
+    },
+    "clean_plate": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/\\\\:][^\\\\:]*$"
+    },
+    "clean_plate_review": {
+      "enum": [
+        "approved",
+        "pending",
+        "rejected"
+      ]
+    },
+    "clean_plate_reference_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "art_style_id": {
+      "type": "string"
+    },
+    "detached_components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "sprite",
+          "removal_mask"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "movable",
+              "removable",
+              "interactive",
+              "replaceable",
+              "animated",
+              "independent_prop"
+            ]
+          },
+          "sprite": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\:][^\\\\:]*$"
+          },
+          "removal_mask": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\:][^\\\\:]*$"
+          },
+          "sprite_silhouette_mask": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\:][^\\\\:]*$"
+          },
+          "silhouette_review": {
+            "enum": [
+              "approved",
+              "pending",
+              "rejected"
+            ]
+          },
+          "silhouette_reference_id": {
+            "type": "string"
+          },
+          "source_offset": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "Top-left of the sprite inside source_composite; ties sprite pixels to source pixels."
+          },
+          "source_tolerance": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

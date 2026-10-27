@@ -1,0 +1,59 @@
+{
+  "id": "pixel_hd",
+  "title": "Pixel art, high resolution",
+  "description": "Large, detailed pixel art with fine shading and lighting, still built on a strict pixel grid.",
+  "art_style": {
+    "id": "pixel_art",
+    "outline_policy": "Selective outline: dark on shadowed edges, none or light on lit edges.",
+    "shading_policy": "Many tones per material built from pixel clusters, with a clear light direction and bounce light.",
+    "texture_policy": "Fine material detail drawn pixel by pixel.",
+    "pixel_density": "One art pixel is one game pixel; tiles 32 to 64 px, characters 48 to 128 px tall.",
+    "palette_reference": "A fixed palette of at most 128 colours, chosen once for the whole game."
+  },
+  "cameras": [
+    "orthogonal_3_4_oblique",
+    "top_down",
+    "side",
+    "isometric_3_4"
+  ],
+  "world_kinds": [
+    "grid_world",
+    "free_world",
+    "layered_scene",
+    "screen_space"
+  ],
+  "native_size_guidance": "Draw at the final pixel size: tiles of 32, 48 or 64 px. Never draw large and shrink.",
+  "tile_px": [
+    32,
+    64
+  ],
+  "animation_approach": "frame_by_frame",
+  "avoid": [
+    "Do not use anti-aliasing, blur or soft gradients.",
+    "Do not draw detail finer than one art pixel.",
+    "Do not mix pixel sizes: every art pixel is the same size across the whole image.",
+    "Do not add colours outside the fixed palette of 128.",
+    "Do not use smooth gradients; build shading from pixel clusters."
+  ],
+  "required_checks": [
+    "palette_exact",
+    "colour_count_max",
+    "pixel_grid",
+    "integer_scale",
+    "loop_seam",
+    "pivot_drift",
+    "clipping"
+  ],
+  "check_parameters": {
+    "colour_count_max": {
+      "max_colours": 128
+    },
+    "pixel_grid": {
+      "min_aligned_share": 0.98
+    },
+    "loop_seam": {
+      "max_ratio": 1.5
+    }
+  },
+  "soft_edges": false
+}

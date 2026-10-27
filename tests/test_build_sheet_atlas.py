@@ -54,7 +54,8 @@ class AtlasBuilderTests(unittest.TestCase):
             self.assertEqual(atlas["frames"][0]["duration_ms"], 120)
             self.assertEqual(atlas["frames"][1]["duration_ms"], 150)
             self.assertEqual(atlas["frames"][0]["source_ink_bounds"], [4, 5, 1, 1])
-            self.assertEqual(atlas["validation"]["godot_runtime"], "not_tested")
+            self.assertEqual(atlas["validation"]["engine_validation"], "not_tested")
+            self.assertNotIn("godot_runtime", atlas["validation"])
 
     def test_refuses_accidental_overwrite(self):
         with tempfile.TemporaryDirectory() as td:

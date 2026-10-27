@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts component-bundle job",
+  "type": "object",
+  "required": [
+    "name",
+    "directions",
+    "components"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "directions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "sample_times": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "rotation_interpolation": {
+      "enum": [
+        "linear",
+        "shortest"
+      ]
+    },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "views"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "parent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mount": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "parent_action": {
+            "type": "string"
+          },
+          "views": {
+            "type": "object"
+          },
+          "mount_tracks": {
+            "type": "object"
+          },
+          "motion_tracks": {
+            "type": "object"
+          },
+          "rest": {
+            "type": "object"
+          },
+          "draw_order": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    "detached_inventory": {
+      "type": "object"
+    },
+    "parent_cleanup_evidence": {
+      "type": "array"
+    },
+    "source_mockups": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

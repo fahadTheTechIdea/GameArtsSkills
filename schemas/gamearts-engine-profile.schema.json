@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts engine profile",
+  "description": "What the framework's engine-neutral outputs mean for one engine or tool: import guidance by art style and a map from framework concepts to the engine's own, each with a source. Data only: a profile holds no code, shader or scene and never changes art, gates or approvals.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "summary",
+    "import_guidance",
+    "concept_map",
+    "sources"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "maxLength": 40
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "documented_against": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engine_version",
+        "retrieved"
+      ],
+      "properties": {
+        "engine_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retrieved": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        }
+      }
+    },
+    "import_guidance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "topic",
+          "applies_to",
+          "text"
+        ],
+        "properties": {
+          "topic": {
+            "type": "string",
+            "minLength": 1
+          },
+          "applies_to": {
+            "enum": [
+              "pixel_art",
+              "smooth",
+              "all"
+            ],
+            "description": "pixel_art for the pixel-art style, smooth for every other style."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "concept_map": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "concept",
+          "engine_term",
+          "support",
+          "source"
+        ],
+        "properties": {
+          "concept": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "engine_term": {
+            "type": "string",
+            "minLength": 1
+          },
+          "support": {
+            "enum": [
+              "native",
+              "needs_custom",
+              "absent"
+            ],
+            "description": "native: the engine does it itself. needs_custom: the game must supply something. absent: not possible."
+          },
+          "note": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "basis",
+          "retrieved"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "basis": {
+            "enum": [
+              "documented",
+              "claimed",
+              "observed"
+            ],
+            "description": "documented: a primary page states it. claimed: a third party states it. observed: a run was made."
+          },
+          "retrieved": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "For an observed basis: what was run and what it printed."
+          }
+        }
+      }
+    },
+    "default_exports": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "runtime"
+        ]
+      },
+      "description": "Derived files this engine usually wants made when an asset is approved. `runtime` is the transparent copy of each sheet. Absent means none."
+    }
+  }
+}

@@ -1,0 +1,247 @@
+{
+  "id": "phaser",
+  "title": "Phaser",
+  "summary": "Notes for using Game Arts files in Phaser 3. Written from the current documentation pages and the animation and easing source files read on 2026-10-24; nothing was run in a browser, so every mapping is documented, none is observed.",
+  "documented_against": {
+    "engine_version": "3.60 or later (the pages read are the current unversioned documentation)",
+    "retrieved": "2026-10-24"
+  },
+  "import_guidance": [
+    {
+      "topic": "Animations from tags",
+      "applies_to": "all",
+      "source": "animation-manager",
+      "text": "Export with `scripts/export_exchange.py --atlas <sheet>.atlas.json --format aseprite-array --frame-names index`, load it with the Aseprite loader and call createFromAseprite: every tag becomes an animation of the same name. Tags do not carry a loop, so say whether each loops when you play it."
+    },
+    {
+      "topic": "Pixel art",
+      "applies_to": "pixel_art",
+      "source": "game-config",
+      "text": "Set the game config's pixelArt option to true: it turns antialiasing off and rounds drawn positions to whole pixels."
+    },
+    {
+      "topic": "Smooth art",
+      "applies_to": "smooth",
+      "source": "game-config",
+      "text": "Leave antialias on (its default) so scaled and rotated textures are drawn with linear interpolation."
+    },
+    {
+      "topic": "Runtime copies",
+      "applies_to": "all",
+      "text": "Use the runtime copies the framework derives (real transparency instead of the magenta background) as your textures, and the matching atlas data for frame rectangles and pivots."
+    },
+    {
+      "topic": "Easing",
+      "applies_to": "all",
+      "source": "quad-in",
+      "text": "The framework's ease_in, ease_out and ease_in_out are Phaser's Quadratic In, Out and InOut. The framework's cubic curve has no Phaser counterpart."
+    }
+  ],
+  "concept_map": [
+    {
+      "concept": "atlas_frame_rect",
+      "engine_term": "an atlas frame's frame {x, y, w, h}, in the JSON that load.atlas or load.aseprite reads",
+      "support": "native",
+      "source": "textures",
+      "note": "Phaser reads TexturePacker-style frame data (frame, trimmed, sourceSize, spriteSourceSize, rotated, pivot). The framework's aseprite-array and aseprite-hash exports write those fields."
+    },
+    {
+      "concept": "frame_pivot",
+      "engine_term": "an atlas frame's custom pivot {x, y}, a custom origin",
+      "support": "native",
+      "source": "textures",
+      "note": "The page documents an optional custom pivot per frame. The framework's exchange export writes the pivot as a fraction of the source picture."
+    },
+    {
+      "concept": "frame_duration",
+      "engine_term": "the frame's duration in milliseconds, summed into the animation's duration",
+      "support": "native",
+      "source": "animation-manager-source",
+      "note": "createFromAseprite reads each frame's duration. A frame without one falls back to the largest safe integer, so every frame must carry its duration, which the export does."
+    },
+    {
+      "concept": "animation_tag_range",
+      "engine_term": "AnimationManager.createFromAseprite: one animation per frame tag, named by the tag",
+      "support": "native",
+      "source": "animation-manager",
+      "note": "Since 3.50.0. The export needs the tags in meta and the item filename to be only the frame number: the source finds each frame by its number as text, so export with --frame-names index."
+    },
+    {
+      "concept": "animation_tag_reverse",
+      "engine_term": "a frame tag with direction reverse: the frames are reversed",
+      "support": "native",
+      "source": "animation-manager-source",
+      "note": "Read from createFromAseprite's source."
+    },
+    {
+      "concept": "animation_tag_pingpong",
+      "engine_term": "a frame tag with direction pingpong: the animation's yoyo is set",
+      "support": "native",
+      "source": "animation-manager-source",
+      "note": "pingpong_reverse is not handled and plays forward without yoyo, so a pingpong_reverse tag needs your own handling."
+    },
+    {
+      "concept": "animation_tag_loop",
+      "engine_term": "not read from a tag: the game sets repeat when it plays the animation",
+      "support": "needs_custom",
+      "source": "animation-manager-source",
+      "note": "The created animation holds only its key, frames, duration and yoyo, so whether a tag loops is the game's decision."
+    },
+    {
+      "concept": "animation_tag_repeat_count",
+      "engine_term": "not read from a tag",
+      "support": "needs_custom",
+      "source": "animation-manager-source",
+      "note": "A tag's repeat is ignored by createFromAseprite; the game counts plays."
+    },
+    {
+      "concept": "texture_filter_pixel",
+      "engine_term": "game config pixelArt: true (antialias false and roundPixels true)",
+      "support": "native",
+      "source": "game-config",
+      "note": "The page calls it the best setting for pixel-art games."
+    },
+    {
+      "concept": "texture_filter_smooth",
+      "engine_term": "game config antialias: true (the default), linear interpolation in WebGL",
+      "support": "native",
+      "source": "game-config",
+      "note": "The default."
+    },
+    {
+      "concept": "screen_base_resolution",
+      "engine_term": "game config width and height in game pixels, and the scale configuration",
+      "support": "native",
+      "source": "game-config",
+      "note": "The page gives 1024 by 768 as the defaults."
+    },
+    {
+      "concept": "nine_slice",
+      "engine_term": "the NineSlice game object: leftWidth, rightWidth, topHeight, bottomHeight",
+      "support": "native",
+      "source": "nine-slice",
+      "note": "Since 3.60.0. The order differs from the framework's [left, top, right, bottom]: map the second and third values. A top and bottom of zero make a three-slice object."
+    },
+    {
+      "concept": "easing_named_curves",
+      "engine_term": "Phaser.Math.Easing.Quadratic In, Out and InOut",
+      "support": "native",
+      "source": "quad-in",
+      "note": "Read from the three source files: In is v * v, Out is v * (2 - v), and InOut is 0.5 * v * v after doubling below one and the mirrored form above. They equal the framework's ease_in, ease_out and ease_in_out."
+    },
+    {
+      "concept": "blend_normal",
+      "engine_term": "Phaser.BlendModes.NORMAL",
+      "support": "native",
+      "source": "blend-modes",
+      "note": "The default."
+    },
+    {
+      "concept": "blend_additive",
+      "engine_term": "Phaser.BlendModes.ADD",
+      "support": "native",
+      "source": "blend-modes",
+      "note": "In both the canvas and WebGL renderers."
+    },
+    {
+      "concept": "blend_multiply",
+      "engine_term": "Phaser.BlendModes.MULTIPLY",
+      "support": "native",
+      "source": "blend-modes",
+      "note": "In both the canvas and WebGL renderers."
+    },
+    {
+      "concept": "blend_screen",
+      "engine_term": "Phaser.BlendModes.SCREEN",
+      "support": "native",
+      "source": "blend-modes",
+      "note": "In both the canvas and WebGL renderers."
+    },
+    {
+      "concept": "blend_subtractive",
+      "engine_term": "no subtract blend mode is listed",
+      "support": "needs_custom",
+      "source": "blend-modes",
+      "note": "DIFFERENCE is a different operation; a shader or a different treatment is needed."
+    },
+    {
+      "concept": "blend_premultiplied",
+      "engine_term": "no premultiplied-alpha blend mode is listed",
+      "support": "needs_custom",
+      "source": "blend-modes",
+      "note": "The page says nothing about premultiplied alpha."
+    },
+    {
+      "concept": "parallax_layer",
+      "engine_term": "a game object's scrollFactor",
+      "support": "native",
+      "source": "scroll-factor",
+      "note": "1 moves with the camera, 0 does not move, and values between give partial movement. Scroll factors other than 1 are ignored by physics collisions."
+    }
+  ],
+  "sources": [
+    {
+      "id": "animation-manager",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.phaser.io/api-documentation/class/animations-animationmanager"
+    },
+    {
+      "id": "animation-manager-source",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://raw.githubusercontent.com/phaserjs/phaser/master/src/animations/AnimationManager.js"
+    },
+    {
+      "id": "textures",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.phaser.io/phaser/concepts/textures"
+    },
+    {
+      "id": "game-config",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.phaser.io/api-documentation/typedef/types-core"
+    },
+    {
+      "id": "blend-modes",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.phaser.io/api-documentation/namespace/blendmodes"
+    },
+    {
+      "id": "nine-slice",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.phaser.io/api-documentation/class/gameobjects-nineslice"
+    },
+    {
+      "id": "scroll-factor",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.phaser.io/api-documentation/namespace/gameobjects-components-scrollfactor"
+    },
+    {
+      "id": "quad-in",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://raw.githubusercontent.com/phaserjs/phaser/master/src/math/easing/quadratic/In.js"
+    },
+    {
+      "id": "quad-out",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://raw.githubusercontent.com/phaserjs/phaser/master/src/math/easing/quadratic/Out.js"
+    },
+    {
+      "id": "quad-inout",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://raw.githubusercontent.com/phaserjs/phaser/master/src/math/easing/quadratic/InOut.js"
+    }
+  ],
+  "default_exports": [
+    "runtime"
+  ]
+}

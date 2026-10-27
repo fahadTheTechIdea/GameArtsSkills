@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts visual-review decision (written by the agent only after the user's real approval)",
+  "type": "object",
+  "required": [
+    "asset_id",
+    "revision",
+    "packet_sha256",
+    "decision",
+    "reviewer_type",
+    "user_approval_reference",
+    "component_ids_approved",
+    "uncertainty_ids_acknowledged",
+    "reviewed_inventory",
+    "reviewed_silhouettes",
+    "reviewed_clean_background"
+  ],
+  "properties": {
+    "asset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "packet_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "decision": {
+      "enum": [
+        "approved",
+        "revise",
+        "rejected"
+      ]
+    },
+    "reviewer_type": {
+      "enum": [
+        "user",
+        "agent"
+      ]
+    },
+    "user_approval_reference": {
+      "type": "string"
+    },
+    "component_ids_approved": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "uncertainty_ids_acknowledged": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reviewed_inventory": {
+      "type": "boolean"
+    },
+    "reviewed_silhouettes": {
+      "type": "boolean"
+    },
+    "reviewed_clean_background": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

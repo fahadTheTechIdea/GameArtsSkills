@@ -9,6 +9,7 @@ from PIL import Image
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "visual_review_cleanup.py"
 sys.path.insert(0, str(SCRIPT.parent))
+import gamearts_common as common
 spec = importlib.util.spec_from_file_location("visual_review_cleanup", SCRIPT)
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
@@ -32,16 +33,17 @@ def fixture(root):
     (Path(root) / "reference.packet.json").write_text(json.dumps({
         "approved_mockup": {
             "id": "approved_test_scene", "revision": "v001",
-            "sha256": mod.sha(folder / "original.png")
+            "sha256": common.sha256_file(folder / "original.png")
         },
-        "reference_crop_sha256": mod.sha(Path(root) / "approved_mockup_crop.png"),
-        "reference_crop": str((Path(root) / "approved_mockup_crop.png").resolve())
+        "reference_crop_sha256": common.sha256_file(Path(root) / "approved_mockup_crop.png"),
+        "reference_crop": "approved_mockup_crop.png"  # relative to the packet's own folder, as the crop gate writes it
     }))
     source_mask.save(folder / "workbench.mask.png")
-    sprite = Image.new("RGBA", (18, 16), PINK)
+    # The sprite is exactly the source pixels under the removal mask; it sits at (4, 8) in the 40x32 composite.
+    sprite = Image.new("RGBA", (21, 16), PINK)
     mask = Image.new("L", sprite.size, 0)
     for y in range(2, 14):
-        for x in range(3, 16):
+        for x in range(3, 18):
             sprite.putpixel((x, y), (110, 65, 39, 255))
             mask.putpixel((x, y), 255)
     sprite.save(folder / "workbench.png")
@@ -61,7 +63,8 @@ def fixture(root):
             "sprite": "workbench.png", "removal_mask": "workbench.mask.png",
             "sprite_silhouette_mask": "workbench.silhouette.png",
             "silhouette_review": "approved",
-            "silhouette_reference_id": "reviewed_workbench_original"
+            "silhouette_reference_id": "reviewed_workbench_original",
+            "source_offset": [4, 8]
         }]
     }
     cleanup_file = folder / "cleanup.json"
@@ -71,7 +74,7 @@ def fixture(root):
         "approved_reference": {
             "file": "approved_mockup_crop.png",
             "crop_packet": "reference.packet.json",
-            "sha256": mod.sha(Path(root) / "approved_mockup_crop.png"),
+            "sha256": common.sha256_file(Path(root) / "approved_mockup_crop.png"),
             "mockup_id": "approved_test_scene", "mockup_revision": "v001"
         },
         "expected_component_ids": ["workbench"],
@@ -88,10 +91,10 @@ def fixture(root):
 
 
 def decision(packet_path):
-    packet = mod.read(packet_path)
+    packet = common.read_json(packet_path)
     return {
         "asset_id": packet["asset_id"], "revision": packet["revision"],
-        "packet_sha256": mod.sha(packet_path),
+        "packet_sha256": common.sha256_file(packet_path),
         "decision": "approved", "reviewer_type": "user",
         "user_approval_reference": "actual-message-reference-for-test",
         "component_ids_approved": packet["component_ids"],
@@ -108,7 +111,7 @@ class VisualReviewTests(unittest.TestCase):
             root = Path(td)
             cleanup, spec_file, _ = fixture(root)
             packet_file = mod.prepare(cleanup, spec_file, root / "review")
-            packet = mod.read(packet_file)
+            packet = common.read_json(packet_file)
             self.assertEqual(packet["review_status"], "pending_user_visual_review")
             self.assertEqual(packet["component_ids"], ["workbench"])
             self.assertEqual(packet["uncertain_region_ids"], ["tabletop"])
@@ -181,7 +184,7 @@ class VisualReviewTests(unittest.TestCase):
             image = Image.open(folder / "workbench.png")
             image.putpixel((0, 0), (130, 121, 100, 255))
             image.save(folder / "workbench.png")
-            with self.assertRaisesRegex(ValueError, "silhouette mask differs"):
+            with self.assertRaisesRegex(ValueError, "silhouette mismatch"):
                 mod.prepare(cleanup, review, root / "review")
 
     def test_incomplete_independent_inventory_blocks_board(self):
@@ -201,7 +204,7 @@ class VisualReviewTests(unittest.TestCase):
             data = json.loads(review.read_text())
             data["uncertain_regions"][0]["evidence_status"] = "verified"
             review.write_text(json.dumps(data))
-            with self.assertRaisesRegex(ValueError, "uncertainty"):
+            with self.assertRaisesRegex(ValueError, "evidence_status"):
                 mod.prepare(cleanup, review, root / "review")
 
     def test_no_approval_for_other_revision(self):
@@ -223,7 +226,7 @@ class VisualReviewTests(unittest.TestCase):
             image = Image.open(folder / "parent.png")
             image.putpixel((35, 25), (0, 0, 0, 255))
             image.save(folder / "parent.png")
-            with self.assertRaisesRegex(ValueError, "Clean parent pixel test failed"):
+            with self.assertRaisesRegex(ValueError, "outside removal masks"):
                 mod.prepare(cleanup, review, root / "review")
 
     def test_review_board_change_invalidates_approval(self):
@@ -249,8 +252,33 @@ class VisualReviewTests(unittest.TestCase):
             manifest = json.loads(cleanup.read_text())
             manifest["detached_components"][0]["sprite"] = str(external)
             cleanup.write_text(json.dumps(manifest))
-            with self.assertRaisesRegex(ValueError, "outside current asset candidate"):
+            with self.assertRaisesRegex(ValueError, "contract violation at detached_components/0/sprite"):
                 mod.prepare(cleanup, review, root / "review")
+
+    def test_a_decision_missing_required_fields_is_a_contract_failure(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cleanup, review, _ = fixture(root)
+            packet = mod.prepare(cleanup, review, root / "review")
+            vote = decision(packet)
+            del vote["user_approval_reference"]
+            file = root / "review" / "decision.json"
+            file.write_text(json.dumps(vote))
+            with self.assertRaisesRegex(ValueError, "gamearts-review-decision contract violation"):
+                mod.verify(packet, file)
+
+    def test_a_tampered_packet_that_breaks_its_contract_is_refused(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cleanup, review, _ = fixture(root)
+            packet = mod.prepare(cleanup, review, root / "review")
+            body = common.read_json(packet)
+            del body["review_board"]
+            packet.write_text(json.dumps(body))
+            vote = root / "review" / "decision.json"
+            vote.write_text("{}")
+            with self.assertRaisesRegex(ValueError, "gamearts-review-packet contract violation"):
+                mod.verify(packet, vote)
 
     def test_agent_cannot_self_approve(self):
         with tempfile.TemporaryDirectory() as td:

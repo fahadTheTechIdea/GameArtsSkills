@@ -1,0 +1,102 @@
+{
+  "id": "unity",
+  "title": "Unity",
+  "summary": "Notes for using Game Arts files in Unity. Written from the manual pages read on 2026-10-24 (Unity 6000.6); nothing was run in the editor, so every mapping is documented and none is observed.",
+  "documented_against": {
+    "engine_version": "6000.6",
+    "retrieved": "2026-10-24"
+  },
+  "import_guidance": [
+    {
+      "topic": "Sprites from a grid sheet",
+      "applies_to": "all",
+      "text": "Import the runtime copy as a Sprite (2D and UI) texture with Sprite Mode Multiple, then slice with Grid By Cell Size using the atlas cell size.",
+      "source": "slicing"
+    },
+    {
+      "topic": "Pixel art",
+      "applies_to": "pixel_art",
+      "text": "Set the texture's Filter Mode to Point (no filter).",
+      "source": "texture-sprite"
+    },
+    {
+      "topic": "Smooth art",
+      "applies_to": "smooth",
+      "text": "Use Bilinear (or Trilinear with mipmaps) so the texture is not blocky up close.",
+      "source": "texture-sprite"
+    },
+    {
+      "topic": "Stretching panels",
+      "applies_to": "all",
+      "text": "Drag the borders in the Sprite Editor or type them in, set Mesh Type to Full Rect, and set the Sprite Renderer's Draw Mode to Sliced.",
+      "source": "nine-slice"
+    }
+  ],
+  "concept_map": [
+    {
+      "concept": "atlas_frame_rect",
+      "engine_term": "Sprite Mode Multiple, sliced in the Sprite Editor with Grid By Cell Size",
+      "support": "native",
+      "source": "slicing",
+      "note": "Equal cells only, so a grid sheet. Automatic slicing is based on the texture's transparency and does not follow the cells, so do not use it for these sheets."
+    },
+    {
+      "concept": "frame_pivot",
+      "engine_term": "the sprite's Pivot, where its local coordinate system originates",
+      "support": "native",
+      "source": "texture-sprite",
+      "note": "Set it from the atlas pivot. The pages read do not state the pivot's units or origin corner."
+    },
+    {
+      "concept": "nine_slice",
+      "engine_term": "Sprite Editor borders (the L, R, T and B fields) with the Sprite Renderer's Draw Mode set to Sliced",
+      "support": "native",
+      "source": "nine-slice",
+      "note": "The order of the editor fields (left, right, top, bottom) differs from the framework's [left, top, right, bottom]. Set Mesh Type to Full Rect: with Tight, 9-slicing might not work correctly."
+    },
+    {
+      "concept": "texture_filter_pixel",
+      "engine_term": "Filter Mode Point (no filter)",
+      "support": "native",
+      "source": "texture-sprite",
+      "note": "The texture appears blocky up close."
+    },
+    {
+      "concept": "texture_filter_smooth",
+      "engine_term": "Filter Mode Bilinear",
+      "support": "native",
+      "source": "texture-sprite",
+      "note": "The texture appears blurry up close; Trilinear also blends between mipmap levels."
+    },
+    {
+      "concept": "runtime_transparency",
+      "engine_term": "a texture with alpha; Alpha Is Transparency dilates the colour channels",
+      "support": "native",
+      "source": "texture-sprite",
+      "note": "The importer fills the colour under transparent pixels itself when that option is on, so the framework's runtime copies are not bled."
+    }
+  ],
+  "sources": [
+    {
+      "id": "slicing",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.unity3d.com/Manual/sprite/sprite-editor/use-editor.html"
+    },
+    {
+      "id": "nine-slice",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.unity3d.com/Manual/sprite/9-slice/set-sprite-9slicing.html"
+    },
+    {
+      "id": "texture-sprite",
+      "basis": "documented",
+      "retrieved": "2026-10-24",
+      "url": "https://docs.unity3d.com/Manual/texture-type-sprite.html"
+    }
+  ],
+  "default_exports": [
+    "runtime"
+  ]
+}
