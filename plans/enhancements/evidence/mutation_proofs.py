@@ -471,6 +471,7 @@ MUTATIONS = [
     ('M406', "P15 a storyboard Game Arts made is replaced by another owner's", 'scripts/gamearts_storyboard.py', 'if old and not old.get("external_owner") and old["scenes"]:', 'if False:', 'test_storyboard_external.py'),
     ('M407', "P15 an adopted scene's text hash is not recorded", 'scripts/gamearts_storyboard.py', '"owner": owner, "content_sha256": scene_hash(scene)}', '"owner": owner, "content_sha256": "0" * 64}', 'test_storyboard_external.py'),
     ('M408', "P15 the owner's words for an unchanged pick are dropped", 'scripts/gamearts_setup.py', '        answers[name]["said"] = said.strip()', '        pass', 'test_setup_wizard.py'),
+    ('M409', 'P15 Storyboard contract: a mockup row loses its sha256 field', 'scripts/gamearts_asset_lifecycle.py', '"sha256": metadata["sha256"].lower(), "settings_sha256": canonical,', '"digest": metadata["sha256"].lower(), "settings_sha256": canonical,', 'test_lifecycle_operations.py'),
 ]
 
 

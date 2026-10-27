@@ -681,10 +681,24 @@ class StoryboardGateTests(GameFolder):
         image, metadata = make_mockup(self.root, "scene-d", scope="scene", scene="arrival")
         life.register_mockup(self.root, metadata, image)
         row = self.manifest("mockups")[0]
-        for field in ("mockup_id", "revision", "status", "file", "storyboard_scene_id"):
+        for field in ("mockup_id", "revision", "status", "file", "storyboard_scene_id", "sha256"):
             self.assertIn(field, row, f"the mockup manifest row lost {field!r}")
         self.assertEqual((row["status"], row["storyboard_scene_id"]), ("generated", "arrival"))
         self.assertTrue((self.root / row["file"]).is_file())
+
+    def test_scenes_another_tool_owns_take_scene_mockups_with_the_same_row_fields(self):
+        """Adopted scenes are approved scenes: the manifest accepts their mockups exactly as before, and the row keeps the fields other tools read."""
+        board.adopt_external(self.root, "story-tool", {"title": "T", "scenes": [{"id": "arrival", "title": "Arrival", "summary": "The coach arrives."}]},
+                             "the developer: these scenes")
+        image, metadata = make_mockup(self.root, "scene-x", scope="scene", scene="arrival")
+        self.assertEqual(life.register_mockup(self.root, metadata, image)["status"], "generated")
+        row = self.manifest("mockups")[0]
+        for field in ("mockup_id", "revision", "status", "file", "storyboard_scene_id", "sha256"):
+            self.assertIn(field, row)
+        self.assertEqual(row["storyboard_scene_id"], "arrival")
+        image, metadata = make_mockup(self.root, "scene-y", scope="scene", scene="unlisted")
+        with self.assertRaisesRegex(ValueError, "Unknown storyboard scene"):
+            life.register_mockup(self.root, metadata, image)
 
     def test_editing_an_approved_scene_blocks_its_mockup_until_reapproved(self):
         self.storyboard(["arrival", "first-match"])
