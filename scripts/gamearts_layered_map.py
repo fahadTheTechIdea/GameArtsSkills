@@ -5,7 +5,9 @@
   python scripts/gamearts_layered_map.py validate MAP.layered_map.json
   python scripts/gamearts_layered_map.py overlay MAP.layered_map.json --terrain ID      # the tile each position of that overlay uses, and any it lacks
   python scripts/gamearts_layered_map.py gameplay MAP.layered_map.json                  # '.' walkable, '#' blocked, derived from the terrains and the objects' footprints
-  python scripts/gamearts_layered_map.py plan MAP.layered_map.json [--write-jobs DIR]   # which tilesets the map still needs, and (with --write-jobs) a job skeleton for each
+  python scripts/gamearts_layered_map.py plan MAP.layered_map.json [--write-jobs DIR] [--scene SCENE.png --swatches DIR]
+                                                                                          # which tilesets the map still needs, a job skeleton for each, and the cleanest crop of each terrain
+  python scripts/gamearts_layered_map.py mask --size WxH --boxes boxes.json --output mask.png    # an occlusion mask from measured regions
 
 The map is engine-neutral data. It names a terrain label for every cell, the draw order (a base ground, then one overlay per further terrain by priority,
 then objects, overhead objects and a gameplay layer), and the objects with the atlas frame that draws each. It does not build an engine scene: that belongs
@@ -53,11 +55,12 @@ def layers_for(terrains, objects):
     return layers
 
 
-def build(image_path, terrains, cell_px, name, output_dir, min_region=1, objects=None, occluders=None, occlusion_mask=None):
+def build(image_path, terrains, cell_px, name, output_dir, min_region=1, objects=None, occluders=None, occlusion_mask=None, solid_mask=None):
     """Read the scene into a layered map file; returns (path, the map). `occluders` name the things drawn on top of the ground (trees, roofs, characters) by their sample
     colours, so the cells they cover take the terrain of the nearest visible ground and are recorded as inferred. Nothing is overwritten and a map that fails its own
     check is not left behind. `occlusion_mask` is a picture the size of the scene, white where an object lies (from the scene's analysis or a segmenter): the cells it
-    covers are hidden whatever their colour, together with those the colour occluders find."""
+    covers are hidden whatever their colour, together with those the colour occluders find. `solid_mask` is the same kind of picture for solid structures (buildings, walls):
+    its cells are hidden too, and they also block movement; the terrain under them is inferred, not seen."""
     from PIL import Image
     image_path, output_dir = Path(image_path), Path(output_dir)
     objects = list(objects or [])
@@ -69,7 +72,15 @@ def build(image_path, terrains, cell_px, name, output_dir, min_region=1, objects
     with Image.open(image_path) as opened:
         read = terrain.read_labels(opened, terrains, tuple(cell_px), occluders=occluders or ())
         size = opened.size
-    mask_hash = None
+    mask_hash, solid_hash, solid = None, None, set()
+    if solid_mask is not None:
+        with Image.open(solid_mask) as picture:
+            if picture.size != size:
+                raise ValueError(f"the solid mask is {picture.size[0]} x {picture.size[1]} and the scene is {size[0]} x {size[1]}; they must be the same size")
+            solid = terrain.cells_from_mask(picture, tuple(cell_px))
+        for x, y in solid:
+            read["labels"][y][x] = len(terrains)
+        solid_hash = common.sha256_file(solid_mask)
     if occlusion_mask is not None:
         with Image.open(occlusion_mask) as mask:
             if mask.size != size:
@@ -85,7 +96,8 @@ def build(image_path, terrains, cell_px, name, output_dir, min_region=1, objects
             "source": {"image": image_path.name, "image_sha256": common.sha256_file(image_path),
                        "read": {"method": "nearest_palette_colour_of_cell_median", "unclassified_cells": [list(c) for c in read["unclassified"]],
                                 "area_opening_minimum": min_region, "cells_changed": sum(len(c["cells"]) for c in changes),
-                                "occluded_cells": [list(c) for c in occluded], **({"occlusion_mask_sha256": mask_hash} if mask_hash else {})}},
+                                "occluded_cells": [list(c) for c in occluded], **({"occlusion_mask_sha256": mask_hash} if mask_hash else {}),
+                                **({"solid_cells": [list(c) for c in sorted(solid, key=lambda c: (c[1], c[0]))], "solid_mask_sha256": solid_hash} if solid_hash else {})}},
             "validation": {"geometry": "generated_from_scene", "engine_validation": "not_tested"}}
     target = output_dir / map_name(name)
     if target.exists():
@@ -155,6 +167,7 @@ def _overlap(a, b):
 def gameplay_grid(data):
     """Rows of '.' (walkable) and '#' (blocked): a cell is blocked when its terrain is not walkable or an object with footprint collision stands on any of it."""
     walkable = [t["walkable"] for t in data["terrains"]]
+    solid = {tuple(c) for c in data["source"]["read"].get("solid_cells", [])}
     cell_w, cell_h = data["grid"]["cell_px"]
     blockers = [_footprint(o) for o in data["objects"] if o.get("collision") == "footprint" and "footprint_px" in o]
     rows = []
@@ -162,7 +175,7 @@ def gameplay_grid(data):
         out = []
         for x, label in enumerate(row):
             cell = (x * cell_w, y * cell_h, (x + 1) * cell_w, (y + 1) * cell_h)
-            out.append("." if walkable[label] and not any(_overlap(cell, b) for b in blockers) else "#")
+            out.append("." if walkable[label] and (x, y) not in solid and not any(_overlap(cell, b) for b in blockers) else "#")
         rows.append("".join(out))
     return rows
 
@@ -263,7 +276,47 @@ def validate_tileset_problems(file):
 BELOW = "below"  # what lies around an overlay's pieces: the terrain beneath, whatever it is
 
 
-def plan(path, jobs_dir=None):
+def mask_command(size, boxes_file, output):
+    """Write an occlusion mask picture from a JSON list of measured boxes; never overwrites."""
+    output = Path(output)
+    if output.exists():
+        raise ValueError(f"{output.name} already exists; a mask is never overwritten")
+    mask = terrain.mask_from_boxes(size, common.read_json(boxes_file))
+    output.parent.mkdir(parents=True, exist_ok=True)
+    mask.save(output)
+    return {"written": output.name, "boxes": len(common.read_json(boxes_file)), "white_share": round(mask.tobytes().count(255) / (size[0] * size[1]), 3)}
+
+
+def swatches(data, scene_path, directory):
+    """The cleanest crop of each terrain: the biggest square of cells read as that terrain with nothing hidden or doubtful, cut from the scene, as a reference picture to
+    make the terrain's tiles from. A terrain with no such cell says so."""
+    from PIL import Image
+    labels = labels_of(data)
+    cell_w, cell_h = data["grid"]["cell_px"]
+    read = data["source"]["read"]
+    unsure = {tuple(c) for c in read["occluded_cells"]} | {tuple(c) for c in read["unclassified_cells"]}  # solid cells are among the occluded
+    directory = Path(directory)
+    out = {}
+    with Image.open(scene_path) as scene:
+        if scene.size != (data["grid"]["width"] * cell_w, data["grid"]["height"] * cell_h):
+            raise ValueError("the scene picture is not the size of the map's grid; pass the picture the map was built from (a cropped copy keeps the grid)")
+        for index, entry in enumerate(data["terrains"]):
+            clean = [[labels[y][x] == index and (x, y) not in unsure for x in range(len(labels[0]))] for y in range(len(labels))]
+            found = terrain.largest_square(clean)
+            if found is None:
+                out[entry["id"]] = {"file": None, "why": "no cell of this terrain was read in plain view"}
+                continue
+            x, y, size = found
+            target = directory / f"{entry['id']}_swatch.png"
+            if target.exists():
+                raise ValueError(f"{target.name} already exists; a swatch is never overwritten")
+            directory.mkdir(parents=True, exist_ok=True)
+            scene.crop((x * cell_w, y * cell_h, (x + size) * cell_w, (y + size) * cell_h)).save(target)
+            out[entry["id"]] = {"file": target.name, "cells": [x, y, size], "pixels": [size * cell_w, size * cell_h]}
+    return out
+
+
+def plan(path, jobs_dir=None, scene=None, swatch_dir=None):
     """The tilesets a map needs and where each stands. For every terrain: the layout it needs (single for the base ground, dual_grid_16 for an overlay), the terrains
     the tileset lists (an overlay lists itself first and BELOW second), the tile size, how many pictures that is, and whether the file named is missing, invalid or
     present. With `jobs_dir`, a tileset job skeleton is written for each tileset that is not present: one entry per tile with its labels and a picture name to fill in
@@ -303,8 +356,12 @@ def plan(path, jobs_dir=None):
             common.atomic_write_json(target, job)
             item["job"] = target.name
     read = data["source"]["read"]
+    crops = swatches(data, scene, swatch_dir) if (scene and swatch_dir) else None
+    if crops:
+        for item in needs:
+            item["reference_swatch"] = crops[item["terrain"]]
     return {"map": data["name"], "tilesets": needs, "ready": all(n["status"] == "present" for n in needs),
-            "uncertain": {"unclassified_cells": len(read["unclassified_cells"]), "occluded_cells": len(read["occluded_cells"])},
+            "uncertain": {"unclassified_cells": len(read["unclassified_cells"]), "occluded_cells": len(read["occluded_cells"]), "solid_cells": len(read.get("solid_cells", []))},
             "next": "make the pictures named under `tiles`, build each tileset with build_tileset.py, name it in the map's terrains, then validate the map"}
 
 
@@ -327,6 +384,7 @@ def main():
     one.add_argument("--output-dir", type=Path, required=True)
     one.add_argument("--objects", type=Path)
     one.add_argument("--min-region", type=int, default=1)
+    one.add_argument("--solid-mask", type=Path, help="like --occlusion-mask, for solid structures (buildings, walls): their cells also block movement")
     one.add_argument("--occlusion-mask", type=Path, help="a picture the size of the scene, white where an object lies (a segmenter's output or regions measured from the scene)")
     one.add_argument("--occluders", type=Path, help="JSON list of {id, colours} for what is drawn over the ground (trees, roofs, characters)")
     for name in ("validate", "overlay", "gameplay", "plan"):
@@ -336,11 +394,17 @@ def main():
             sub.add_argument("--terrain", required=True)
         if name == "plan":
             sub.add_argument("--write-jobs", type=Path, help="a folder to write a tileset job skeleton into for each tileset still to make")
+            sub.add_argument("--scene", type=Path, help="the picture the map was read from (with --swatches)")
+            sub.add_argument("--swatches", type=Path, help="a folder to write the cleanest crop of each terrain into, as a reference for making its tiles")
+    mask = ops.add_parser("mask")
+    mask.add_argument("--size", type=_size, required=True, help="the scene's size in pixels, WIDTHxHEIGHT")
+    mask.add_argument("--boxes", type=Path, required=True, help="JSON list of [x, y, width, height] (or {box: [...]}) for each measured object")
+    mask.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     try:
         if args.operation == "build":
             path, data = build(args.image, common.read_json(args.terrains), args.cell, args.name, args.output_dir, args.min_region,
-                               common.read_json(args.objects) if args.objects else None, common.read_json(args.occluders) if args.occluders else None, args.occlusion_mask)
+                               common.read_json(args.objects) if args.objects else None, common.read_json(args.occluders) if args.occluders else None, args.occlusion_mask, args.solid_mask)
             result = {"written": path.name, "cells": [data["grid"]["width"], data["grid"]["height"]], "layers": [layer["id"] for layer in data["layers"]],
                       "unclassified_cells": len(data["source"]["read"]["unclassified_cells"]), "cells_changed": data["source"]["read"]["cells_changed"],
                       "occluded_cells": len(data["source"]["read"]["occluded_cells"])}
@@ -353,8 +417,10 @@ def main():
         elif args.operation == "overlay":
             plan = overlay_plan(load(args.map), args.map.parent, args.terrain)
             result = {"tiles": len(plan["tiles"]), "empty_positions": plan["empty_positions"], "missing": plan["missing"]}
+        elif args.operation == "mask":
+            result = mask_command(args.size, args.boxes, args.output)
         elif args.operation == "plan":
-            result = plan(args.map, args.write_jobs)
+            result = plan(args.map, args.write_jobs, args.scene, args.swatches)
         else:
             result = {"gameplay": gameplay_grid(load(args.map))}
         print(json.dumps(result, indent=2))

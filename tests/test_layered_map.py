@@ -199,6 +199,81 @@ class MaskBuildTests(MapCase):
         self.assertEqual(json.loads(done.stdout)["occluded_cells"], 1)
 
 
+class SolidAndSwatchTests(MapCase):
+    def solid_file(self, cells=((2, 2),)):
+        mask = Image.new("L", (6 * CELL, 4 * CELL), 0)
+        for x, y in cells:
+            mask.paste(255, (x * CELL, y * CELL, (x + 1) * CELL, (y + 1) * CELL))
+        path = self.root / "solid.png"
+        mask.save(path)
+        return path
+
+    def test_a_solid_cell_blocks_movement_though_its_inferred_ground_is_walkable(self):
+        _, plain = self.build("plain")
+        self.assertEqual(layered.gameplay_grid(plain)[2][2], ".")
+        _, data = self.build("solid", solid_mask=self.solid_file())
+        self.assertEqual(layered.gameplay_grid(data)[2][2], "#")
+        self.assertEqual(data["source"]["read"]["solid_cells"], [[2, 2]])
+        self.assertEqual(data["source"]["read"]["solid_mask_sha256"], common.sha256_file(self.root / "solid.png"))
+        self.assertIn([2, 2], data["source"]["read"]["occluded_cells"])  # the ground under it is inferred, and said to be
+
+    def test_solid_cells_are_listed_in_reading_order_and_the_map_validates(self):
+        path, data = self.build("solid", solid_mask=self.solid_file(((4, 1), (0, 3), (2, 1))))
+        self.assertEqual(data["source"]["read"]["solid_cells"], [[2, 1], [4, 1], [0, 3]])
+        self.assertEqual(layered.validate(path), [])
+
+    def test_a_solid_mask_of_another_size_is_refused(self):
+        Image.new("L", (10, 10)).save(self.root / "small.png")
+        with self.assertRaisesRegex(ValueError, "the solid mask is 10 x 10"):
+            self.build("bad", solid_mask=self.root / "small.png")
+
+    def test_the_cleanest_crop_of_each_terrain_is_written_as_a_reference_and_never_overwritten(self):
+        path, _ = self.build("swatch")
+        result = layered.plan(path, None, self.root / "scene.png", self.root / "swatches")
+        by_terrain = {item["terrain"]: item["reference_swatch"] for item in result["tilesets"]}
+        for terrain_id in ("water", "sand", "grass"):
+            self.assertTrue(by_terrain[terrain_id]["file"], terrain_id)
+            crop = Image.open(self.root / "swatches" / by_terrain[terrain_id]["file"])
+            size = by_terrain[terrain_id]["cells"][2]
+            self.assertEqual(crop.size, (size * CELL, size * CELL))
+            self.assertEqual(len(set(crop.convert("RGB").getdata())), 1)  # the scene was painted flat, so a clean crop is one colour
+        with self.assertRaisesRegex(ValueError, "already exists"):
+            layered.plan(path, None, self.root / "scene.png", self.root / "swatches")
+
+    def test_a_cell_the_ground_read_had_to_infer_is_never_inside_a_swatch(self):
+        mask = Image.new("L", (6 * CELL, 4 * CELL), 0)
+        mask.paste(255, (5 * CELL, 0, 6 * CELL, CELL))  # an object stands on one grass cell in the corner: its label is filled from the grass beside it
+        mask.save(self.root / "occ.png")
+        path, data = self.build("inferred", occlusion_mask=self.root / "occ.png")
+        self.assertEqual(data["labels"][0][5], "g")
+        result = layered.plan(path, None, self.root / "scene.png", self.root / "swatches")
+        grass = next(i for i in result["tilesets"] if i["terrain"] == "grass")["reference_swatch"]
+        self.assertEqual(grass["cells"], [4, 1, 2])  # the 2 x 2 patch that includes the inferred cell is passed over for the one beside it
+
+    def test_a_terrain_with_no_cell_in_plain_view_says_so_instead_of_cropping(self):
+        path, _ = self.build("hidden", solid_mask=self.solid_file(tuple((x, y) for x in range(6) for y in range(4) if ROWS[y][x] == "g")))
+        result = layered.plan(path, None, self.root / "scene.png", self.root / "swatches")
+        grass = next(i for i in result["tilesets"] if i["terrain"] == "grass")["reference_swatch"]
+        self.assertIsNone(grass["file"])
+        self.assertIn("plain view", grass["why"])
+
+    def test_a_scene_of_another_size_is_refused_for_swatches(self):
+        path, _ = self.build("size")
+        Image.new("RGB", (10, 10)).save(self.root / "other.png")
+        with self.assertRaisesRegex(ValueError, "not the size of the map"):
+            layered.plan(path, None, self.root / "other.png", self.root / "swatches")
+
+    def test_the_mask_command_writes_a_picture_from_boxes_and_never_overwrites(self):
+        (self.root / "boxes.json").write_text(json.dumps([[0, 0, 8, 8]]), encoding="utf-8")
+        argv = [sys.executable, str(SCRIPT), "mask", "--size", "48x32", "--boxes", str(self.root / "boxes.json"), "--output", str(self.root / "m.png")]
+        done = subprocess.run(argv, capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(Image.open(self.root / "m.png").getpixel((0, 0)), 255)
+        again = subprocess.run(argv, capture_output=True, text=True)
+        self.assertNotEqual(again.returncode, 0)
+        self.assertIn("already exists", again.stderr + again.stdout)
+
+
 class OverlayTests(MapCase):
     def test_every_position_of_an_overlay_gets_a_tile_the_tileset_has(self):
         path, data = self.build()

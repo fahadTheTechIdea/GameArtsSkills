@@ -79,7 +79,7 @@ class PlanTests(Case):
 
     def test_the_cells_that_are_inferred_or_unclassified_are_counted_so_the_read_is_not_over_trusted(self):
         path, _ = self.built()
-        self.assertEqual(layered.plan(path)["uncertain"], {"unclassified_cells": 0, "occluded_cells": 0})
+        self.assertEqual(layered.plan(path)["uncertain"], {"unclassified_cells": 0, "occluded_cells": 0, "solid_cells": 0})
 
 
 class WholeRouteTests(MapCase):

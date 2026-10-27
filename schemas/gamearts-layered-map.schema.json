@@ -226,6 +226,11 @@
           "sort_offset_px": {
             "type": "integer",
             "description": "Added to the position's y when ordering, for a sprite whose base is not its pivot."
+          },
+          "kind": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "description": "What the object is (tree, fence, rock, lamp and so on), when known: a game maps it to its own behaviour."
           }
         }
       }
@@ -296,6 +301,23 @@
               "type": "string",
               "pattern": "^[a-f0-9]{64}$",
               "description": "The hash of the occlusion mask (a picture, white where an object lies) that hid cells of this scene, when one was given."
+            },
+            "solid_cells": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "description": "Cells covered by a solid structure (a building, a wall): they block movement, and the terrain under them is inferred, not seen."
+            },
+            "solid_mask_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$",
+              "description": "The hash of the solid mask, when one was given."
             }
           }
         }

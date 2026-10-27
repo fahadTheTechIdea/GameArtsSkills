@@ -1,4 +1,4 @@
-"""Scratch: the layered-map pipeline on the owner's Cozy Soccer club-arrival mockup (read from its own repository; copied here, never changed)."""
+"""Scratch: the layered-map pipeline on a game project's club-arrival street mockup (read from its own repository; copied here, never changed)."""
 import json
 import subprocess
 import sys

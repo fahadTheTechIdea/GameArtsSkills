@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts environment-objects job",
+  "type": "object",
+  "required": ["classes"],
+  "properties": {
+    "_input_dir": {"type": "string"},
+    "min_area_px": {"type": "integer", "minimum": 1, "description": "Mask regions smaller than this many pixels are noise, not objects (default 16)."},
+    "classes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "mask"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[A-Za-z0-9_-]+$"},
+          "kind": {"type": "string", "minLength": 1, "description": "tree, bush, hedge, fence, rock, lamp, bin, bench, sign, planter, flower, grass_tuft or prop. Structures and characters are handled separately and refused."},
+          "mask": {"type": "string", "minLength": 1, "description": "A picture the size of the scene, white where objects of this kind lie, relative to the job file."}
+        }
+      }
+    }
+  }
+}

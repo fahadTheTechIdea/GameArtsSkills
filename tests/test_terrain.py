@@ -118,6 +118,40 @@ class MaskTests(unittest.TestCase):
                 terrain.cells_from_mask(Image.new("L", (8, 8)), (4, 4), threshold=bad)
 
 
+class BoxMaskTests(unittest.TestCase):
+    def test_boxes_become_white_rectangles_and_either_form_is_read(self):
+        mask = terrain.mask_from_boxes((10, 6), [[1, 1, 3, 2], {"box": [6, 3, 4, 3]}])
+        self.assertEqual(mask.size, (10, 6))
+        self.assertEqual(mask.getpixel((1, 1)), 255)
+        self.assertEqual(mask.getpixel((3, 2)), 255)  # the last pixel of the first box
+        self.assertEqual(mask.getpixel((4, 2)), 0)
+        self.assertEqual(mask.getpixel((9, 5)), 255)  # the last pixel of the second box, flush with the corner
+        self.assertEqual(mask.getpixel((0, 0)), 0)
+
+    def test_a_box_that_is_empty_outside_or_not_whole_numbers_is_refused(self):
+        for bad in ([0, 0, 0, 2], [9, 0, 2, 2], [0, 5, 2, 2], [-1, 0, 2, 2], [0, 0, 2.5, 2], [0, 0, 2], "box"):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                terrain.mask_from_boxes((10, 6), [bad])
+
+
+class LargestSquareTests(unittest.TestCase):
+    def test_the_biggest_square_is_found_first_in_reading_order(self):
+        grid = [[False, True, True, True],
+                [True, True, True, True],
+                [True, True, True, False]]
+        self.assertEqual(terrain.largest_square(grid), (1, 0, 2))
+
+    def test_a_single_cell_is_a_square_and_no_cell_is_none(self):
+        self.assertEqual(terrain.largest_square([[False, True]]), (1, 0, 1))
+        self.assertIsNone(terrain.largest_square([[False, False], [False, False]]))
+
+    def test_a_ragged_shape_does_not_count_a_square_it_cannot_hold(self):
+        grid = [[True, True, True],
+                [True, False, True],
+                [True, True, True]]
+        self.assertEqual(terrain.largest_square(grid)[2], 1)
+
+
 class CleanupTests(unittest.TestCase):
     def test_a_region_smaller_than_the_minimum_takes_its_most_common_neighbour_and_the_change_is_reported(self):
         labels = [[2, 2, 2], [2, 0, 2], [2, 2, 2]]

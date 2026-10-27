@@ -97,6 +97,42 @@ def cells_from_mask(mask, cell_px, threshold=0.5):
     return cells
 
 
+def mask_from_boxes(size, boxes):
+    """An occlusion mask (white where an object lies) from measured regions: each box is [x, y, width, height] in the scene's pixels, or {"box": [...]}. This is the bridge
+    from the scene's analysis, which measures regions, to the reader, which wants a mask; no segmenter is needed for a region someone has already measured."""
+    from PIL import Image, ImageDraw
+    width, height = size
+    mask = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(mask)
+    for index, item in enumerate(boxes):
+        box = item["box"] if isinstance(item, dict) else item
+        if not (isinstance(box, (list, tuple)) and len(box) == 4 and all(type(v) is int for v in box)):
+            raise ValueError(f"box {index} must be four whole numbers [x, y, width, height]")
+        x, y, w, h = box
+        if w < 1 or h < 1 or x < 0 or y < 0 or x + w > width or y + h > height:
+            raise ValueError(f"box {index} {box} is empty or lies outside the {width} x {height} scene")
+        draw.rectangle((x, y, x + w - 1, y + h - 1), fill=255)
+    return mask
+
+
+def largest_square(clean):
+    """The biggest square of True cells in a grid of booleans: (x, y, size), the first such in reading order, or None when no cell is True. The cleanest patch of a
+    terrain to crop as a reference swatch."""
+    rows, cols = len(clean), len(clean[0])
+    best, where = 0, None
+    above = [0] * cols
+    previous = [0] * cols
+    for y in range(rows):
+        current = [0] * cols
+        for x in range(cols):
+            if clean[y][x]:
+                current[x] = 1 + (min(previous[x], current[x - 1], previous[x - 1]) if x and y else 0)
+                if current[x] > best:
+                    best, where = current[x], (x - current[x] + 1, y - current[x] + 1)
+        previous = current
+    return None if where is None else (where[0], where[1], best)
+
+
 def fill_occluded(labels, ground_count):
     """Give every cell whose class is an occluder (index `ground_count` or more) the terrain of the nearest ground cell, found by a breadth-first search outward from all
     ground cells, so a tie is settled by reading order and the result is the same every time. Returns (filled labels, the (x, y) of each cell that was filled): those cells
