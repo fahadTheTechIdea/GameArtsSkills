@@ -6,11 +6,11 @@ No command syntax is needed. Say what you want, in plain words, inside Claude Co
 | Say | What happens |
 |---|---|
 | "Set up Game Arts for this game." | A few friendly questions; the confirmed choices are saved to `.gamearts/project.json`. |
-| "Use the recommended settings." | Recommended defaults; only missing essentials are asked. |
+| "Which do you recommend?" | The agent says which option it would pick and why; you still choose, because every setting is your answer. |
 | "I'm making a card game / a platformer / a farming sim." | The agent starts from the matching [genre recipe](GENRE_RECIPES.md): the kind of world, suitable looks, facing directions and the art to make first. |
 | "Show me the looks." / "Use the 16-bit pixel look." | Lists the ready-made looks that suit your game and saves the one you pick as your starting point. |
 | "We use <engine or tool>." / "Change the engine." | Saves the engine you use (any name is fine); you get its import advice if a profile for it is installed. Your art and approvals are not affected. |
-| "Start from my other game's choices." | Offers the engine, image generator and look of a game folder you name as defaults to confirm. |
+| "Start from my other game's choices." | Marks the engine, image generator and look of a game folder you name as the current choice in each wizard question; you still pick each one. |
 | "Show my game art settings." | Your saved settings, summarized. |
 | "Change my game's art style." | Only that setting changes, after your confirmation. |
 | "Always make the UI icons simple." | A scoped custom instruction is saved in the game project. |

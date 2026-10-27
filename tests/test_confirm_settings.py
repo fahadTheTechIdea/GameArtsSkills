@@ -10,6 +10,7 @@ from gamearts_testkit import settings as default_settings, write_settings
 
 import gamearts_asset_lifecycle as life  # noqa: E402
 import gamearts_common as common  # noqa: E402
+import gamearts_setup as wizard  # noqa: E402
 
 
 class GameCase(unittest.TestCase):
@@ -24,10 +25,16 @@ class GameCase(unittest.TestCase):
         return common.read_json(self.root / ".gamearts" / "project.json")
 
 
+ANSWERS = [("project_name", "name", "Demo"), ("world_kind", "screen_space", None), ("look", "flat_vector", None), ("screen_size", "1920x1080", None), ("screen_scaling", "fit", None),
+           ("animation", "hybrid", None), ("image_generator", "user_supplied", None), ("engine", "generic", None), ("palette", "none", None)]
+
+
 class ConfirmTests(GameCase):
     def setUp(self):
         super().setUp()
-        write_settings(self.root, drop=("confirmed_by", "confirmed_at"), settings_status="inferred")
+        for name, value, text in ANSWERS:  # settings the wizard wrote: confirming needs every one chosen by the owner
+            wizard.answer(self.root, name, value, text)
+        wizard.finish(self.root)
 
     def test_the_confirmation_is_stamped_with_the_real_time_and_the_owners_words(self):
         with mock.patch.object(life, "_now", return_value="2031-02-03T04:05:06.000007+00:00"):

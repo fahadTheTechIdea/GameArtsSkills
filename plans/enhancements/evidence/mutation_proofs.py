@@ -438,6 +438,20 @@ MUTATIONS = [
     ("M373", "P12.4 a hard-edged look may carry a matte", "scripts/gamearts_asset_lifecycle.py", 'if chosen and chosen.get("found") and not chosen["soft_edges"]:', "if False:", "test_matte.py"),
     ("M374", "P12.4 the sheet check ignores the matte", "scripts/validate_sheet_atlas.py", "    issues += matte_rules.atlas_problems(image_path, atlas)\n", "", "test_matte.py"),
     ("M375", "P14 Codex E-3 a UI kit is planned as one picture", "scripts/gamearts_plan_card.py", 'LAYER_CLASSES = {"parallax_layer", "ui_presentation"}', 'LAYER_CLASSES = {"parallax_layer"}', "test_plan_card.py"),
+    ('M376', 'P15 the wizard finishes with a question still open', 'scripts/gamearts_setup.py', '    if open_questions:', '    if False:', 'test_setup_wizard.py'),
+    ('M377', 'P15 an answer that is not an option is accepted', 'scripts/gamearts_setup.py', 'if value not in {option["value"] for option in asked["options"]}:', 'if False:', 'test_setup_wizard.py'),
+    ('M378', "P15 a pick that needs the owner's words is accepted without them", 'scripts/gamearts_setup.py', 'if _needs_text(name, value) and not (text or "").strip():', 'if False:', 'test_setup_wizard.py'),
+    ('M379', 'P15 changing an answer leaves the answers that depend on it', 'scripts/gamearts_setup.py', 'if name in needs and dependent in answers and dependent != name:', 'if False:', 'test_setup_wizard.py'),
+    ('M380', 'P15 choosing the same thing again resets the dependent answers', 'scripts/gamearts_setup.py', '    if same:', '    if False:', 'test_setup_wizard.py'),
+    ('M381', 'P15 the tile size answer is not what is saved', 'scripts/gamearts_setup.py', '"pixels_per_meter": width, "construction_snap_m": 1}', '"pixels_per_meter": 16, "construction_snap_m": 1}', 'test_setup_wizard.py'),
+    ('M382', "P15 a connected tool's name is dropped", 'scripts/gamearts_setup.py', 'if tool["value"] == "connected_tool" else {})', 'if False else {})', 'test_setup_wizard.py'),
+    ('M383', 'P15 changed settings keep an earlier confirmation', 'scripts/gamearts_setup.py', 'settings["settings_status"] = "needs_review" if changed else "owner_confirmed"', 'settings["settings_status"] = "owner_confirmed"', 'test_setup_wizard.py'),
+    ('M384', 'P15 settings the wizard did not write can be confirmed', 'scripts/gamearts_asset_lifecycle.py', '    if chosen:  # every setting is', '    if False:  # every setting is', 'test_setup_wizard.py'),
+    ('M385', 'P15 hand-written settings count as chosen', 'scripts/gamearts_setup.py', '    if answers is None:', '    if False:', 'test_setup_wizard.py'),
+    ('M386', 'P15 the palette answer is not what is saved', 'scripts/gamearts_setup.py', 'art["palette_reference"] = "no fixed palette (the owner\'s choice)"', 'art["palette_reference"] = "x"', 'test_setup_wizard.py'),
+    ('M387', 'P15 check-settings reports setup complete for any settings', 'scripts/gamearts_asset_lifecycle.py', '"setup": {"complete": not setup_wizard.setup_problems(settings),', '"setup": {"complete": True,', 'test_setup_wizard.py'),
+    ('M388', 'P15 a game name that is not a safe file prefix is accepted', 'scripts/gamearts_setup.py', '    if not common.SLUG.fullmatch(slug):', '    if False:', 'test_setup_wizard.py'),
+    ('M389', "P15 the saved project id is not the owner's answer", 'scripts/gamearts_setup.py', '"project_id": project_slug(answers["project_name"]["text"])', '"project_id": "demo"', 'test_setup_wizard.py'),
 ]
 
 

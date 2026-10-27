@@ -21,7 +21,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gamearts_common as common  # noqa: E402
-import gamearts_presets as presets  # noqa: E402
+import gamearts_presets as presets
+import gamearts_setup as setup_wizard  # noqa: E402
 
 KINDS = ("assets", "mockups")
 STATES = {"approved", "generated", "revoked"}
@@ -213,6 +214,9 @@ def confirm_settings(game_root, confirmed_by, confirmation_reference):
         raise ValueError("Say who confirmed (--by) and quote the owner's words (--user-confirmation-ref); a confirmation is never invented")
     root = Path(game_root).resolve()
     settings, _, _ = common.load_project_settings(root, require_confirmed=False)
+    chosen = setup_wizard.setup_problems(settings)
+    if chosen:  # every setting is the owner's own pick: nothing is confirmed while one was filled in for them
+        raise ValueError("These settings cannot be confirmed yet: " + "; ".join(chosen) + ". Run the setup wizard (gamearts_setup.py next) and ask each question")
     settings.update({"settings_status": "owner_confirmed", "confirmed_at": _now(), "confirmed_by": confirmed_by.strip(),
                      "confirmation_ref": confirmation_reference.strip()})
     common.validate_schema(settings, "gamearts-project")
@@ -227,6 +231,7 @@ def check_settings(game_root):
     return {"status": "valid", "settings_status": settings.get("settings_status", "unset"),
             "owner_confirmed": settings.get("settings_status") == "owner_confirmed", "material_settings_sha256": canonical,
             "warnings": _settings_warnings(settings),
+            "setup": {"complete": not setup_wizard.setup_problems(settings), "problems": setup_wizard.setup_problems(settings)},
             "image_generation": settings.get("image_generation"), "world_kind": common.world_kind(settings),
             "directions": common.resolve_directions(settings), "screen": settings.get("screen"),
             "engine_target": engine, "style_preset": presets.resolve_style_preset(settings), "style_anchor": _anchor_summary(root, settings),
