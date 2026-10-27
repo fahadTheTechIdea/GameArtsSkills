@@ -1,0 +1,394 @@
+{
+  "checks": [
+    {
+      "detail": "16 of 16",
+      "name": "overlay_sand: the engine made one tile per tile of the overlay tileset",
+      "ok": true
+    },
+    {
+      "detail": "26 of 26",
+      "name": "overlay_sand: every position of the framework's plan holds a tile",
+      "ok": true
+    },
+    {
+      "detail": "",
+      "name": "overlay_sand: each position reads back the tile id the framework chose",
+      "ok": true
+    },
+    {
+      "detail": "",
+      "name": "overlay_sand: with the layer offset by half a cell, each display tile is centred where four cells meet",
+      "ok": true
+    },
+    {
+      "detail": "16 of 16",
+      "name": "overlay_grass: the engine made one tile per tile of the overlay tileset",
+      "ok": true
+    },
+    {
+      "detail": "14 of 14",
+      "name": "overlay_grass: every position of the framework's plan holds a tile",
+      "ok": true
+    },
+    {
+      "detail": "",
+      "name": "overlay_grass: each position reads back the tile id the framework chose",
+      "ok": true
+    },
+    {
+      "detail": "",
+      "name": "overlay_grass: with the layer offset by half a cell, each display tile is centred where four cells meet",
+      "ok": true
+    },
+    {
+      "detail": "['overlay_sand', 'overlay_grass', 'objects_as_tiles', 'objects_as_sprites']",
+      "name": "the layers were added, and appear in the engine's tree, in the framework's order",
+      "ok": true
+    },
+    {
+      "detail": "[[2, 2], [4, 3], [1, 3]]",
+      "name": "rocks as tiles: each rock lands on the cell its pixel position falls in",
+      "ok": true
+    },
+    {
+      "detail": "",
+      "name": "rocks as tiles: the layer is y-sorted",
+      "ok": true
+    },
+    {
+      "detail": "[4, 4]",
+      "name": "rocks as tiles: every tile's y-sort origin is its pivot's distance below the tile centre",
+      "ok": true
+    },
+    {
+      "detail": "[[-4.0, -4.0], [4.0, -4.0], [4.0, 4.0], [-4.0, 4.0]]",
+      "name": "rocks as tiles: the footprint is stored as one collision polygon per tile, with the framework's corners",
+      "ok": true
+    },
+    {
+      "detail": "[[20.0, 20.0], [36.0, 28.0], [12.0, 26.0]]",
+      "name": "rocks as sprites: each rock is placed at its exact pixel position",
+      "ok": true
+    },
+    {
+      "detail": "",
+      "name": "rocks as sprites: the holder is y-sorted",
+      "ok": true
+    }
+  ],
+  "command": "H:\\dev\\Godot\\Godot_v4.7.2-stable_mono_win64_console.exe --headless --path <scratch project> --script res://verify_layered_map.gd",
+  "exit_status": 0,
+  "failed": [],
+  "framework": {
+    "plans": {
+      "grass": {
+        "empty": 21,
+        "tiles": 14
+      },
+      "sand": {
+        "empty": 9,
+        "tiles": 26
+      }
+    },
+    "snapping_error_px_max": 2.0
+  },
+  "godot": "4.7.2-stable (official)",
+  "not_observed": [
+    "draw order of the y-sorted layers and sprites (nothing is rendered)",
+    "how the pictures look",
+    "the meaning of a tile's texture origin for placing a sprite by its pivot",
+    "navigation",
+    "performance with many objects",
+    "other engine versions"
+  ],
+  "observed": {
+    "children_in_order": [
+      "overlay_sand",
+      "overlay_grass",
+      "objects_as_tiles",
+      "objects_as_sprites"
+    ],
+    "godot": "4.7.2-stable (official)",
+    "overlays": {
+      "overlay_grass": {
+        "ids_back": [
+          11,
+          7,
+          3,
+          3,
+          1,
+          6,
+          0,
+          0,
+          0,
+          6,
+          0,
+          0,
+          0,
+          6
+        ],
+        "junction_world": [
+          [
+            24.0,
+            16.0
+          ],
+          [
+            24.0,
+            24.0
+          ],
+          [
+            32.0,
+            0.0
+          ],
+          [
+            32.0,
+            8.0
+          ],
+          [
+            32.0,
+            16.0
+          ],
+          [
+            32.0,
+            24.0
+          ],
+          [
+            40.0,
+            0.0
+          ],
+          [
+            40.0,
+            8.0
+          ],
+          [
+            40.0,
+            16.0
+          ],
+          [
+            40.0,
+            24.0
+          ],
+          [
+            48.0,
+            0.0
+          ],
+          [
+            48.0,
+            8.0
+          ],
+          [
+            48.0,
+            16.0
+          ],
+          [
+            48.0,
+            24.0
+          ]
+        ],
+        "tile_count": 16,
+        "used_cells": 14
+      },
+      "overlay_sand": {
+        "ids_back": [
+          11,
+          7,
+          3,
+          1,
+          2,
+          7,
+          0,
+          0,
+          0,
+          2,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "junction_world": [
+          [
+            8.0,
+            8.0
+          ],
+          [
+            8.0,
+            16.0
+          ],
+          [
+            16.0,
+            0.0
+          ],
+          [
+            16.0,
+            8.0
+          ],
+          [
+            16.0,
+            16.0
+          ],
+          [
+            16.0,
+            24.0
+          ],
+          [
+            24.0,
+            0.0
+          ],
+          [
+            24.0,
+            8.0
+          ],
+          [
+            24.0,
+            16.0
+          ],
+          [
+            24.0,
+            24.0
+          ],
+          [
+            24.0,
+            32.0
+          ],
+          [
+            32.0,
+            0.0
+          ],
+          [
+            32.0,
+            8.0
+          ],
+          [
+            32.0,
+            16.0
+          ],
+          [
+            32.0,
+            24.0
+          ],
+          [
+            32.0,
+            32.0
+          ],
+          [
+            40.0,
+            0.0
+          ],
+          [
+            40.0,
+            8.0
+          ],
+          [
+            40.0,
+            16.0
+          ],
+          [
+            40.0,
+            24.0
+          ],
+          [
+            40.0,
+            32.0
+          ],
+          [
+            48.0,
+            0.0
+          ],
+          [
+            48.0,
+            8.0
+          ],
+          [
+            48.0,
+            16.0
+          ],
+          [
+            48.0,
+            24.0
+          ],
+          [
+            48.0,
+            32.0
+          ]
+        ],
+        "tile_count": 16,
+        "used_cells": 26
+      }
+    },
+    "sprite_objects": {
+      "count": 3,
+      "positions": [
+        [
+          20.0,
+          20.0
+        ],
+        [
+          36.0,
+          28.0
+        ],
+        [
+          12.0,
+          26.0
+        ]
+      ],
+      "y_sort_enabled": true
+    },
+    "tile_objects": {
+      "collision_enabled_default": true,
+      "polygon_points": [
+        [
+          -4.0,
+          -4.0
+        ],
+        [
+          4.0,
+          -4.0
+        ],
+        [
+          4.0,
+          4.0
+        ],
+        [
+          -4.0,
+          4.0
+        ]
+      ],
+      "polygons_per_tile": [
+        1,
+        1
+      ],
+      "snapped_cells": [
+        [
+          2,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "used_cells": 3,
+      "y_sort_enabled": true,
+      "y_sort_origins": [
+        4,
+        4
+      ]
+    }
+  }
+}

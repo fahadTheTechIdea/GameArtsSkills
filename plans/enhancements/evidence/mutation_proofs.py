@@ -472,6 +472,67 @@ MUTATIONS = [
     ('M407', "P15 an adopted scene's text hash is not recorded", 'scripts/gamearts_storyboard.py', '"owner": owner, "content_sha256": scene_hash(scene)}', '"owner": owner, "content_sha256": "0" * 64}', 'test_storyboard_external.py'),
     ('M408', "P15 the owner's words for an unchanged pick are dropped", 'scripts/gamearts_setup.py', '        answers[name]["said"] = said.strip()', '        pass', 'test_setup_wizard.py'),
     ('M409', 'P15 Storyboard contract: a mockup row loses its sha256 field', 'scripts/gamearts_asset_lifecycle.py', '"sha256": metadata["sha256"].lower(), "settings_sha256": canonical,', '"digest": metadata["sha256"].lower(), "settings_sha256": canonical,', 'test_lifecycle_operations.py'),
+    ('M410', 'P16 a cell takes the wrong terrain colour', 'scripts/gamearts_terrain.py', 'best = min(range(len(colours)), key=lambda i: palette.lab_distance(median, colours[i]))', 'best = 0', 'test_terrain.py'),
+    ('M411', "P16 a few object pixels change a cell's terrain (not a median)", 'scripts/gamearts_terrain.py', 'return sorted(values)[len(values) // 2]', 'return sorted(values)[0]', 'test_terrain.py'),
+    ('M412', 'P16 a cell far from every terrain is not listed', 'scripts/gamearts_terrain.py', 'if gap > unknown_distance:', 'if False:', 'test_terrain.py'),
+    ('M413', 'P16 a picture that is not whole cells is read anyway', 'scripts/gamearts_terrain.py', 'if cell_w < 1 or cell_h < 1 or width % cell_w or height % cell_h:', 'if False:', 'test_terrain.py'),
+    ('M414', 'P16 cleanup absorbs regions it was not asked to', 'scripts/gamearts_terrain.py', 'if len(region) >= minimum:', 'if True:', 'test_terrain.py'),
+    ('M415', 'P16 a cleanup tie is broken at random', 'scripts/gamearts_terrain.py', 'taker = sorted(around, key=lambda candidate: (-around[candidate], candidate))[0]', 'taker = list(around)[-1]', 'test_terrain.py'),
+    ('M416', "P16 an overlay's reach stops one priority short", 'scripts/gamearts_terrain.py', 'return [[priorities[label] >= wanted for label in row] for row in labels]', 'return [[priorities[label] > wanted for label in row] for row in labels]', 'test_terrain.py'),
+    ('M417', "P16 the overlay wraps around the map's edge", 'scripts/gamearts_terrain.py', 'return mask[min(max(y, 0), rows - 1)][min(max(x, 0), cols - 1)]', 'return mask[y % rows][x % cols]', 'test_terrain.py'),
+    ('M418', 'P16 a corner number is wrong', 'scripts/gamearts_terrain.py', 'zip((1, 2, 4, 8), corners)', 'zip((1, 2, 4, 4), corners)', 'test_terrain.py'),
+    ('M419', 'P16 an unknown terrain symbol is accepted', 'scripts/gamearts_terrain.py', '            if char not in index:', '            if False:', 'test_terrain.py'),
+    ('M420', 'P16 two terrains may share an id, symbol or priority', 'scripts/gamearts_layered_map.py', 'if len(set(values)) != len(values):', 'if False:', 'test_layered_map.py'),
+    ('M421', 'P16 hand-edited layers are not found', 'scripts/gamearts_layered_map.py', 'if data["layers"] != layers_for(data["terrains"], data["objects"]):', 'if False:', 'test_layered_map.py'),
+    ('M422', 'P16 an overlay tileset with its terrains the wrong way round passes', 'scripts/gamearts_layered_map.py', 'tileset["terrains"][0] != entry["id"]):\n            problems.append', 'False):\n            problems.append', 'test_layered_map.py'),
+    ('M423', 'P16 a tileset of the wrong cell size passes', 'scripts/gamearts_layered_map.py', 'if list(tileset["tile_size"]) != list(data["grid"]["cell_px"]):', 'if False:', 'test_layered_map.py'),
+    ('M424', 'P16 a missing overlay tile is not named', 'scripts/gamearts_layered_map.py', 'if entry["id"] != base and tileset["layout"] == OVERLAY_LAYOUT and tileset["terrains"][0] == entry["id"]:', 'if False:', 'test_layered_map.py'),
+    ('M425', 'P16 an object off the map passes', 'scripts/gamearts_layered_map.py', 'if not (0 <= x <= width_px and 0 <= y <= height_px):', 'if False:', 'test_layered_map.py'),
+    ('M426', 'P16 an object naming a frame the atlas lacks passes', 'scripts/gamearts_layered_map.py', 'elif obj["sprite"]["frame"] not in names:', 'elif False:', 'test_layered_map.py'),
+    ('M427', 'P16 overlapping footprints pass', 'scripts/gamearts_layered_map.py', 'if (first, second) not in reported and _overlap(placed[first][1], placed[second][1]):', 'if False:', 'test_layered_map.py'),
+    ('M428', 'P16 allow_overlap is ignored', 'scripts/gamearts_layered_map.py', 'and not o.get("allow_overlap")]', 'and True]', 'test_layered_map.py'),
+    ('M429', 'P16 footprint collision without a footprint passes', 'scripts/gamearts_layered_map.py', 'if obj.get("collision") == "footprint" and "footprint_px" not in obj:', 'if False:', 'test_layered_map.py'),
+    ('M430', "P16 an object's footprint does not block the cells it covers", 'scripts/gamearts_layered_map.py', 'and not any(_overlap(cell, b) for b in blockers)', 'and True', 'test_layered_map.py'),
+    ('M431', 'P16 a terrain that is not walkable does not block', 'scripts/gamearts_layered_map.py', 'out.append("." if walkable[label] and', 'out.append("." if True and', 'test_layered_map.py'),
+    ('M432', 'P16 unclassified cells are not recorded in the map', 'scripts/gamearts_layered_map.py', '"unclassified_cells": [list(c) for c in read["unclassified"]]', '"unclassified_cells": []', 'test_layered_map.py'),
+    ('M433', 'P16 the cells cleanup changed are not counted', 'scripts/gamearts_layered_map.py', '"cells_changed": sum(len(c["cells"]) for c in changes)', '"cells_changed": 0', 'test_layered_map.py'),
+    ('M434', 'P16 a map is overwritten', 'scripts/gamearts_layered_map.py', '    if target.exists():', '    if False:', 'test_layered_map.py'),
+    ('M435', 'P16 a map that fails its own check is left behind', 'scripts/gamearts_layered_map.py', '        target.unlink()\n        raise ValueError', '        raise ValueError', 'test_layered_map.py'),
+    ('M436', 'P16 an overlay uses the tile made of the wrong terrain', 'scripts/gamearts_layered_map.py', '(terrains[0] if on else terrains[1])', '(terrains[1] if on else terrains[0])', 'test_layered_map.py'),
+    ('M437', 'P16 objects may be closer than the radius', 'scripts/gamearts_placement.py', '+ (points[other][1] - y) ** 2 < radius ** 2:', '+ (points[other][1] - y) ** 2 < 1:', 'test_placement.py'),
+    ('M438', 'P16 objects may stand where the owner did not allow', 'scripts/gamearts_placement.py', 'if 0 <= x < width and 0 <= y < height and accept(x, y) and far_enough(x, y):', 'if 0 <= x < width and 0 <= y < height and far_enough(x, y):', 'test_placement.py'),
+    ('M439', 'P16 the thinning is not reproducible', 'scripts/gamearts_placement.py', 'kept = random.Random(f"{seed}-thin")', 'kept = random.Random()', 'test_placement.py'),
+    ('M440', 'P16 objects ignore the ones already on the map', 'scripts/gamearts_placement.py', 'for fx, fy in fixed)', 'for fx, fy in [])', 'test_placement.py'),
+    ('M441', 'P16 an unknown terrain is not named', 'scripts/gamearts_placement.py', 'if terrain_id not in known:', 'if False:', 'test_placement.py'),
+    ('M442', 'P16 a radius or area that is not positive is accepted', 'scripts/gamearts_placement.py', 'if radius <= 0 or width <= 0 or height <= 0:', 'if False:', 'test_placement.py'),
+    ('M443', 'P16 a scatter overwrites the objects file', 'scripts/gamearts_placement.py', 'if args.output.exists():', 'if False:', 'test_placement.py'),
+    ('M444', 'P16 a terrain with no sample colour is accepted', 'scripts/gamearts_terrain.py', '        if not samples:', '        if False:', 'test_terrain.py'),
+    ('M445', 'P16 a terrain is judged by its farthest sample, not its nearest', 'scripts/gamearts_terrain.py', 'gaps = [min(palette.lab_distance(median, sample) for sample in samples) for samples in classes]', 'gaps = [max(palette.lab_distance(median, sample) for sample in samples) for samples in classes]', 'test_terrain.py'),
+    ('M446', 'P16 a scene with no visible ground is filled anyway', 'scripts/gamearts_terrain.py', '    if not queue:', '    if False:', 'test_terrain.py'),
+    ('M447', 'P16 the ground under an object is chosen in a different order each time', 'scripts/gamearts_terrain.py', 'for y in range(rows) for x in range(cols) if out[y][x] is not None]', 'for y in range(rows) for x in reversed(range(cols)) if out[y][x] is not None]', 'test_terrain.py'),
+    ('M448', 'P16 objects are not filled from the ground around them', 'scripts/gamearts_layered_map.py', 'seen, occluded = terrain.fill_occluded(read["labels"], len(terrains))', 'seen, occluded = read["labels"], []', 'test_layered_map.py'),
+    ('M449', 'P16 the inferred cells are not recorded in the map', 'scripts/gamearts_layered_map.py', '"occluded_cells": [list(c) for c in occluded]}},', '"occluded_cells": []}},', 'test_layered_map.py'),
+    ('M450', 'P16 the command ignores the occluders file', 'scripts/gamearts_layered_map.py', 'common.read_json(args.occluders) if args.occluders else None)', 'None)', 'test_layered_map.py'),
+    ('M451', 'P16 a map with missing tilesets is called ready', 'scripts/gamearts_layered_map.py', '"ready": all(n["status"] == "present" for n in needs)', '"ready": True', 'test_layered_export.py'),
+    ('M452', 'P16 a tileset whose file is gone is not called missing', 'scripts/gamearts_layered_map.py', '        elif not (path.parent / entry["tileset"]).is_file():', '        elif False:', 'test_layered_export.py'),
+    ('M453', 'P16 a job skeleton overwrites an existing file', 'scripts/gamearts_layered_map.py', '            if target.exists():\n                raise ValueError(f"{target.name} already exists; a job skeleton', '            if False:\n                raise ValueError(f"{target.name} already exists; a job skeleton', 'test_layered_export.py'),
+    ('M454', 'P16 a damaged tileset is called present', 'scripts/gamearts_layered_map.py', 'item["status"] = "invalid" if found else "present"', 'item["status"] = "present"', 'test_layered_export.py'),
+    ('M455', 'P16 the overlays are not offset by half a cell', 'scripts/export_exchange.py', 'offsets = {"offsetx": -cell_w / 2, "offsety": -cell_h / 2}', 'offsets = {}', 'test_layered_export.py'),
+    ('M456', 'P16 an overlay tile uses the wrong tile id', 'scripts/export_exchange.py', 'layered.overlay_plan(data, directory, terrain_id)["tiles"].items():\n                    cells[y * width + x] = firsts[terrain_id] + tile_id', 'layered.overlay_plan(data, directory, terrain_id)["tiles"].items():\n                    cells[y * width + x] = firsts[terrain_id]', 'test_layered_export.py'),
+    ('M457', "P16 the exported map has no room for the dual grid's extra row and column", 'scripts/export_exchange.py', 'width, height = data["grid"]["width"] + 1, data["grid"]["height"] + 1', 'width, height = data["grid"]["width"], data["grid"]["height"]', 'test_layered_export.py'),
+    ('M458', "P16 an object's pivot does not land on its position", 'scripts/export_exchange.py', '"y": obj["position_px"][1] - pivot_y + frame_h,', '"y": obj["position_px"][1],', 'test_layered_export.py'),
+    ('M459', 'P16 an object uses the wrong picture', 'scripts/export_exchange.py', '"gid": first_gid + index,', '"gid": first_gid,', 'test_layered_export.py'),
+    ('M460', 'P16 every object blocks, not only the ones that collide', 'scripts/export_exchange.py', '        if obj.get("collision") == "footprint":\n            left, top, right, bottom', '        if True:\n            left, top, right, bottom', 'test_layered_export.py'),
+    ('M461', 'P16 a terrain with no tileset is exported', 'scripts/export_exchange.py', '        if "tileset" not in entry:\n            raise ValueError(f"terrain {entry[\'id\']} names no tileset', '        if False:\n            raise ValueError(f"terrain {entry[\'id\']} names no tileset', 'test_layered_export.py'),
+    ('M462', 'P16 a map that fails its own check is exported', 'scripts/export_exchange.py', '    if problems:\n        raise ValueError("cannot export a layered map', '    if False:\n        raise ValueError("cannot export a layered map', 'test_layered_export.py'),
+    ('M463', 'P16 the command accepts another format for a map', 'scripts/export_exchange.py', '            if args.format not in (None, "tiled"):\n                raise ValueError(f"Unknown format {args.format!r} for a layered map', '            if False:\n                raise ValueError(f"Unknown format {args.format!r} for a layered map', 'test_layered_export.py'),
+    ('M464', 'P16 the gameplay grid is not carried into the map', 'scripts/export_exchange.py', '{"name": "gameplay", "type": "string", "value": "\\n".join(layered.gameplay_grid(data))}', '{"name": "gameplay", "type": "string", "value": ""}', 'test_layered_export.py'),
+    ('M465', 'P16 a cell half covered by the mask is not hidden', 'scripts/gamearts_terrain.py', 'if covered / (cell_w * cell_h) >= threshold:', 'if covered / (cell_w * cell_h) > threshold:', 'test_terrain.py'),
+    ('M466', 'P16 a mask that is not whole cells is read anyway', 'scripts/gamearts_terrain.py', '    if cell_w < 1 or cell_h < 1 or width % cell_w or height % cell_h:\n        raise ValueError(f"the mask is', '    if False:\n        raise ValueError(f"the mask is', 'test_terrain.py'),
+    ('M467', 'P16 the mask does not hide any cell', 'scripts/gamearts_layered_map.py', 'read["labels"][y][x] = len(terrains)  # an occluder', 'pass  # an occluder', 'test_layered_map.py'),
+    ('M468', 'P16 a mask of another size is accepted', 'scripts/gamearts_layered_map.py', '            if mask.size != size:', '            if False:', 'test_layered_map.py'),
+    ('M469', "P16 the mask's hash is not recorded", 'scripts/gamearts_layered_map.py', '**({"occlusion_mask_sha256": mask_hash} if mask_hash else {})', '**({})', 'test_layered_map.py'),
+    ('M470', 'P16 the command ignores the mask', 'scripts/gamearts_layered_map.py', 'common.read_json(args.occluders) if args.occluders else None, args.occlusion_mask)', 'common.read_json(args.occluders) if args.occluders else None, None)', 'test_layered_map.py'),
 ]
 
 
@@ -503,15 +564,14 @@ def main():
                 shutil.copy2(source, tree / name)
         for master in ROOT.glob("GAME_ARTS_MASTER_STANDARD*.md"):
             shutil.copy2(master, tree / master.name)
-        files = sorted({m[5] for m in MUTATIONS})
+        selected = [m for m in MUTATIONS if not args.only or m[0] in args.only]
+        files = sorted({m[5] for m in selected})  # a focused run checks only the test files its mutations need, never the whole suite
         for test_file in files:
             code, last = run_tests(tree, test_file)
             print(f"BASELINE {test_file}: {'ok' if code == 0 else 'FAILS BEFORE ANY MUTATION'} ({last})")
             if code != 0:
                 return 1
-        for ident, finding, rel, old, new, test_file in MUTATIONS:
-            if args.only and ident not in args.only:
-                continue
+        for ident, finding, rel, old, new, test_file in selected:
             target = tree / rel
             original = target.read_text(encoding="utf-8", newline="")
             probe = old.replace("\n", "\r\n") if "\r\n" in original and "\r\n" not in old else old

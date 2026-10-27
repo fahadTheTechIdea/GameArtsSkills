@@ -1,0 +1,324 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts layered map",
+  "description": "A scene read as layers: a terrain label per cell, an ordered stack of terrain layers (a base ground, then one overlay per further terrain by priority), and the static objects drawn as sprites. Engine-neutral: it names art and positions, never an engine's nodes. The framework validates it and exports it; building an engine scene from it belongs to the game project.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "name",
+    "grid",
+    "terrains",
+    "labels",
+    "layers",
+    "objects",
+    "source",
+    "validation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "width",
+        "height",
+        "cell_px"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Cells across."
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Cells down."
+        },
+        "cell_px": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "One cell's width and height in art pixels."
+        }
+      }
+    },
+    "terrains": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Every terrain of the map. The lowest priority is the base ground, which covers everything; each other terrain is an overlay drawn above it.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "symbol",
+          "colours",
+          "priority",
+          "walkable"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1,
+            "description": "The one character that stands for this terrain in `labels`."
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Draw order and overlay reach: an overlay covers every cell whose terrain has at least its priority."
+          },
+          "walkable": {
+            "type": "boolean"
+          },
+          "tileset": {
+            "type": "string",
+            "description": "The tileset file (beside this map) that draws the terrain: single or variants for the base, dual_grid_16 for an overlay."
+          },
+          "colours": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            },
+            "description": "Sample colours of this terrain in the approved scene (a terrain has light and shaded tones); a cell takes the terrain whose nearest sample is nearest to the cell's median colour."
+          }
+        }
+      }
+    },
+    "labels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "One string per row, one terrain symbol per cell."
+    },
+    "layers": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The draw order, back to front.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "role"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "role": {
+            "enum": [
+              "ground",
+              "overlay",
+              "objects",
+              "overhead",
+              "gameplay"
+            ]
+          },
+          "terrain": {
+            "type": "string",
+            "description": "The terrain of a ground or overlay layer."
+          }
+        }
+      }
+    },
+    "objects": {
+      "type": "array",
+      "description": "Static things drawn as sprites. Each is placed by its atlas pivot, which is also its ground contact and its sort point.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "class",
+          "sprite",
+          "position_px"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "class": {
+            "enum": [
+              "prop",
+              "static_structure",
+              "fixed_machinery"
+            ]
+          },
+          "sprite": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "atlas",
+              "frame"
+            ],
+            "properties": {
+              "atlas": {
+                "type": "string",
+                "description": "The atlas file, beside this map."
+              },
+              "frame": {
+                "type": "string",
+                "description": "The frame's name in that atlas."
+              }
+            }
+          },
+          "position_px": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "Where the sprite's pivot lands, in map pixels."
+          },
+          "layer": {
+            "enum": [
+              "objects",
+              "overhead"
+            ],
+            "default": "objects"
+          },
+          "footprint_px": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "Width and height of the ground the object occupies: a rectangle whose bottom edge is centred on the position."
+          },
+          "collision": {
+            "enum": [
+              "none",
+              "footprint"
+            ],
+            "default": "none"
+          },
+          "allow_overlap": {
+            "type": "boolean",
+            "description": "The footprint may overlap another's, for objects meant to touch."
+          },
+          "sort_offset_px": {
+            "type": "integer",
+            "description": "Added to the position's y when ordering, for a sprite whose base is not its pivot."
+          }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "image",
+        "image_sha256",
+        "read"
+      ],
+      "properties": {
+        "image": {
+          "type": "string"
+        },
+        "image_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "read": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "unclassified_cells",
+            "area_opening_minimum",
+            "cells_changed",
+            "occluded_cells"
+          ],
+          "properties": {
+            "method": {
+              "const": "nearest_palette_colour_of_cell_median"
+            },
+            "unclassified_cells": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "description": "Cells whose colour is far from every terrain colour. They carry their nearest terrain and are listed so a person can look."
+            },
+            "area_opening_minimum": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "cells_changed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "occluded_cells": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "description": "Cells whose ground was hidden by an object (a tree, a roof, a character). Their terrain is inferred from the nearest visible ground, not read."
+            },
+            "occlusion_mask_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$",
+              "description": "The hash of the occlusion mask (a picture, white where an object lies) that hid cells of this scene, when one was given."
+            }
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "geometry",
+        "engine_validation"
+      ],
+      "properties": {
+        "geometry": {
+          "enum": [
+            "generated_from_scene",
+            "supplied"
+          ]
+        },
+        "engine_validation": {
+          "const": "not_tested"
+        }
+      }
+    }
+  }
+}
