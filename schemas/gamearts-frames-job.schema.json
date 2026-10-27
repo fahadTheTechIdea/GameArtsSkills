@@ -102,6 +102,10 @@
         }
       }
     },
+    "soft_alpha": {
+      "type": "boolean",
+      "description": "The frames are true-alpha pictures from a tool that can return alpha. Each is split into key-colour art and a coverage matte, and the sheet is delivered with a companion <name>.matte.png (only for a look whose preset declares soft edges)."
+    },
     "trim": {
       "type": "boolean",
       "description": "Keep only each frame's art (joined with its pivot) plus padding. Needs pack 'shelf'."

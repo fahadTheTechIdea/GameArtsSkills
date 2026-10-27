@@ -428,6 +428,16 @@ MUTATIONS = [
     ("M363", "P14 an isometric tile that is not 2:1 passes silently", "scripts/gamearts_asset_lifecycle.py", 'tile[0] != 2 * tile[1]', 'tile[0] != tile[0]', "test_confirm_settings.py"),
     ("M364", "P14 a confirmation is accepted without the owner's words", "scripts/gamearts_asset_lifecycle.py", 'if not (confirmed_by or "").strip() or not (confirmation_reference or "").strip():', 'if False:', "test_confirm_settings.py"),
     ("M365", "P14 a cut-out rig is billed a picture for every frame", "scripts/gamearts_plan_card.py", "    if rig_by_transform:  # the motion", "    if False:  # the motion", "test_plan_card.py"),
+    ("M366", "P12.4 the matte loses the softness it was given", "scripts/gamearts_matte.py", "    return key, alpha\n", "    return key, alpha.point(lambda v: 255 if v else 0)\n", "test_matte.py"),
+    ("M367", "P12.4 artwork exactly the key colour is left as background", "scripts/gamearts_matte.py", "NUDGED_RED = 254", "NUDGED_RED = 255", "test_matte.py"),
+    ("M368", "P12.4 art with no coverage passes the pair check", "scripts/gamearts_matte.py", "    if invisible_art:", "    if False:", "test_matte.py"),
+    ("M369", "P12.4 coverage over the key colour passes the pair check", "scripts/gamearts_matte.py", "    if stray:", "    if False:", "test_matte.py"),
+    ("M370", "P12.4 a changed matte is not noticed", "scripts/gamearts_matte.py", 'if common.sha256_file(matte_path) != entry["sha256"]:', "if False:", "test_matte.py"),
+    ("M371", "P12.4 the runtime export ignores the matte", "scripts/export_runtime.py", "    runtime.putalpha(art if matte is None else matte)", "    runtime.putalpha(art)", "test_matte.py"),
+    ("M372", "P12.4 a doctored runtime alpha is not found", "scripts/export_runtime.py", "alpha.tobytes() != matte.tobytes()", "False", "test_matte.py"),
+    ("M373", "P12.4 a hard-edged look may carry a matte", "scripts/gamearts_asset_lifecycle.py", 'if chosen and chosen.get("found") and not chosen["soft_edges"]:', "if False:", "test_matte.py"),
+    ("M374", "P12.4 the sheet check ignores the matte", "scripts/validate_sheet_atlas.py", "    issues += matte_rules.atlas_problems(image_path, atlas)\n", "", "test_matte.py"),
+    ("M375", "P14 Codex E-3 a UI kit is planned as one picture", "scripts/gamearts_plan_card.py", 'LAYER_CLASSES = {"parallax_layer", "ui_presentation"}', 'LAYER_CLASSES = {"parallax_layer"}', "test_plan_card.py"),
 ]
 
 

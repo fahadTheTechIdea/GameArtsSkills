@@ -272,6 +272,9 @@ def technical_check_bundle(folder, settings=None, settings_problem=None, root=No
     tilesets = sorted(folder.glob("*.tileset.json"))
     for tileset in tilesets:  # the sheet itself was checked above with its atlas
         issues += [f"{tileset.name}: {problem}" for problem in validate_tileset(tileset, check_sheet=False)]
+    chosen = presets.resolve_style_preset(settings) if settings else None
+    if chosen and chosen.get("found") and not chosen["soft_edges"]:  # a look with hard edges has nothing for a matte to carry
+        issues += [f"{atlas.name}: carries a matte, but the {chosen['preset']} look has hard edges and never gets one" for atlas in atlases if "matte" in common.read_json(atlas)]
     style = bundle_report(folder, [a for a in atlases if not any(i.startswith(a.name) for i in issues)], settings, root, settings_problem)
     issues += style.pop("issues")
     result = {"status": "failed" if issues else "passed", "checked_at_utc": _now(),

@@ -139,7 +139,8 @@ def resolve_style_preset(settings, folder=None):
         return {"preset": wanted, "found": False,
                 "message": f"No style preset named {wanted!r} is installed; the project keeps the policy values it already holds"}
     return {"preset": wanted, "found": True, "title": preset["title"], "required_checks": preset["required_checks"],
-            "check_parameters": preset.get("check_parameters", {}), "avoid": preset["avoid"]}
+            "check_parameters": preset.get("check_parameters", {}), "avoid": preset["avoid"],
+            "soft_edges": preset["soft_edges"]}
 
 
 def suits(entry, world_kind=None, camera=None):

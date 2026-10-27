@@ -258,6 +258,25 @@
       },
       "description": "Controls whose states are frames of this sheet, with the full state set each must have."
     },
+    "matte": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "sha256"
+      ],
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "The companion coverage picture beside the sheet: 8-bit, the sheet's size, 0 exactly where the sheet is the key colour."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "description": "Soft-edge coverage that rides beside the sheet. The key sheet stays canonical; the runtime export turns this coverage into real alpha."
+    },
     "blend_mode": {
       "enum": [
         "normal",

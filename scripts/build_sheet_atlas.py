@@ -16,6 +16,7 @@ from PIL import Image  # noqa: E402
 
 import gamearts_atlas as atlas_rules  # noqa: E402
 import gamearts_common as common  # noqa: E402
+import gamearts_matte as matte_rules  # noqa: E402
 
 DEFAULT_MAX_WIDTH = 2048
 
@@ -32,18 +33,25 @@ def ink_bounds(image):
     return None if box is None else [box[0], box[1], box[2] - box[0], box[3] - box[1]]
 
 
-def load_frame(item, base, allow_near_key):
+def load_frame(item, base, allow_near_key, soft_alpha=False):
+    """(path, key-colour image, ink bounds, matte); the matte is None unless the job's frames carry true alpha, which is split into art and coverage."""
     path = common.safe_member(base, item["file"], "frame file")
     if not path.is_file():
         raise ValueError(f"Missing source frame: {path}")
-    image = common.load_rgba(path, str(path))
+    matte = None
+    if soft_alpha:
+        from PIL import Image
+        with Image.open(path) as opened:
+            image, matte = matte_rules.split(opened)
+    else:
+        image = common.load_rgba(path, str(path))
     report = common.key_policy_report(image, allow_near_key=allow_near_key)
     if report["issues"]:
         raise ValueError(f"{path.name}: " + "; ".join(report["issues"]))
     bounds = ink_bounds(image)
     if bounds is None and not item.get("allow_empty"):
         raise ValueError(f"{path.name}: frame contains no artwork (set allow_empty for a deliberately blank frame)")
-    return path, image, bounds
+    return path, image, bounds, matte
 
 
 UI_FIELDS = ("nine_slice", "state", "control", "set")
@@ -103,6 +111,7 @@ def build(manifest, output_dir):
     allow_near_key = bool(manifest.get("allow_near_key", False))
     full_bleed = bool(manifest.get("full_bleed", False))
     pack, trim = manifest.get("pack", "grid"), bool(manifest.get("trim", False))
+    soft_alpha, mattes = bool(manifest.get("soft_alpha", False)), []
     if pack == "shelf" and "columns" in manifest:
         raise ValueError("columns applies to the grid layout only; a shelf layout is limited by max_width instead")
     if trim and pack != "shelf":
@@ -120,7 +129,8 @@ def build(manifest, output_dir):
         if frame_name in seen_names:
             raise ValueError(f"duplicate frame name: {frame_name}")
         seen_names.add(frame_name)
-        path, image, bounds = load_frame(item, base, allow_near_key)
+        path, image, bounds, frame_matte = load_frame(item, base, allow_near_key, soft_alpha)
+        mattes.append(frame_matte)
         pivot = integer_pair(item.get("pivot", [image.width // 2, image.height - 1]), f"frame {i}.pivot")
         if not (0 <= pivot[0] <= image.width and 0 <= pivot[1] <= image.height):
             raise ValueError(f"frame {i}: pivot {pivot} lies outside its {image.width}x{image.height} image")
@@ -139,11 +149,15 @@ def build(manifest, output_dir):
                 raise ValueError(f"frame {frame_name}: its cell is {cells[i][1][0]} px wide, wider than max_width {max_width}")
         positions, sheet_w, sheet_h = shelf_positions([c[1] for c in cells], spacing, max_width)
         sheet = Image.new("RGBA", (sheet_w, sheet_h), common.KEY_RGBA)
+        matte_sheet = Image.new("L", (sheet_w, sheet_h), 0) if soft_alpha else None
         result_frames, rects = [], []
         for i, (item, frame_name, source, image, bounds, pivot, anchors) in enumerate(rest):
             box, (cell_w, cell_h), cell_pivot, offset = cells[i]
             cell_x, cell_y = positions[i]
-            sheet.paste(image.crop((box[0], box[1], box[0] + box[2], box[1] + box[3])), (cell_x + padding, cell_y + padding))
+            crop = (box[0], box[1], box[0] + box[2], box[1] + box[3])
+            sheet.paste(image.crop(crop), (cell_x + padding, cell_y + padding))
+            if soft_alpha:
+                matte_sheet.paste(mattes[i].crop(crop), (cell_x + padding, cell_y + padding))
             rects.append((cell_x, cell_y, cell_w, cell_h))
             entry = {"index": i, "name": frame_name, "direction": item.get("direction"), "action": item.get("action"),
                      "rect": [cell_x, cell_y, cell_w, cell_h], "source_size": [image.width, image.height],
@@ -167,12 +181,15 @@ def build(manifest, output_dir):
         sheet_w = cols * cell_w + max(0, cols - 1) * spacing
         sheet_h = rows * cell_h + max(0, rows - 1) * spacing
         sheet = Image.new("RGBA", (sheet_w, sheet_h), common.KEY_RGBA)
+        matte_sheet = Image.new("L", (sheet_w, sheet_h), 0) if soft_alpha else None
         result_frames, rects = [], []
         for i, (item, frame_name, source, image, bounds, pivot, anchors) in enumerate(rest):
             col, row = i % cols, i // cols
             cell_x, cell_y = col * (cell_w + spacing), row * (cell_h + spacing)
             dx, dy = cell_x + left - pivot[0], cell_y + top - pivot[1]
             sheet.paste(image, (dx, dy))
+            if soft_alpha:
+                matte_sheet.paste(mattes[i], (dx, dy))
             rects.append((cell_x, cell_y, cell_w, cell_h))
             result_frames.append(with_ui_fields({
                 "index": i, "name": frame_name, "direction": item.get("direction"), "action": item.get("action"),
@@ -221,12 +238,18 @@ def build(manifest, output_dir):
     if image_path.exists() or atlas_path.exists():
         raise FileExistsError("Output revision already exists; choose a new descriptive revision/name")
     tmp_png = output_dir / (name + ".build-tmp.png")
+    matte_path = output_dir / matte_rules.matte_name(name + ".png")
     try:
         sheet.save(tmp_png)
         common.replace_file(tmp_png, image_path)
+        if soft_alpha:
+            matte_sheet.save(tmp_png)
+            common.replace_file(tmp_png, matte_path)
+            atlas["matte"] = matte_rules.record(matte_path)
+            common.validate_schema(atlas, "gamearts-atlas")
         common.atomic_write_json(atlas_path, atlas)
     except BaseException:
-        for leftover in (tmp_png, image_path, atlas_path):
+        for leftover in (tmp_png, image_path, atlas_path, matte_path):
             leftover.unlink(missing_ok=True)
         raise
     return image_path, atlas_path

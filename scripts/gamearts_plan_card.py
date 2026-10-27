@@ -25,7 +25,7 @@ import gamearts_common as common  # noqa: E402
 from prepare_reference_crop import CLASSES, EITHER_CLASSES, SCREEN_CLASSES  # noqa: E402
 
 SET_CLASSES = {"tileset", "icon_set", "portrait_set", "card_layer_set"}  # classes made of many pictures
-LAYER_CLASSES = {"parallax_layer"}  # one picture, or a stack of layers when the owner says how many
+LAYER_CLASSES = {"parallax_layer", "ui_presentation"}  # one picture, or a stack (layers, or a kit of controls and their states) when the owner says how many
 COMPOSITE_CLASSES = {"static_structure", "fixed_machinery"}  # classes whose parts may open or move, so a Quick card states its assumption
 LANE_TITLES = {"quick": "Quick", "standard": "Standard", "full": "Full"}
 

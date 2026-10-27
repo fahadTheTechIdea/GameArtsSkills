@@ -240,11 +240,11 @@ Acceptance criteria
 
 | ID | Task | Depends | Check | Status |
 | --- | --- | --- | --- | --- |
-| P12.0 | Spike: can the owner's chosen tool return true alpha (**[U]**)? Run once with a real session in the owner step | none | recorded result in the tracker | **owner step** (needs a real session with the owner's tool); P12.4 stays blocked on it |
+| P12.0 | Spike: can the owner's chosen tool return true alpha (**[U]**)? Run once with a real session in the owner step | none | recorded result in the tracker | ran 2026-10-27 with Codex's built-in tool (tracker V-26): it returned a genuine RGBA file with soft alpha when asked for a transparent background; one sample |
 | P12.1 | Tileset schema, builder, validator, exporter | P9.4 | new `test_tileset.py`: complete `blob_47` passes; a missing tile and a mismatched edge are named; `dual_grid_16` passes | built, locally verified (V-22): schemas, builder, validator, gate, Tiled export |
 | P12.2 | UI kit metadata and validator | P9.4 | new `test_ui_kit.py` | built, locally verified (V-22) |
 | P12.3 | Tags, trim, pack, exchange export | none | `test_build_sheet_atlas.py`, `test_validate_sheet_atlas.py`, new `test_exchange_export.py` | built, locally verified (V-22): tags, trim, shelf pack, Aseprite array and hash export; checks with tag awareness are not built |
-| P12.4 | Matte companion and validator (only if P12.0 says yes) | P12.0, P12.3 | new `test_matte.py` | **not built**: blocked on P12.0 |
+| P12.4 | Matte companion and validator (only if P12.0 says yes) | P12.0, P12.3 | new `test_matte.py` | built, locally verified (V-26): `gamearts_matte.py` (split, check), job option `soft_alpha`, atlas `matte` record, matte-driven runtime alpha, refusal for hard-edged looks |
 | P12.5 | Effect class and blend metadata | P9.4 | `test_contract_schemas.py` | built, locally verified (V-22): advisory `blend_mode` on the atlas (the `effect` class already existed) |
 | P12.6 | Track interpolation and keyframe easing in the component builder and the sampled poses | none | `test_component_bundle.py`: unchanged output without them; a known curve at known times | built, locally verified (V-22) |
 | P12.7 | Runtime-ready export and its manifest listing | P12.3 | new `test_export_runtime.py`: exact round trip over the key colour, hashes recorded, a changed source is detected, the canonical sheet is untouched | built, locally verified (V-22) |
@@ -326,7 +326,7 @@ Acceptance criteria
 
 | ID | Unknown | Resolves in |
 | --- | --- | --- |
-| U-S1 | Whether the owner's chosen tool (Codex's built-in image tool) can return true alpha; OpenAI's guide documents `background: "transparent"` for named models but support differs by model | P12.0, owner session |
+| U-S1 | Whether the owner's chosen tool (Codex's built-in image tool) can return true alpha; OpenAI's guide documents `background: "transparent"` for named models but support differs by model | **Observed 2026-10-27 (tracker V-26): yes, with its transparent-background option, one sample.** Other prompts, looks and model versions are unobserved |
 | U-S2 | The exact fields of Aseprite's JSON (no complete official schema was found) and of the array layout | P12.3: compare a real export from the owner's Aseprite before claiming compatibility |
 | U-S3 | Tiled's tileset and Wang-set XML details | P12.1: read the TMX format reference at that time, then test with a real Tiled by the owner |
 | U-S4 | Cost of palette and grid analysis at 2048 px and 4096 px with Pillow only | P11.7 |

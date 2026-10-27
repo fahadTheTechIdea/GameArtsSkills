@@ -24,6 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gamearts_common as common  # noqa: E402
+import gamearts_matte as matte_rules  # noqa: E402
 import validate_sheet_atlas as sheet_validator  # noqa: E402
 
 MANIFEST = "runtime.export.json"
@@ -31,13 +32,18 @@ RULE = "Pixels that are exactly #FF00FF become fully transparent (RGBA 0, 0, 0, 
 COPIED_SUFFIXES = (".bundle.json", ".tileset.json")  # unchanged: they name atlases, and the atlases keep their names
 
 
-def to_runtime_image(sheet):
-    """The sheet as RGBA with every exact-key pixel fully transparent and black underneath, every other pixel unchanged at alpha 255."""
+MATTE_RULE = ("Pixels that are exactly #FF00FF become fully transparent (RGBA 0, 0, 0, 0); every other pixel keeps its colour and takes its alpha from the "
+              "sheet's matte (coverage 1 to 255).")
+
+
+def to_runtime_image(sheet, matte=None):
+    """The sheet as RGBA with every exact-key pixel fully transparent and black underneath. Every other pixel keeps its colour at alpha 255, or at the
+    matte's coverage when the sheet has a matte (which agrees with the key pixels by the matte's own check)."""
     from PIL import Image
     rgba = sheet.convert("RGBA")
-    art = common.nonkey_mask(rgba)
+    art = common.nonkey_mask(rgba) if matte is None else matte.point(lambda v: 255 if v else 0)
     runtime = Image.composite(rgba.convert("RGB"), Image.new("RGB", rgba.size, (0, 0, 0)), art).convert("RGBA")
-    runtime.putalpha(art)
+    runtime.putalpha(art if matte is None else matte)
     return runtime
 
 
@@ -74,13 +80,20 @@ def _export(pairs, copies, source_folder, output_dir):
         files = []
         for sheet, atlas in pairs:
             atlas_data = common.read_json(atlas)
+            matte_entry = atlas_data.pop("matte", None)  # the coverage becomes the alpha, so the runtime atlas has no matte file to ship
             with Image.open(sheet) as opened:
-                runtime = to_runtime_image(opened)
+                matte = None
+                if matte_entry:
+                    with Image.open(sheet.parent / matte_entry["file"]) as covered:
+                        matte = covered.copy()
+                runtime = to_runtime_image(opened, matte)
             target_sheet = stage / sheet.name
             runtime.save(target_sheet, format="PNG")
             atlas_data["background_alpha"] = 0
-            atlas_data["runtime"] = {"derived": True, "rule": RULE, "source_sheet": sheet.name,
+            atlas_data["runtime"] = {"derived": True, "rule": MATTE_RULE if matte_entry else RULE, "source_sheet": sheet.name,
                                      "source_sheet_sha256": common.sha256_file(sheet), "source_atlas_sha256": common.sha256_file(atlas)}
+            if matte_entry:
+                atlas_data["runtime"]["source_matte_sha256"] = matte_entry["sha256"]
             common.validate_schema(atlas_data, "gamearts-atlas")
             target_atlas = stage / atlas.name
             common.atomic_write_json(target_atlas, atlas_data)
@@ -143,7 +156,8 @@ def verify_export(export_dir, source_folder):
             issues.append(f"{entry['path']}: stale, because its source {entry['source_path']} changed after the export")
             continue
         if entry["role"] == "sheet":
-            issues += _sheet_issues(entry["path"], target, source)
+            matte = source.with_name(matte_rules.matte_name(source.name))
+            issues += _sheet_issues(entry["path"], target, source, matte if matte.is_file() else None)
         elif entry["role"] == "atlas":
             issues += _atlas_issues(entry["path"], target, source, source_folder)
         elif target.read_bytes() != source.read_bytes():
@@ -154,8 +168,8 @@ def verify_export(export_dir, source_folder):
     return issues
 
 
-def _sheet_issues(name, runtime_path, source_path):
-    from PIL import Image
+def _sheet_issues(name, runtime_path, source_path, matte_path=None):
+    from PIL import Image, ImageChops
     with Image.open(runtime_path) as opened:
         if opened.mode != "RGBA":
             return [f"{name}: should be an RGBA picture, not {opened.mode}"]
@@ -164,6 +178,15 @@ def _sheet_issues(name, runtime_path, source_path):
     alpha = runtime.getchannel("A")
     counts = alpha.histogram()
     soft = sum(counts[1:255])
+    if matte_path is not None:  # soft edges: the alpha is the matte, and the colour of every covered pixel is the delivered sheet's
+        with Image.open(matte_path) as covered, Image.open(source_path) as opened:
+            matte, source = covered.copy(), opened.convert("RGBA")
+        if runtime.size != source.size or alpha.tobytes() != matte.tobytes():
+            issues.append(f"{name}: its alpha is not the coverage of the matte {matte_path.name}")
+        elif ImageChops.multiply(ImageChops.difference(runtime.convert("RGB"), source.convert("RGB")).convert("L").point(lambda v: 255 if v else 0),
+                                 alpha.point(lambda v: 255 if v else 0)).getbbox() is not None:
+            issues.append(f"{name}: a covered pixel's colour differs from the delivered sheet {source_path.name}")
+        return issues
     if soft:
         issues.append(f"{name}: {soft} pixel(s) are partly transparent, but a runtime copy of a delivered sheet has only fully transparent and fully opaque pixels")
     hidden = Image.composite(runtime.convert("RGB"), Image.new("RGB", runtime.size, (0, 0, 0)), alpha.point(lambda v: 255 if v == 0 else 0))
@@ -181,6 +204,7 @@ def _atlas_issues(name, runtime_path, source_path, source_folder):
     block = runtime.pop("runtime", None)
     runtime.pop("background_alpha", None)
     source.pop("background_alpha", None)
+    matte = source.pop("matte", None)  # shipped as alpha, not as a file
     issues = []
     if not isinstance(block, dict) or block.get("derived") is not True:
         issues.append(f"{name}: has no runtime block saying it is a derived copy")
@@ -188,6 +212,10 @@ def _atlas_issues(name, runtime_path, source_path, source_folder):
         for key, path in (("source_atlas_sha256", source_path), ("source_sheet_sha256", source_folder / block.get("source_sheet", ""))):
             if not path.is_file() or block.get(key) != common.sha256_file(path):
                 issues.append(f"{name}: runtime.{key} does not match the current {path.name}")
+    if matte is not None and isinstance(block, dict):
+        covered = source_folder / matte["file"]
+        if not covered.is_file() or block.get("source_matte_sha256") != common.sha256_file(covered):
+            issues.append(f"{name}: runtime.source_matte_sha256 does not match the current {matte['file']}")
     if runtime != source:
         issues.append(f"{name}: its frames, pivots, anchors, durations or tags differ from the delivered atlas")
     return issues

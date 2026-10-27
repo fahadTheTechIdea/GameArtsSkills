@@ -13,6 +13,7 @@ from PIL import Image  # noqa: E402
 
 import gamearts_atlas as atlas_rules  # noqa: E402
 import gamearts_common as common  # noqa: E402
+import gamearts_matte as matte_rules  # noqa: E402
 
 
 def validate(image_path, atlas_path, tolerance=common.NEAR_KEY_TOLERANCE):
@@ -53,6 +54,7 @@ def validate(image_path, atlas_path, tolerance=common.NEAR_KEY_TOLERANCE):
     issues += [f"tags: {problem}" for problem in atlas_rules.tag_problems(atlas.get("tags", []), len(atlas["frames"]))]
     report = common.key_policy_report(sheet, rects, tolerance, bool(atlas.get("allow_near_key")), bool(atlas.get("full_bleed")))
     issues += report["issues"]
+    issues += matte_rules.atlas_problems(image_path, atlas)
     return issues
 
 

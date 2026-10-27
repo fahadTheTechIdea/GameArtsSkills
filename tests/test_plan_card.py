@@ -67,6 +67,12 @@ class LaneTests(GameCase):
         self.assertEqual(result["image_calls"]["pictures"], 7)
         self.assertEqual(self.plan("parallax_layer")["lane"], "quick")
 
+    def test_a_ui_kit_counts_every_control_and_state_and_one_screen_stays_quick(self):
+        kit_card = self.plan("ui_presentation", pictures=12)
+        self.assertEqual(kit_card["lane"], "standard")
+        self.assertEqual(kit_card["image_calls"]["pictures"], 12)
+        self.assertEqual(self.plan("ui_presentation")["lane"], "quick")
+
     def test_a_game_with_no_ground_world_is_not_planned_world_art(self):
         write_settings(self.root, world_kind="screen_space", screen={"base_resolution_px": [1280, 720]}, drop=("world", "directions"))
         with self.assertRaisesRegex(ValueError, "screen_space.*terrain art does not apply"):
