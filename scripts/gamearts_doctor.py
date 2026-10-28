@@ -114,6 +114,8 @@ def check_settings(root):
     if generator:
         findings.append(check("image generator", "info", f"Saved choice: {generator['tool']}"
                               + (f" ({generator['tool_name']})" if generator.get("tool_name") else "")
+                              + (f"; fallback: {generator['fallback']['tool']}" + (f" ({generator['fallback']['tool_name']})" if generator["fallback"].get("tool_name") else "")
+                                 if generator.get("fallback") else "")
                               + ". Whether this session has that tool is for the agent to check against its own tools."))
     else:
         findings.append(check("image generator", "warn", "No image generator is saved for this game",

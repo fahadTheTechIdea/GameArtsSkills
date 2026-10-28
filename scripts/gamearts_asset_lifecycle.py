@@ -4,7 +4,7 @@
 Used INTERNALLY by Claude/Codex. Never derive a production source from a revoked/rejected/superseded record. Every
 transition keeps the complete bundle, backs up the manifest, runs under one manifest lock and verifies its own result.
 
-Operations (all take --game-root): check-settings, confirm-settings, register, register-generated, import-mockup, audit-mockup, approve-mockup,
+Operations (all take --game-root): check-settings, confirm-settings, register, register-generated, import-mockup, audit-mockup, approve-mockup, extract-scene, detect-scene, remove-scene, evaluate-scene,
 register-asset, audit, approve, select, list, revoke, restore, reconcile, reconcile-assets.
 
 Every operation that changes a record rebuilds the art report (.gamearts/system/report/index.html) and names it in its result.
@@ -623,6 +623,19 @@ def list_records(game_root, kind, status=None):
 
 
 # ------------------------------------------------------------------------------------------------ asset register / approve
+def _require_scene_extraction(root, mockup, label):
+    """A world, scene or mixed mockup that has a blueprint is taken through the extraction before any asset is built from it, and the extraction
+    on record must still be the one on disk (its manifest unchanged). A mockup of another scope, or one with no blueprint, is not held to this."""
+    if mockup.get("scope") not in SCENE_SCOPES or not mockup.get("blueprint"):
+        return
+    done = mockup.get("scene_extraction")
+    if not done:
+        raise ValueError(f"source mockup {label} is a scene with a blueprint and has not been extracted: run extract-scene first")
+    manifest = common.safe_member(root, done["path"] + "/extraction.json", "scene extraction")
+    if not manifest.is_file() or common.sha256_file(manifest) != done.get("manifest_sha256"):
+        raise ValueError(f"source mockup {label}: its recorded extraction is missing or has changed since it was recorded; run extract-scene again on a new revision")
+
+
 def register_asset(game_root, asset_id, revision, bundle, source_mockups, extra=None):
     """Register a generated asset bundle (already inside assets/generated) with verified source links and a technical check."""
     root, out, _ = _paths(game_root, "assets")
@@ -647,6 +660,7 @@ def register_asset(game_root, asset_id, revision, bundle, source_mockups, extra=
             path = _storage_path(root, out, match, "mockups")
             if common.sha256_file(path) != match.get("sha256"):
                 raise ValueError(f"source mockup {mockup_id} {mockup_revision} bytes differ from the approved hash")
+            _require_scene_extraction(root, match, f"{mockup_id} {mockup_revision}")
             links.append({"mockup_id": mockup_id, "revision": mockup_revision, "reference_sha256": match["sha256"]})
         files = sorted(p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file() and not p.name.startswith("."))
         technical = technical_check_bundle(folder, *_gate_settings(root), root=root)
@@ -957,12 +971,18 @@ def _check_image_tool(settings, metadata):
     if tool == "user_supplied":
         raise ValueError("The project's image generator is user_supplied: the owner makes the pictures, so a generated mockup cannot be "
                          "registered. Import the owner's picture with import-mockup, or have the owner change the image generator setting first")
-    if mode != tool:
-        raise ValueError(f"This mockup was made with {mode} but the project's image generator is {tool}: use the chosen tool, "
-                         "or have the owner change the image generator setting first")
-    if tool == "connected_tool" and str(metadata["tool_name"]).strip().casefold() != chosen["tool_name"].strip().casefold():
-        raise ValueError(f"This mockup was made with the connected tool {metadata['tool_name']} but the project's image generator is "
-                         f"{chosen['tool_name']}: use the chosen tool, or have the owner change the image generator setting first")
+    allowed = [chosen] + ([chosen["fallback"]] if chosen.get("fallback") else [])  # the owner's main tool, then the one they chose for when it is unavailable
+    mismatch = None
+    for candidate in allowed:
+        if mode != candidate["tool"]:
+            mismatch = mismatch or (f"This mockup was made with {mode} but the project's image generator is {tool}: use the chosen tool, "
+                                    "or have the owner change the image generator setting first")
+        elif candidate["tool"] == "connected_tool" and str(metadata["tool_name"]).strip().casefold() != candidate["tool_name"].strip().casefold():
+            mismatch = (f"This mockup was made with the connected tool {metadata['tool_name']} but the project's image generator is "
+                        f"{candidate['tool_name']}: use the chosen tool, or have the owner change the image generator setting first")  # the more specific reason wins
+        else:
+            return
+    raise ValueError(mismatch)
 
 
 def _update_metadata_paths(metadata_path, file_rel, blueprint_rel=None):
@@ -991,6 +1011,23 @@ def _mockup_companions(root, out, record, status):
     return {key: path for key in ("metadata", "blueprint") if (path := _companion_path(root, out, record, key, status)) is not None}
 
 
+def _picture_problems(path):
+    """Whether the mockup's picture can be read and shows anything: a corrupt file, a fully transparent picture and a single flat colour have nothing for the analyzer, the
+    reference crop or the owner's approval to stand on."""
+    from PIL import Image
+    try:
+        with Image.open(path) as opened:
+            opened.load()
+            extrema = opened.convert("RGBA").getextrema()
+    except (OSError, ValueError) as exc:
+        return [f"mockup picture cannot be read: {exc}"]
+    if extrema[3] == (0, 0):
+        return ["mockup picture is fully transparent: it shows nothing to analyze"]
+    if all(low == high for low, high in extrema):
+        return ["mockup picture is one flat colour: it shows nothing to analyze"]
+    return []
+
+
 def audit_mockup(game_root, item_id, revision, notes=None):
     """Blocking issues for one mockup. A settings change after approval is a review flag (in `notes`), never an issue."""
     notes = notes if notes is not None else []
@@ -1007,6 +1044,7 @@ def audit_mockup(game_root, item_id, revision, notes=None):
         issues.append("mockup manifest lacks registered SHA256")
     elif common.sha256_file(path) != expected:
         issues.append("mockup image hash mismatch")
+    issues += _picture_problems(path)
     if record.get("mockup_id") != item_id or record.get("revision") != revision:
         issues.append("mockup record identity is inconsistent")
     if not isinstance(record.get("prompt"), str) or not record["prompt"].strip():
@@ -1250,7 +1288,7 @@ def import_mockup(game_root, source, mockup_id, revision, scope, rights="user_su
 
 
 def register_generated_mockup(game_root, image, mockup_id, revision, scope, prompt, tool_mode=None, tool_name=None, scene_id=None,
-                              notes="", model=None):
+                              notes="", model=None, use_fallback=False, fallback_reason=""):
     """Register a mockup an image tool has just produced: names the file, hashes it, writes the metadata record and registers it.
 
     The agent hands over the tool's own output and the prompt it actually sent; it never assembles the metadata or the manifest by
@@ -1267,7 +1305,16 @@ def register_generated_mockup(game_root, image, mockup_id, revision, scope, prom
         raise ValueError(f"image must be a regular file: {image}")
     settings, _, _ = _settings_snapshot(root)
     chosen = settings.get("image_generation")
-    if tool_mode is None:
+    if use_fallback:
+        if not chosen or not chosen.get("fallback"):
+            raise ValueError("This game has no fallback image generator: the owner chose none, so the main tool is the only one. Say that it is unavailable and stop, "
+                             "or have the owner add a fallback to the image generator setting")
+        if not str(fallback_reason).strip():
+            raise ValueError("Say why the main image generator was not used (--fallback-reason): the fallback is only for when it is unavailable in the session")
+        if tool_mode is not None:
+            raise ValueError("use_fallback names the owner's fallback tool itself: do not also name a tool")
+        tool_mode, tool_name = chosen["fallback"]["tool"], chosen["fallback"].get("tool_name")
+    elif tool_mode is None:
         if not chosen:
             raise ValueError("No image generator is saved for this game: ask the owner which one to use and save it in the project "
                              "settings, or name the tool with tool-mode")
@@ -1287,7 +1334,8 @@ def register_generated_mockup(game_root, image, mockup_id, revision, scope, prom
             "file": staged.name, "sha256": common.sha256_file(staged), "prompt": prompt,
             "prompt_origin": "agent_brief", "imagegen_prompt_captured": True, "tool_mode": tool_mode, "created_at_utc": _now(),
             "source_references": [{"original_name": image.name, "original_sha256": original_hash}],
-            "provenance": {"provider": tool_name or tool_mode, "edit_mode": "generated", **({"model": model} if model else {})}}
+            "provenance": {"provider": tool_name or tool_mode, "edit_mode": "generated", **({"model": model} if model else {}),
+                           **({"generator_role": "fallback", "fallback_reason": str(fallback_reason).strip()} if use_fallback else {})}}
         if tool_name:
             metadata["tool_name"] = tool_name
         if scene_id:
@@ -1349,8 +1397,142 @@ def approve_mockup(game_root, item_id, revision, user_approval_reference):
                 raise ValueError("Post-approval mockup audit failed: " + "; ".join(problems))
         except Exception as failure:
             _roll_back(failure, moved, contents, manifest_path, backup.read_bytes())
-    return {"mockup_id": item_id, "revision": revision, "status": "approved", "path": str(destination),
+    return {"mockup_id": item_id, "revision": revision, "scope": record.get("scope"), "status": "approved", "path": str(destination),
             "manifest_backup": str(backup), "engine_validation": "not_assessed"}
+
+
+SCENE_SCOPES = ("world", "scene", "mixed")
+SCRIPTS = Path(__file__).resolve().parent
+SCENE_STAGES = {"extraction": "scene_extraction", "detection": "scene_detection", "clean_parent": "scene_removal", "evaluation": "scene_evaluation"}
+
+
+def _scene_mockup(game_root, item_id, revision, need_blueprint=True):
+    """The manifest row of an approved world, scene or mixed mockup, which every scene stage works on; the stage's own folder is
+    `.gamearts/outputs/scenes/<id>_<rev>/<stage>` so that no stage ever writes into another's."""
+    root, out, manifest_path, manifest, rows = _read(game_root, "mockups")
+    record = _record(rows, "mockups", item_id, revision)
+    if record.get("status") != "approved":
+        raise ValueError("Only an approved mockup can be taken through the scene stages: the objects of an unapproved picture may still change")
+    if record.get("scope") not in SCENE_SCOPES:
+        raise ValueError(f"The scene stages are for {', '.join(SCENE_SCOPES)} mockups; this one is {record.get('scope')}")
+    if need_blueprint and not record.get("blueprint"):
+        raise ValueError("The mockup has no blueprint: analyze it (mockup-analyzer) and register the blueprint first")
+    return root, out, manifest, record
+
+
+def _scene_result(root, manifest, record, stage, folder, summary):
+    record[SCENE_STAGES[stage]] = {"path": folder.relative_to(root).as_posix(), "recorded_at_utc": _now(), **summary}
+    _write_manifest(root, "mockups", manifest)
+
+
+def extract_scene(game_root, item_id, revision, masks_from=None):
+    """Cut every object out of an approved scene mockup as its reviewed blueprint says and record the account on the mockup's row. The
+    extractor itself refuses a blueprint with an inconsistent object sweep or one that does not belong to this picture."""
+    import extract_scene_objects as extractor
+    with manifest_lock(Path(game_root).resolve()):
+        root, out, manifest, record = _scene_mockup(game_root, item_id, revision)
+        target = out / "scenes" / f"{item_id}_{revision}" / "extraction"
+        with tempfile.TemporaryDirectory() as staging:
+            staged, masks_from = _staged_blueprint(root, record, masks_from, Path(staging))
+            found = extractor.extract(staged, common.safe_member(root, record["file"], "mockup picture"), target)
+        _scene_result(root, manifest, record, "extraction", target,
+                      {"masks_from": masks_from, "manifest_sha256": common.sha256_file(target / "extraction.json"), "objects": len(found["objects"]), "per_class": found["per_class"],
+                       "absent_classes": found["absent_classes"], "possible_duplicates": len(found["possible_duplicates"])})
+    return {"mockup_id": item_id, "revision": revision, "status": "extracted", "path": str(target), "objects": len(found["objects"]), "per_class": found["per_class"],
+            "absent_classes": found["absent_classes"], "possible_duplicates": found["possible_duplicates"], "not_assessed": found["not_assessed"]}
+
+
+def detect_scene(game_root, item_id, revision, command=None, detector_args=()):
+    """Run the detection step on an approved scene mockup and record its DRAFT blueprint. The detector is an optional extra that lives in its
+    own environment, so it runs as a separate process (`command` is the interpreter and script; `detector_args` are the step's own options).
+    The draft is pending review: it is never the mockup's blueprint, and nothing downstream reads it except `evaluate-scene`."""
+    import subprocess
+    with manifest_lock(Path(game_root).resolve()):
+        root, out, manifest, record = _scene_mockup(game_root, item_id, revision, need_blueprint=False)
+        target = out / "scenes" / f"{item_id}_{revision}" / "detection"
+        command = list(command) if command else [sys.executable, str(SCRIPTS / "detect_scene_objects.py")]
+        done = subprocess.run(command + ["detect", "--mockup", str(common.safe_member(root, record["file"], "mockup picture")), "--mockup-id", item_id, "--revision", revision,
+                                         "--output-dir", str(target)] + list(detector_args), capture_output=True, text=True)
+        if done.returncode != 0:
+            raise ValueError("the detection step failed: " + (done.stderr.strip() or done.stdout.strip() or f"exit status {done.returncode}"))
+        draft, findings = target / "detected.blueprint.json", target / "detections.json"
+        if not draft.is_file() or not findings.is_file():
+            raise ValueError("the detection step finished but wrote no draft blueprint and detections file")
+        found = common.read_json(findings)
+        _scene_result(root, manifest, record, "detection", target,
+                      {"status": "draft_pending_review", "draft_blueprint_sha256": common.sha256_file(draft), "kept": found["kept"], "per_class": found["per_class"], "flagged": found["flagged"]})
+    return {"mockup_id": item_id, "revision": revision, "status": "draft_pending_review", "path": str(target), "kept": found["kept"], "per_class": found["per_class"],
+            "flagged": found["flagged"], "not_assessed": found["not_assessed"]}
+
+
+def _staged_blueprint(root, record, masks_from, staging):
+    """The reviewed blueprint copied into `staging` with the masks it names (`removal_mask_ref`), taken from `masks_from` (a folder in the game; default: the
+    recorded detection's folder). The extraction and the removal both read masks beside the blueprint they are given; staging puts them there without
+    writing to the approved mockup's folder. A mask the blueprint names that cannot be found is named; a blueprint that names none needs no folder."""
+    data = common.read_json(common.safe_member(root, record["blueprint"], "mockup blueprint"))
+    wanted = [(component.get("component_id"), component["removal_mask_ref"]) for element in data.get("elements", [])
+              for component in element.get("separation_inventory", []) if component.get("removal_mask_ref")]
+    if wanted:
+        if not masks_from:
+            if not record.get("scene_detection"):
+                raise ValueError("The blueprint names masks: name the folder that holds them (--masks-from), or run detect-scene, whose masks are used by default")
+            masks_from = record["scene_detection"]["path"]
+        source = common.safe_member(root, masks_from, "masks folder")
+        if not source.is_dir():
+            raise ValueError(f"the masks folder {masks_from} does not exist")
+        for component_id, reference in wanted:
+            found = common.safe_member(source, reference, f"{component_id} mask")
+            if not found.is_file():
+                raise ValueError(f"{component_id}: the mask {reference} is not in {masks_from}")
+            target = common.safe_member(staging, reference, f"{component_id} mask")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(found, target)
+    staged = staging / "blueprint.json"
+    common.atomic_write_json(staged, data)
+    return staged, masks_from
+
+
+def remove_scene(game_root, item_id, revision, inpainter=None, grow=2, max_share=0.03, masks_from=None):
+    """Write the DRAFT clean parent of an approved scene mockup: its reviewed blueprint's objects with masks are removed and reconstructed. The
+    result is inferred, never observed, and stays a draft for the cleanup gate; it never becomes the approved clean parent here. It follows the
+    extraction (the objects are first accounted for, then removed). The masks come from `masks_from`, a folder inside the game (default: the
+    recorded detection's `masks`), and are staged with a copy of the blueprint so the approved mockup's folder is not written to."""
+    import remove_scene_objects as remover
+    with manifest_lock(Path(game_root).resolve()):
+        root, out, manifest, record = _scene_mockup(game_root, item_id, revision)
+        if not record.get("scene_extraction"):
+            raise ValueError("The mockup has not been extracted: run extract-scene first, so the objects are accounted for before they are removed")
+        target = out / "scenes" / f"{item_id}_{revision}" / "clean_parent"
+        with tempfile.TemporaryDirectory() as staging:
+            staged, masks_from = _staged_blueprint(root, record, masks_from, Path(staging))
+            found = remover.remove(staged, common.safe_member(root, record["file"], "mockup picture"), target, inpainter or remover.TeleaInpainter(), grow, False, max_share)
+        _scene_result(root, manifest, record, "clean_parent", target,
+                      {"status": "draft_pending_review", "masks_from": masks_from, "report_sha256": common.sha256_file(target / "removal_report.json"), "removed": len(found["removed"]),
+                       "not_removed": {reason: len(ids) for reason, ids in found["not_removed"].items()}, "reconstructed_share": found["reconstructed_share"]})
+    return {"mockup_id": item_id, "revision": revision, "status": "draft_pending_review", "path": str(target), "removed": found["removed"], "not_removed": found["not_removed"],
+            "reconstructed_share": found["reconstructed_share"], "overlapping_masks": found["overlapping_masks"], "pixel_status": found["pixel_status"], "not_assessed": found["not_assessed"]}
+
+
+def evaluate_scene(game_root, item_id, revision, iou=0.5):
+    """Score the recorded detection draft against the mockup's reviewed blueprint: how many of the reviewed objects the detector found and how many
+    of its own were real. Measures the detector; it does not approve anything and does not say the reviewed account is complete."""
+    import evaluate_extraction as evaluator
+    with manifest_lock(Path(game_root).resolve()):
+        root, out, manifest, record = _scene_mockup(game_root, item_id, revision)
+        detected = record.get("scene_detection")
+        if not detected:
+            raise ValueError("The mockup has no recorded detection: run detect-scene first")
+        report = evaluator.compare(evaluator.objects_of(common.safe_member(root, record["blueprint"], "mockup blueprint"), "reference"),
+                                   evaluator.objects_of(common.safe_member(root, detected["path"] + "/detected.blueprint.json", "detection draft"), "draft"), iou)
+        target = out / "scenes" / f"{item_id}_{revision}" / "evaluation"
+        if target.exists() and any(target.iterdir()):
+            raise ValueError(f"{target.name} already holds an evaluation; an evaluation is never overwritten")
+        target.mkdir(parents=True, exist_ok=True)
+        common.atomic_write_json(target / "evaluation.json", report)
+        _scene_result(root, manifest, record, "evaluation", target,
+                      {"report_sha256": common.sha256_file(target / "evaluation.json"), "recall": report["recall"], "precision": report["precision"], "f1": report["f1"]})
+    return {"mockup_id": item_id, "revision": revision, "status": "evaluated", "path": str(target), **{k: report[k] for k in ("reference_objects", "draft_objects", "matched", "recall", "precision", "f1")},
+            "confused": report["confused"], "not_assessed": report["not_assessed"]}
 
 
 # ------------------------------------------------------------------------------------------------ reconcile
@@ -1463,7 +1645,7 @@ def reconcile_assets(game_root):
 
 
 # ------------------------------------------------------------------------------------------------ report
-MUTATING_OPERATIONS = ("register", "register-generated", "import-mockup", "approve-mockup", "register-asset", "import-asset", "approve", "approve-batch", "export-runtime", "revoke", "restore")
+MUTATING_OPERATIONS = ("register", "register-generated", "import-mockup", "approve-mockup", "extract-scene", "detect-scene", "remove-scene", "evaluate-scene", "register-asset", "import-asset", "approve", "approve-batch", "export-runtime", "revoke", "restore")
 
 
 def next_step_for(name, result):
@@ -1475,7 +1657,22 @@ def next_step_for(name, result):
         if result.get("status") == "approved":
             return "The imported mockup is approved. Analyze it (mockup-analyzer), then plan the production art from it."
         return "Show the imported mockup to the owner and ask whether it is approved or what should change."
+    if name == "detect-scene":
+        return ("The detector's DRAFT blueprint is written, pending review: it misses objects and sees ones that are not there. Compare it with the picture "
+                "(the analyzer's visual audit), correct it into the mockup's reviewed blueprint, then run evaluate-scene to measure the detector and extract-scene to cut out the objects.")
+    if name == "remove-scene":
+        return ("The draft clean parent is written; its reconstructed pixels are inferred, never observed. Show the owner what was and was not removed and give it to "
+                "the cleanup gate for review before it counts as a clean plate.")
+    if name == "evaluate-scene":
+        return ("Tell the owner how much of the reviewed account the detector found (recall) and how much of its own was real (precision); the reviewed account may itself "
+                "miss objects, so an extra may be real.")
+    if name == "extract-scene":
+        return ("The scene's objects are cut out into " + str(result.get("path", "the scenes folder")) + ". Show the owner the contact sheet and overview, say what the extraction "
+                "did not assess (the objects it may have missed), and plan the production art from the approved mockup.")
     if name == "approve-mockup":
+        if result.get("scope") in SCENE_SCOPES:
+            return ("Analyze the approved mockup (mockup-analyzer) including the object sweep, register its blueprint, then run extract-scene "
+                    "to cut out every object; plan the production art after that.")
         return "Analyze the approved mockup (mockup-analyzer), then plan the production art from it."
     if name == "register-asset":
         if result.get("technical_validation") == "passed":
@@ -1605,6 +1802,8 @@ def main():
                      help="Omit to use the image generator saved in the project settings")
     sub.add_argument("--tool-name", help="Name of the connected tool; omit to use the saved one")
     sub.add_argument("--model", help="Model the tool reported, when it reports one")
+    sub.add_argument("--use-fallback", action="store_true", help="The picture came from the owner's fallback image generator (the main one is unavailable in this session)")
+    sub.add_argument("--fallback-reason", default="", help="Why the main image generator was not used; required with --use-fallback and recorded with the picture")
     sub.add_argument("--storyboard-scene-id")
     sub.add_argument("--notes", default="")
     sub = op("import-mockup")
@@ -1622,6 +1821,25 @@ def main():
     sub.add_argument("--id", required=True)
     sub.add_argument("--revision", required=True)
     sub.add_argument("--user-approval-ref", required=True, help="Reference to the actual user approval message; never invent")
+    sub = op("extract-scene")
+    sub.add_argument("--id", required=True)
+    sub.add_argument("--revision", required=True)
+    sub.add_argument("--masks-from", help="Folder inside the game that holds the masks the blueprint names (default: the recorded detection's folder)")
+    sub = op("detect-scene")
+    sub.add_argument("--id", required=True)
+    sub.add_argument("--revision", required=True)
+    sub.add_argument("--python", help="The interpreter of the environment that has the detection extra (torch, transformers); default: this one")
+    sub.add_argument("detector_args", nargs=argparse.REMAINDER, help="After --: options of detect_scene_objects.py (tiles, detector kind, excluded regions and so on)")
+    sub = op("remove-scene")
+    sub.add_argument("--id", required=True)
+    sub.add_argument("--revision", required=True)
+    sub.add_argument("--masks-from", help="Folder inside the game that holds the masks the blueprint names (default: the recorded detection's folder)")
+    sub.add_argument("--grow", type=int, default=2)
+    sub.add_argument("--max-share", type=float, default=0.03)
+    sub = op("evaluate-scene")
+    sub.add_argument("--id", required=True)
+    sub.add_argument("--revision", required=True)
+    sub.add_argument("--iou", type=float, default=0.5)
     sub = op("audit-mockup")
     sub.add_argument("--id", required=True)
     sub.add_argument("--revision", required=True)
@@ -1675,12 +1893,21 @@ def main():
         elif name == "register-generated":
             result = register_generated_mockup(args.game_root, args.image, args.id, args.revision, args.scope,
                                                args.prompt_file.read_text(encoding="utf-8"), args.tool_mode, args.tool_name,
-                                               args.storyboard_scene_id, args.notes, args.model)
+                                               args.storyboard_scene_id, args.notes, args.model, args.use_fallback, args.fallback_reason)
         elif name == "import-mockup":
             result = import_mockup(args.game_root, args.source, args.id, args.revision, args.scope, args.rights, args.rights_notes,
                                    args.storyboard_scene_id, args.notes, args.user_approval_ref)
         elif name == "approve-mockup":
             result = approve_mockup(args.game_root, args.id, args.revision, args.user_approval_ref)
+        elif name == "extract-scene":
+            result = extract_scene(args.game_root, args.id, args.revision, args.masks_from)
+        elif name == "detect-scene":
+            extra = args.detector_args[1:] if args.detector_args[:1] == ["--"] else args.detector_args
+            result = detect_scene(args.game_root, args.id, args.revision, [args.python, str(SCRIPTS / "detect_scene_objects.py")] if args.python else None, extra)
+        elif name == "remove-scene":
+            result = remove_scene(args.game_root, args.id, args.revision, None, args.grow, args.max_share, args.masks_from)
+        elif name == "evaluate-scene":
+            result = evaluate_scene(args.game_root, args.id, args.revision, args.iou)
         elif name == "audit-mockup":
             notes = []
             issues = audit_mockup(args.game_root, args.id, args.revision, notes)

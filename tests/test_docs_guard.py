@@ -70,6 +70,21 @@ def frontmatter(path):
     return dict(line.split(": ", 1) for line in match.group(1).splitlines() if ": " in line)
 
 
+class LifecycleOperationsDocumentedTests(unittest.TestCase):
+    """A pipeline step the lifecycle offers is a step the master and both lifecycle skills name: an operation nobody documents is one no agent runs."""
+
+    def test_every_lifecycle_operation_is_named_in_the_master_and_in_both_skill_trees(self):
+        import re
+        source = (ROOT / "scripts" / "gamearts_asset_lifecycle.py").read_text(encoding="utf-8")
+        operations = set(re.findall(r'(?<![\w.])op\("([a-z-]+)"', source))
+        self.assertGreater(len(operations), 10, operations)
+        texts = {"master": (ROOT / "GAME_ARTS_MASTER_STANDARD.md").read_text(encoding="utf-8"),
+                 ".claude skill": (ROOT / ".claude" / "skills" / "game-arts-lifecycle" / "SKILL.md").read_text(encoding="utf-8"),
+                 ".agents skill": (ROOT / ".agents" / "skills" / "game-arts-lifecycle" / "SKILL.md").read_text(encoding="utf-8")}
+        missing = sorted(f"{name}: {op}" for name, text in texts.items() for op in operations if f"`{op}" not in text and op not in text)
+        self.assertEqual(missing, [])
+
+
 class MirroredTreesTests(unittest.TestCase):
     def test_both_skill_trees_hold_the_same_skills_with_identical_text(self):
         claude = {p.relative_to(CLAUDE_SKILLS).as_posix(): read(p) for p in CLAUDE_SKILLS.rglob("*") if p.is_file()}

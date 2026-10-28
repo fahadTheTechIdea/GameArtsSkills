@@ -469,7 +469,7 @@ class LifecycleHookTests(ReportCase):
 
     def test_every_operation_that_changes_records_is_one_that_rebuilds_the_report(self):
         self.assertEqual(set(life.MUTATING_OPERATIONS),
-                         {"register", "register-generated", "import-mockup", "approve-mockup", "register-asset", "import-asset", "approve", "approve-batch", "export-runtime", "revoke", "restore"})
+                         {"register", "register-generated", "import-mockup", "approve-mockup", "extract-scene", "detect-scene", "remove-scene", "evaluate-scene", "register-asset", "import-asset", "approve", "approve-batch", "export-runtime", "revoke", "restore"})
 
 
 class CommandLineTests(ReportCase):

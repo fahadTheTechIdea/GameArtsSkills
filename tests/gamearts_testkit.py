@@ -66,6 +66,13 @@ def make_sheet(folder, name, asset_id):
     return [f"{name}.png", f"{name}.atlas.json"]
 
 
+def shaded_picture(size, colour):
+    """A picture that is not one flat colour (a lighter patch in one corner), as a real mockup is: the lifecycle audit refuses a blank one."""
+    image = Image.new("RGB", size, colour)
+    image.paste(tuple(min(255, c + 60) for c in colour), (0, 0, max(1, size[0] // 4), max(1, size[1] // 4)))
+    return image
+
+
 def make_mockup(root, mockup_id="test-scene", revision="v001", scope="world", scene=None, picture_image=None):
     """A generated mockup image with its metadata contract file, ready for register_mockup; returns (image, metadata).
 
@@ -74,7 +81,7 @@ def make_mockup(root, mockup_id="test-scene", revision="v001", scope="world", sc
     generated.mkdir(parents=True, exist_ok=True)
     image = generated / f"{mockup_id.replace('-', '_')}_mockup_{revision}.png"
     shade = int(hashlib.sha256(f"{mockup_id}{revision}".encode()).hexdigest()[:2], 16)
-    (picture_image or Image.new("RGB", (64, 40), (shade, 30, 40))).save(image)
+    (picture_image or shaded_picture((64, 40), (shade, 30, 40))).save(image)
     body = {"schema_version": "1.0", "mockup_id": mockup_id, "revision": revision, "scope": scope, "status": "generated",
             "file": image.relative_to(root).as_posix(), "sha256": digest(image),
             "prompt": "A test mockup written by the fixture, not by an image tool.", "prompt_origin": "agent_brief",

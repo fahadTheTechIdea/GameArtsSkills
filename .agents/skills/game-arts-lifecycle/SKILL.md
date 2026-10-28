@@ -17,10 +17,14 @@ Run `python scripts/gamearts_asset_lifecycle.py <operation> --game-root <game> .
 | `check-settings` | Confirm `project.json` is valid and owner-confirmed; `warnings` lists what valid settings can still get wrong |
 | `confirm-settings --by WHO --user-confirmation-ref "<the owner's words>"` | Record the owner's confirmation with the real time; never type `confirmed_at` by hand |
 | `register --metadata M.json [--image I.png]` | Register a generated mockup (needs owner-confirmed settings) |
-| `register-generated --image PNG --id ID --revision vNNN --scope S --prompt-file P [--tool-mode M --tool-name N] [--storyboard-scene-id X]` | Register the picture an image tool just made: names, hashes, writes the metadata and registers it; the tool defaults to the owner's saved image generator and any other is refused |
+| `register-generated --image PNG --id ID --revision vNNN --scope S --prompt-file P [--tool-mode M --tool-name N | --use-fallback --fallback-reason WHY] [--storyboard-scene-id X]` | Register the picture an image tool just made: names, hashes, writes the metadata and registers it; the tool defaults to the owner's saved image generator and any other is refused |
 | `import-mockup --source FILE --id ID --revision vNNN --scope S [--rights R] [--storyboard-scene-id X] [--user-approval-ref "<user's statement>"]` | Bring in a mockup the user made elsewhere as a managed copy (see below) |
 | `audit-mockup --id ID --revision vNNN` | Check files, hashes, metadata, approval evidence; `review_flags` lists material settings changes |
 | `approve-mockup --id ID --revision vNNN --user-approval-ref "<user's actual message>"` | Promote the exact revision the user approved |
+| `extract-scene --id ID --revision vNNN [--masks-from DIR]` | Approved world, scene or mixed mockup with a blueprint: cut out every object and record it on the mockup. **Required before `register-asset` from such a mockup** |
+| `detect-scene --id ID --revision vNNN [--python ENV] [-- options]` | Detection draft blueprint (pending review, never the mockup's blueprint) |
+| `remove-scene --id ID --revision vNNN [--masks-from DIR]` | After `extract-scene`: draft clean parent from the blueprint's masks (inferred pixels) |
+| `evaluate-scene --id ID --revision vNNN` | Score the detection draft against the reviewed blueprint |
 | `register-asset --id ID --revision vNNN --bundle .gamearts/outputs/assets/generated/<folder> --source-mockup MOCKUP:vNNN [--extra provenance.json]` | Register a generated bundle; links approved mockups (hash-checked) and runs the technical gate |
 | `audit --id ID` | Audit an asset: files, hashes, source links, blueprint and validation consistency, review evidence |
 | `approve --id ID --user-approval-ref "<message>" [--visual-review PACKET DECISION]` | Promote a generated bundle after the technical artwork gate and review evidence |

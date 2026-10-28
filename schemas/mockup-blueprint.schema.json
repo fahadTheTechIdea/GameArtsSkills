@@ -246,6 +246,25 @@
                     "reviewed",
                     "rejected"
                   ]
+                },
+                "object_class": {
+                  "enum": [
+                    "character",
+                    "vehicle",
+                    "building",
+                    "plant",
+                    "sign",
+                    "street_furniture",
+                    "lighting",
+                    "barrier",
+                    "opening",
+                    "prop",
+                    "structure_part",
+                    "street",
+                    "parking",
+                    "other"
+                  ],
+                  "description": "What kind of thing a separated object is. character: people, animals, agents. vehicle: cars, vans, bicycles, boats. building: whole buildings and sheds (their walls and roof; doors, windows and fixed parts are separated too). plant: trees, bushes, hedges, flowers, planted pots. sign: road signs, shop signs, banners, notices. street_furniture: benches, bins, bollards, bike racks, post boxes. lighting: lamps and lit fixtures. barrier: fences, gates, railings, free-standing walls. opening: doors, windows, shutters. prop: loose or placed objects. structure_part: chimneys, awnings, balconies, steps fixed to a building. street: roads and the pavements beside them: carriageway, kerbs, crossings, painted road markings, drain and manhole covers. parking: car parks and bays: the surface, bay lines, symbols, speed bumps. other: anything else, named in the evidence."
                 }
               }
             }
@@ -419,6 +438,60 @@
           "type": "array",
           "items": {
             "type": "string"
+          }
+        }
+      }
+    },
+    "object_sweep": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The scene-wide sweep: every class of object is addressed once, either present (with the components that are of it) or absent (with what was checked). It is how a scene is shown to have been emptied of everything separable, not only the things that move.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "object_class",
+          "status",
+          "evidence"
+        ],
+        "properties": {
+          "object_class": {
+            "enum": [
+              "character",
+              "vehicle",
+              "building",
+              "plant",
+              "sign",
+              "street_furniture",
+              "lighting",
+              "barrier",
+              "opening",
+              "prop",
+              "structure_part",
+              "street",
+              "parking",
+              "other"
+            ]
+          },
+          "status": {
+            "enum": [
+              "present",
+              "absent"
+            ]
+          },
+          "component_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "The separation_inventory components of this class (present only)."
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Present: where they are in the mockup. Absent: where it was looked and that none is visible."
           }
         }
       }

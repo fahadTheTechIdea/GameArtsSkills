@@ -316,6 +316,47 @@
         "notes": {
           "type": "string",
           "description": "Optional owner preferences for the tool, such as a model or quality choice, applied to every call."
+        },
+        "fallback": {
+          "type": "object",
+          "description": "The tool the owner chose to use only when the main one is unavailable in the session. The agent never decides on its own that a tool is unavailable for convenience: it says why and records the reason with the picture.",
+          "required": [
+            "tool"
+          ],
+          "properties": {
+            "tool": {
+              "enum": [
+                "built_in_image_gen",
+                "cli_image_gen",
+                "connected_tool"
+              ]
+            },
+            "tool_name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Required for connected_tool."
+            },
+            "notes": {
+              "type": "string",
+              "description": "Optional owner preferences for the fallback tool, such as the model."
+            }
+          },
+          "additionalProperties": false,
+          "if": {
+            "properties": {
+              "tool": {
+                "const": "connected_tool"
+              }
+            },
+            "required": [
+              "tool"
+            ]
+          },
+          "then": {
+            "required": [
+              "tool_name"
+            ]
+          }
         }
       },
       "additionalProperties": false,

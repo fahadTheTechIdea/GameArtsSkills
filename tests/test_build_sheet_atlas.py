@@ -57,6 +57,27 @@ class AtlasBuilderTests(unittest.TestCase):
             self.assertEqual(atlas["validation"]["engine_validation"], "not_tested")
             self.assertNotIn("godot_runtime", atlas["validation"])
 
+    def test_a_sheet_no_engine_could_load_is_refused_before_it_is_made(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            for index in range(20):
+                self.create_frame(root / f"f{index}.png", 16, 16, (20, 50, 90, 255), (8, 8))
+            frames = [{"file": f"f{index}.png"} for index in range(20)]
+            for label, extra in (("grid", {}), ("shelf", {"pack": "shelf", "max_width": 16384})):
+                with self.subTest(label), self.assertRaisesRegex(ValueError, "past the 16384 px limit"):
+                    mod.build({"_input_dir": str(root), "name": "huge_" + label, "padding": 2048, "frames": frames, **extra}, root / ("out_" + label))
+                self.assertFalse((root / ("out_" + label)).exists())
+            png, _ = mod.build({"_input_dir": str(root), "name": "fine", "padding": 2, "frames": frames}, root / "out_fine")
+            self.assertTrue(png.exists())
+
+    def test_a_tag_with_no_direction_is_told_so_not_that_none_is_wrong(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self.make_manifest(root)
+            manifest["tags"] = [{"name": "idle", "from": 0, "to": 1}]
+            with self.assertRaisesRegex(ValueError, "has no direction; give one of forward"):
+                mod.build(manifest, root / "generated")
+
     def test_refuses_accidental_overwrite(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

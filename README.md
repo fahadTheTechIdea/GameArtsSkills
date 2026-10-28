@@ -31,13 +31,41 @@ All everyday phrases: [docs/COMMANDS.md](docs/COMMANDS.md). The flow: [docs/USER
 - **Any style, any game, any engine.** Ten ready-made looks from 8-bit pixel art to flat vector, any world grid and camera (including hexagon tiles, scrolling layers and games with no ground world), and an engine setting per project; the outputs are plain files that any engine can use.
 - **Individual files.** No ZIP-only delivery.
 
+## What is in the framework
+Each row is a capability with the script that owns it; the master standard owns the policy and `docs/` the guides.
+
+| Capability | Owner | What it does |
+|---|---|---|
+| Per-game setup | `gamearts_setup.py`, `gamearts_doctor.py`, `gamearts_plan_card.py`, `gamearts_presets.py` | Setup wizard (every setting is the owner's choice), environment doctor, plan card shown before the first picture, ten style presets and engine profiles |
+| Storyboard | `gamearts_storyboard.py` | One living campaign storyboard per game, approved before scene mockups |
+| Lifecycle | `gamearts_asset_lifecycle.py` | Register, audit, approve, reject and restore mockups and assets: generated / approved / revoked, hash-bound, rolled back on failure |
+| Mockup analysis | `validate_blueprint.py`, `prepare_reference_crop.py` | Blueprint with a separation inventory and an **object sweep** (14 classes, each present with components or absent with evidence); reference crops of real approved pixels |
+| Scene object extraction | `detect_scene_objects.py`, `extract_scene_objects.py`, `evaluate_extraction.py`, `remove_scene_objects.py` | See below |
+| Sheets and atlases | `build_sheet_atlas.py`, `validate_sheet_atlas.py`, `check_animation.py`, `render_preview.py`, `export_runtime.py`, `export_exchange.py` | Measured sheet plus atlas, exact `#FF00FF` key, loop-seam and pivot checks, previews, runtime and exchange exports |
+| Component bundles | `build_component_bundle.py`, `validate_component_bundle.py` | Nested moving-part sprites with sampled composed transforms |
+| Clean parents | `validate_parent_cleanup.py`, `visual_review_cleanup.py` | Raster proof that movable parts are absent from the parent, plus a human review bound to file hashes |
+| Tilesets | `build_tileset.py`, `validate_tileset.py`, `gamearts_tileset.py` | Tile pictures assembled into a sheet, an atlas and a tileset description with neighbour labels |
+| Style and pixels | `validate_style_conformance.py`, `gamearts_palette.py`, `gamearts_pixelgrid.py`, `snap_to_pixel_grid.py`, `gamearts_matte.py` | Does a picture keep its look; palettes; pixel-grid detection and recovery; soft-edge matte beside a sheet |
+| Existing art and reports | `gamearts_import_asset.py`, `build_contact_sheet.py`, `gamearts_report.py` | Adopt a supplied sheet, compare looks side by side, one offline status page |
+| Updater | `sync_local_agents.py` | Opt-in copy of the framework into a game for Claude Code and Codex |
+
+### Scene object extraction (the mockup analyzer's detection pipeline)
+Finds every distinct object in an approved scene (characters, vehicles, buildings, plants, signs, street furniture, lighting, barriers including fences and gates, openings, props, structure parts, streets, parking) and cuts each one out.
+
+1. **Detect** (`detect_scene_objects.py`, an optional extra: `torch`, `transformers`, `numpy`, run in its own environment): Grounding DINO finds objects from text prompts, SAM gives each an accurate mask. Each kind of object is searched the way that suits it (areas over the whole picture, small objects over a finer grid), `--runs N --min-runs K` keeps only what several differently-grouped runs agree on, `--detector-kind owlv2` and `--also owlv2:CLASS,CLASS` bring a second detector for the classes it finds better, and `--exclude-region` skips interface overlays. The result is a **draft** blueprint (`pending_approval`, objects `inferred`, every doubtful one flagged) for a person to review.
+2. **Extract** (`extract_scene_objects.py`): crops and cut-out sprites per class, an overview and contact sheet, possible duplicates and a coverage report. It refuses an unapproved mockup unless `--provisional`.
+3. **Evaluate** (`evaluate_extraction.py`): scores a draft against a reviewed reference, per class (recall, precision, missed, extra, confused).
+4. **Remove** (`remove_scene_objects.py`, optional `opencv-python`): reconstructs the ground behind small objects as an inferred draft clean parent; areas and large masks are never removed.
+
+**Measured honestly, not claimed complete.** Against a by-eye reference of 147 objects in one real scene, the best setting finds about 60% (recall 0.60, F1 0.52); characters, vehicles, buildings and openings are found well, while streets, parking, plants, props and small street furniture are weak. A person must review every draft; the tracker (`plans/enhancements/MASTER_TRACKER.md`, V-34) holds every measurement and what was tried and rejected. The earlier picture-to-tilemap and Blender scene pipelines were removed on the owner's instruction and are not part of the framework.
+
 ## Install
 | Tool | Project instructions | Skills |
 |---|---|---|
 | Claude Code | [CLAUDE.md](CLAUDE.md) | [`.claude/skills/`](.claude/skills/) |
 | Codex | [AGENTS.md](AGENTS.md) | [`.agents/skills/`](.agents/skills/) |
 
-Copy the instruction file, the skill folders, `scripts/`, `schemas/`, `docs/` and the master standard into the game repository and follow [README_INSTALL.md](README_INSTALL.md). Requirements: Python 3, Pillow and `jsonschema`, plus an image-generation tool for the agent. An optional [updater](scripts/sync_local_agents.py) keeps both agents' installed copies current.
+Copy the instruction file, the skill folders, `scripts/`, `schemas/`, `docs/` and the master standard into the game repository and follow [README_INSTALL.md](README_INSTALL.md). Requirements: Python 3, Pillow and `jsonschema`, plus an image-generation tool for the agent. Scene object detection and object removal need optional extras (see `README_INSTALL.md`). An optional [updater](scripts/sync_local_agents.py) keeps both agents' installed copies current.
 
 ## Skills
 | Skill | Purpose |

@@ -109,6 +109,51 @@ class AnswerTests(GameCase):
         with self.assertRaisesRegex(ValueError, "WIDTHxHEIGHT"):
             choose(self.root, "tile_size", wizard.OTHER, "big")
 
+    def test_an_engine_the_owner_names_is_checked_when_they_answer_and_kept_as_a_profile_name(self):
+        run(self.root, PLANS["grid_world"][:5])
+        for bad in ("Godot 4.2", "C++ engine", "ünity"):
+            with self.subTest(bad), self.assertRaisesRegex(ValueError, "cannot be an engine name"):
+                choose(self.root, "engine", wizard.OTHER, bad)
+        self.assertNotIn("engine", wizard.load_answers(self.root))
+        run(self.root, [x for x in PLANS["grid_world"][5:] if x[0] != "engine"] + [("engine", wizard.OTHER, "Godot 4")])
+        wizard.finish(self.root)
+        self.assertEqual(self.settings()["engine_target"]["profile"], "godot-4")
+
+    def test_a_palette_picture_that_is_missing_or_not_a_picture_is_refused_when_named_not_when_the_settings_are_written(self):
+        run(self.root, PLANS["grid_world"][:3])
+        with self.assertRaisesRegex(ValueError, "is not a file"):
+            choose(self.root, "palette", "picture", "missing.png")
+        (self.root / "notes.png").write_text("not a picture", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "cannot be read as a picture"):
+            choose(self.root, "palette", "picture", "notes.png")
+        self.assertNotIn("palette", wizard.load_answers(self.root))
+
+    def test_an_existing_games_settings_are_marked_on_every_question_that_has_one(self):
+        for kind, plan in PLANS.items():
+            root = self.root / kind
+            run(root, plan)
+            wizard.finish(root)
+            fresh = self.root / (kind + "_again")                 # a new wizard over the finished game: nothing answered, the settings are the only memory
+            (fresh / ".gamearts").mkdir(parents=True)
+            (fresh / ".gamearts" / "project.json").write_bytes((root / ".gamearts" / "project.json").read_bytes())
+            held = common.read_json(fresh / ".gamearts" / "project.json")
+            picked = {name: value for name, value, _ in plan if name not in ("project_name", "image_generator", "engine")}
+            marked = {name: wizard._current(fresh, name) for name in picked}
+            for name, value in picked.items():
+                with self.subTest(kind=kind, question=name):
+                    self.assertEqual(marked[name], value, (held.get("world"), held.get("screen")))
+
+    def test_a_palette_from_a_picture_and_one_from_words_are_marked_as_what_they_were(self):
+        from PIL import Image
+        Image.new("RGB", (4, 1), (200, 30, 30)).save(self.root / "colours.png")
+        for choice, text, expected in (("picture", "colours.png", "picture"), ("words", "warm earth tones", "words")):
+            root = self.root / choice
+            root.mkdir()
+            Image.new("RGB", (4, 1), (200, 30, 30)).save(root / "colours.png")
+            run(root, [x for x in PLANS["grid_world"] if x[0] != "palette"] + [("palette", choice, text)])
+            wizard.finish(root)
+            self.assertEqual(wizard._current(root, "palette"), expected)
+
     def test_changing_the_world_kind_resets_only_the_questions_that_depend_on_it(self):
         run(self.root, PLANS["grid_world"])
         choose(self.root, "world_kind", "free_world")
@@ -262,7 +307,7 @@ class FinishTests(GameCase):
     def test_the_owners_own_words_and_custom_sizes_are_kept(self):
         plan = [("project_name", "name", "Iso Demo"), ("world_kind", "grid_world", None), ("look", "pixel_hd", None), ("viewpoint", "isometric", "2:1 dimetric, about 26.57 degrees"),
                 ("tile_size", "other", "96x48"), ("directions", "per_object", None), ("animation", "frame_based", None),
-                ("image_generator", "connected_tool", "SomeTool"), ("engine", "other", "Bevy"), ("palette", "words", "warm earth tones")]
+                ("image_generator", "connected_tool", "SomeTool"), ("image_fallback", "none", None), ("engine", "other", "Bevy"), ("palette", "words", "warm earth tones")]
         run(self.root, plan)
         wizard.finish(self.root)
         saved = self.settings()
@@ -284,6 +329,8 @@ class FinishTests(GameCase):
                     answers = wizard.load_answers(root)
                     alternatives = [o["value"] for o in wizard.question(name, answers)["options"] if o["value"] not in (answers[name]["value"], wizard.OTHER, "connected_tool")]
                     choose(root, name, alternatives[0])
+                    if name == "image_generator":
+                        choose(root, "image_fallback", "none")  # a tool that generates asks what to use when it is unavailable
                     wizard.finish(root)
                     changed = common.read_json(root / ".gamearts" / "project.json")
                     self.assertNotEqual({k: v for k, v in changed.items() if k != "setup"}, {k: v for k, v in baseline.items() if k != "setup"}, f"{kind}: {name}")
@@ -326,12 +373,52 @@ class ConfirmGateTests(GameCase):
         self.assertTrue(confirm(self.root)["owner_confirmed"])
 
 
+class ImageFallbackTests(GameCase):
+    """The owner's second choice of image generator: asked after the first (never when they make the pictures themselves), saved with it, never assumed."""
+
+    def after_generator(self, value, text=None):
+        run(self.root, [("project_name", "name", "Demo Game"), ("world_kind", "grid_world", None), ("look", "pixel_mid", None), ("viewpoint", "oblique", None),
+                        ("tile_size", "32x32", None), ("directions", "dirs_4", None), ("animation", "hybrid", None), ("image_generator", value, text)])
+
+    def test_it_is_asked_after_a_generating_tool_with_none_among_the_choices_and_the_main_tool_left_out(self):
+        self.after_generator("built_in_image_gen")
+        asked = wizard.next_question(self.root)["question"]
+        self.assertEqual(asked["id"], "image_fallback")
+        values = [o["value"] for o in asked["options"]]
+        self.assertEqual(values, ["none", "cli_image_gen", "connected_tool"])
+
+    def test_it_is_not_asked_when_the_owner_makes_the_pictures(self):
+        self.after_generator("user_supplied")
+        self.assertNotEqual(wizard.next_question(self.root)["question"]["id"], "image_fallback")
+        self.assertNotIn("image_fallback", wizard.unanswered(wizard.load_answers(self.root)))
+
+    def test_a_named_connected_fallback_is_saved_beside_the_main_tool(self):
+        self.after_generator("built_in_image_gen")
+        with self.assertRaisesRegex(ValueError, "own words"):
+            choose(self.root, "image_fallback", "connected_tool")
+        choose(self.root, "image_fallback", "connected_tool", "SpriteCook (gpt-image 2.5)")
+        run(self.root, [("engine", "generic", None), ("palette", "none", None)])
+        wizard.finish(self.root)
+        saved = common.read_json(self.root / ".gamearts" / "project.json")
+        self.assertEqual(saved["image_generation"], {"tool": "built_in_image_gen", "fallback": {"tool": "connected_tool", "tool_name": "SpriteCook (gpt-image 2.5)"}})
+        self.assertEqual(wizard._current(self.root, "image_fallback"), "connected_tool")
+
+    def test_no_fallback_is_saved_as_none_and_never_assumed(self):
+        self.after_generator("built_in_image_gen")
+        self.assertIn("image_fallback", wizard.unanswered(wizard.load_answers(self.root)))
+        choose(self.root, "image_fallback", "none")
+        run(self.root, [("engine", "generic", None), ("palette", "none", None)])
+        wizard.finish(self.root)
+        self.assertEqual(common.read_json(self.root / ".gamearts" / "project.json")["image_generation"], {"tool": "built_in_image_gen"})
+        self.assertTrue(any("never uses another" in line for line in wizard.summary(wizard.load_answers(self.root))))
+
+
 class ContractTests(GameCase):
     """What other tools build on (the Storyboard framework drives the wizard and reads check-settings): the names here change only with a notice."""
 
     def test_the_question_ids_and_the_shape_of_next_are_stable(self):
         self.assertEqual(wizard.ORDER, ["project_name", "world_kind", "look", "soft_edges", "viewpoint", "tile_size", "scale", "layers", "screen_size",
-                                        "screen_scaling", "directions", "animation", "image_generator", "engine", "palette"])
+                                        "screen_scaling", "directions", "animation", "image_generator", "image_fallback", "engine", "palette"])
         asked = wizard.next_question(self.root)
         self.assertEqual(set(asked) >= {"question", "complete", "text", "progress"}, True)
         self.assertEqual(set(asked["question"]) >= {"id", "prompt", "options"}, True)

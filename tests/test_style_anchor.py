@@ -38,7 +38,7 @@ class AnchorGame(unittest.TestCase):
         """Register (and approve) a style board; returns the image path of the stored mockup."""
         if not (self.root / ".gamearts" / "project.json").is_file():
             write_settings(self.root)
-        board = Image.new("RGB", (64, 40), (30, 60, 90))
+        board = kit.shaded_picture((64, 40), (30, 60, 90))
         image, metadata = kit.make_mockup(self.root, mockup_id, revision, scope, picture_image=board)
         life.register_mockup(self.root, metadata, image)
         if approve:

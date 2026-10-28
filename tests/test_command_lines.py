@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from gamearts_testkit import digest, make_mockup, make_sheet, picture, write_settings
+from gamearts_testkit import digest, make_mockup, make_sheet, picture, shaded_picture, write_settings
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 OUT = ".gamearts/outputs"
@@ -94,7 +94,7 @@ class LifecycleCommandTests(unittest.TestCase):
         from PIL import Image
         write_settings(self.root, image_generation={"tool": "built_in_image_gen"})
         output = self.root.parent / f"{self.root.name}_tool_output.png"
-        Image.new("RGB", (50, 30), (60, 130, 70)).save(output)
+        shaded_picture((50, 30), (60, 130, 70)).save(output)
         prompt = self.root.parent / f"{self.root.name}_prompt.txt"
         prompt.write_text("A village pitch in warm afternoon light.", encoding="utf-8")
         registered = self.life_json("register-generated", "--image", output, "--id", "pitch", "--revision", "v001", "--scope", "scene",
@@ -119,7 +119,7 @@ class LifecycleCommandTests(unittest.TestCase):
     def test_import_mockup_through_the_command_line(self):
         from PIL import Image
         outside = self.root.parent / f"{self.root.name}_outside.png"
-        Image.new("RGB", (40, 30), (30, 120, 60)).save(outside)
+        shaded_picture((40, 30), (30, 120, 60)).save(outside)
         before = outside.read_bytes()
         imported = self.life_json("import-mockup", "--source", outside, "--id", "clubhouse", "--revision", "v001", "--scope", "asset",
                                   "--user-approval-ref", "user: it is already approved")

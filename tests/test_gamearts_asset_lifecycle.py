@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from PIL import Image
 
-from gamearts_testkit import make_sheet
+from gamearts_testkit import make_sheet, shaded_picture
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "gamearts_asset_lifecycle.py"
 sys.path.insert(0, str(SCRIPT.parent))
@@ -537,7 +537,7 @@ class MockupLifecycleGateTests(unittest.TestCase):
         generated.mkdir(parents=True)
         (root / ".gamearts/outputs/manifests").mkdir(parents=True)
         image = generated / "test_game_world_colony_mockup_v001.png"
-        with Image.new("RGB", (64, 40), (20, 30, 40)) as canvas:
+        with shaded_picture((64, 40), (20, 30, 40)) as canvas:
             canvas.save(image)
         image_sha = hashlib.sha256(image.read_bytes()).hexdigest()
         metadata = {
@@ -660,7 +660,7 @@ class MockupLifecycleGateTests(unittest.TestCase):
             image, metadata = self.confirmed_fixture(root)
             mod.register_mockup(root, metadata, image)
             orphan = root / ".gamearts/outputs/mockups/generated/test_game_orphan_mockup_v002.png"
-            with Image.new("RGB", (16, 16), (1, 2, 3)) as canvas:
+            with shaded_picture((16, 16), (1, 2, 3)) as canvas:
                 canvas.save(orphan)
             issues = mod.reconcile_mockups(root)["issues"]
             self.assertTrue(any("Unregistered mockup image" in issue for issue in issues))

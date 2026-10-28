@@ -4,8 +4,6 @@ A tileset is a sheet of equal square (or rectangular) tiles that a game's map fi
 
 Tiles are checked as rectangles. A diamond (isometric) tile is stored in its rectangle with the key colour in the corners; the neighbour rules above are not yet verified against diamond edges, so ask for a small test sheet first.
 
-A tileset draws one terrain pair. To draw a whole scene with several terrains and the objects standing on them, see [layered maps](LAYERED_MAPS.md): each terrain above the ground gets its own `dual_grid_16` overlay.
-
 ## Layouts
 Every tile carries the terrain found at each of the eight places around it, named clockwise from the top: `top`, `top_right`, `right`, `bottom_right`, `bottom`, `bottom_left`, `left`, `top_left`. A layout says which places it uses and which tiles it needs. With two terrains, `terrains[0]` is what the tiles are made of and `terrains[1]` is what lies around them.
 

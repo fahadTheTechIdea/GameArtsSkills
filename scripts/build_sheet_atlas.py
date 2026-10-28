@@ -19,6 +19,14 @@ import gamearts_common as common  # noqa: E402
 import gamearts_matte as matte_rules  # noqa: E402
 
 DEFAULT_MAX_WIDTH = 2048
+MAX_SHEET_SIDE = 16384  # the largest side of a sheet: the common graphics-card texture limit, and the schema's own ceiling for max_width
+
+
+def check_sheet_size(width, height):
+    """Refuse a sheet no engine could load as one texture (and that picture libraries treat as a decompression bomb) before a pixel of it is made."""
+    if width > MAX_SHEET_SIDE or height > MAX_SHEET_SIDE:
+        raise ValueError(f"the sheet would be {width} x {height} px, past the {MAX_SHEET_SIDE} px limit on a side; use fewer or smaller frames, less padding or spacing, "
+                         "pack 'shelf' with 'trim', or split the animation across several sheets")
 
 
 def integer_pair(value, name):
@@ -148,6 +156,7 @@ def build(manifest, output_dir):
             if cells[i][1][0] > max_width:
                 raise ValueError(f"frame {frame_name}: its cell is {cells[i][1][0]} px wide, wider than max_width {max_width}")
         positions, sheet_w, sheet_h = shelf_positions([c[1] for c in cells], spacing, max_width)
+        check_sheet_size(sheet_w, sheet_h)
         sheet = Image.new("RGBA", (sheet_w, sheet_h), common.KEY_RGBA)
         matte_sheet = Image.new("L", (sheet_w, sheet_h), 0) if soft_alpha else None
         result_frames, rects = [], []
@@ -180,6 +189,7 @@ def build(manifest, output_dir):
         rows = (len(rest) + cols - 1) // cols
         sheet_w = cols * cell_w + max(0, cols - 1) * spacing
         sheet_h = rows * cell_h + max(0, rows - 1) * spacing
+        check_sheet_size(sheet_w, sheet_h)
         sheet = Image.new("RGBA", (sheet_w, sheet_h), common.KEY_RGBA)
         matte_sheet = Image.new("L", (sheet_w, sheet_h), 0) if soft_alpha else None
         result_frames, rects = [], []

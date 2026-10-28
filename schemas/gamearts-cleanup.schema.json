@@ -112,6 +112,25 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 255
+          },
+          "object_class": {
+            "enum": [
+              "character",
+              "vehicle",
+              "building",
+              "plant",
+              "sign",
+              "street_furniture",
+              "lighting",
+              "barrier",
+              "opening",
+              "prop",
+              "structure_part",
+              "street",
+              "parking",
+              "other"
+            ],
+            "description": "What kind of thing this is (the blueprint's object_class), when the blueprint gave one."
           }
         }
       }

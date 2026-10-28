@@ -1,4 +1,6 @@
 """End-to-end lifecycle operations on a real game folder: register-asset, restore, select reporting, concurrency, rollback."""
+import hashlib
+import json
 import subprocess
 import sys
 import tempfile
@@ -8,7 +10,7 @@ from unittest import mock
 
 from PIL import Image
 
-from gamearts_testkit import make_mockup, make_sheet, write_settings
+from gamearts_testkit import make_mockup, make_sheet, shaded_picture, write_settings
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
@@ -290,13 +292,13 @@ class ImageGeneratorSettingTests(GameFolder):
         with self.assertRaisesRegex(ValueError, "owner makes the pictures.*import-mockup"):
             life.register_mockup(self.root, metadata, image)
         outside = self.root.parent / f"{self.root.name}_supplied.png"
-        Image.new("RGB", (30, 20), (40, 90, 140)).save(outside)
+        shaded_picture((30, 20), (40, 90, 140)).save(outside)
         self.assertEqual(life.import_mockup(self.root, outside, "owner-art", "v001", "asset")["status"], "generated")
 
     def test_an_import_is_accepted_whichever_generator_is_chosen(self):
         self.choose(tool="cli_image_gen")
         outside = self.root.parent / f"{self.root.name}_painting.png"
-        Image.new("RGB", (30, 20), (40, 90, 140)).save(outside)
+        shaded_picture((30, 20), (40, 90, 140)).save(outside)
         self.assertEqual(life.import_mockup(self.root, outside, "owner-art", "v001", "asset")["status"], "generated")
 
     def test_a_connected_tool_must_be_named_and_must_be_the_chosen_one(self):
@@ -342,7 +344,7 @@ class RegisterGeneratedTests(GameFolder):
     def tool_output(self, name="exec-1234.png", fmt="PNG"):
         path = self.root.parent / f"{self.root.name}_tool" / name
         path.parent.mkdir(exist_ok=True)
-        Image.new("RGB", (60, 40), (80, 140, 60)).save(path, format=fmt)
+        shaded_picture((60, 40), (80, 140, 60)).save(path, format=fmt)
         return path
 
     def test_a_tool_output_is_named_hashed_documented_and_registered_without_touching_the_original(self):
@@ -364,7 +366,7 @@ class RegisterGeneratedTests(GameFolder):
     def test_staging_never_leaves_the_game_folder(self):
         write_settings(self.root, image_generation={"tool": "built_in_image_gen"})
         outside = self.root.parent / f"{self.root.name}_painting.png"
-        Image.new("RGB", (30, 20), (40, 90, 140)).save(outside)
+        shaded_picture((30, 20), (40, 90, 140)).save(outside)
         with mock.patch.object(tempfile, "tempdir", str(self.root.parent / "no-such-temp-folder")):
             life.register_generated_mockup(self.root, self.tool_output(), "market", "v001", "scene", self.PROMPT)
             life.import_mockup(self.root, outside, "owner-art", "v001", "asset")
@@ -420,7 +422,7 @@ class ImportMockupTests(GameFolder):
     def outside_png(self, name="my_mockup.png", size=(40, 30)):
         path = self.root.parent / f"{self.root.name}_outside" / name
         path.parent.mkdir(exist_ok=True)
-        Image.new("RGB", size, (30, 120, 60)).save(path)
+        shaded_picture(size, (30, 120, 60)).save(path)
         return path
 
     def test_a_png_is_copied_byte_for_byte_and_left_generated_without_a_statement_of_approval(self):
@@ -457,7 +459,7 @@ class ImportMockupTests(GameFolder):
         from PIL import ImageChops
         jpeg = self.root.parent / f"{self.root.name}_outside" / "photo.jpg"
         jpeg.parent.mkdir(exist_ok=True)
-        Image.new("RGB", (32, 24), (200, 90, 20)).save(jpeg, quality=90)
+        shaded_picture((32, 24), (200, 90, 20)).save(jpeg, quality=90)
         result = life.import_mockup(self.root, jpeg, "photo-scene", "v001", "scene", rights="owned", rights_notes="the user painted it")
         self.assertTrue(result["import_checks"]["converted_to_png"])
         managed = next((self.root / OUT / "mockups/generated").glob("*.png"))
@@ -472,9 +474,31 @@ class ImportMockupTests(GameFolder):
     def test_transparency_and_key_pixels_are_reported_not_hidden(self):
         path = self.root.parent / f"{self.root.name}_outside" / "alpha.png"
         path.parent.mkdir(exist_ok=True)
-        Image.new("RGBA", (8, 8), (255, 0, 255, 0)).save(path)
+        alpha = Image.new("RGBA", (8, 8), (255, 0, 255, 0))
+        alpha.paste((20, 90, 160, 255), (0, 0, 4, 4))                       # some of it opaque: a fully transparent picture is refused
+        alpha.save(path)
         checks = life.import_mockup(self.root, path, "alpha-art", "v001", "asset")["import_checks"]
         self.assertTrue(checks["has_transparency"])
+
+    def test_a_picture_that_shows_nothing_is_refused_at_import_and_names_why(self):
+        outside = self.root.parent / f"{self.root.name}_outside"
+        outside.mkdir(exist_ok=True)
+        blank = {"flat": Image.new("RGB", (64, 48), (90, 140, 70)), "transparent": Image.new("RGBA", (64, 48), (90, 140, 70, 0))}
+        for name, picture in blank.items():
+            path = outside / f"{name}.png"
+            picture.save(path)
+            with self.subTest(name), self.assertRaisesRegex(ValueError, "fully transparent" if name == "transparent" else "one flat colour"):
+                life.import_mockup(self.root, path, f"blank-{name}", "v001", "scene")
+        self.assertEqual([row for row in life.list_records(self.root, "mockups") if str(row.get("id", "")).startswith("blank-")], [])      # the refusals registered nothing
+
+    def test_a_mockup_file_that_is_not_a_picture_is_refused_even_with_a_matching_hash(self):
+        image, metadata = make_mockup(self.root, "corrupt-scene", "v001", "scene")
+        image.write_bytes(b"this is not a picture")
+        body = json.loads(metadata.read_text(encoding="utf-8"))
+        body["sha256"] = hashlib.sha256(image.read_bytes()).hexdigest()                    # the recorded hash matches the bytes, so only reading the picture can catch it
+        metadata.write_text(json.dumps(body), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "cannot be read"):
+            life.register_mockup(self.root, metadata, image)
 
     def test_refusals(self):
         source = self.outside_png()

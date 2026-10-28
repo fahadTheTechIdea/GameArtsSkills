@@ -38,8 +38,10 @@ def tag_problems(tags, frame_count):
                     problems.append(f"{label}: frame {value} does not exist (the sheet has {frame_count} frames)")
             if first > last:
                 problems.append(f"{label}: from {first} is after to {last}")
-        if tag.get("direction") not in TAG_DIRECTIONS:
-            problems.append(f"{label}: direction {tag.get('direction')!r} is not one of {', '.join(TAG_DIRECTIONS)}")
+        if tag.get("direction") is None:
+            problems.append(f"{label}: has no direction; give one of {', '.join(TAG_DIRECTIONS)}")
+        elif tag["direction"] not in TAG_DIRECTIONS:
+            problems.append(f"{label}: direction {tag['direction']!r} is not one of {', '.join(TAG_DIRECTIONS)}")
         repeat = tag.get("repeat", 0)
         if type(repeat) is not int or repeat < 0:
             problems.append(f"{label}: repeat must be a whole number of 0 or more (0 repeats forever)")

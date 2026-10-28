@@ -3,7 +3,6 @@
 
   python scripts/export_exchange.py --atlas SHEET.atlas.json [--format aseprite-array|aseprite-hash] [--output FILE]
   python scripts/export_exchange.py --tileset NAME.tileset.json [--format tiled] [--output FILE]
-  python scripts/export_exchange.py --layered-map NAME.layered_map.json [--format tiled] [--output FILE]
 
 aseprite-array / aseprite-hash: the data file Aseprite writes beside a sprite sheet (`frames` as a list or as an object keyed by frame name, and
 `meta`). Field names and meanings follow the exporter's own source (doc_exporter.cpp, read 2026-10-24): `frame` is the rectangle to cut from the
@@ -13,10 +12,6 @@ store a pivot) and `meta.key_colour`, because the sheet is delivered over the ke
 tiled: a Tiled tileset (`type: "tileset"`, an image tileset on a regular grid) with a wang set for the layouts that have neighbour rules. The
 extension .tsj is the one third-party Tiled readers use for JSON tilesets; the format level written (`version`, `tiledversion`) is the level of the
 documentation the fields were taken from, not a release that was run.
-tiled map (from a layered map): a Tiled map (`.tmj`) of the whole scene. Every layer of the map becomes a Tiled layer in the same order: the ground and one overlay per further
-terrain as tile layers (the overlays are dual grids, so each is offset by half a cell and the map is one cell wider and taller than the scene), the objects as tile objects whose
-position is the sprite's pivot, sorted by their y, and a `collision` object layer of the footprints that block. The terrain tilesets and the object atlas are embedded, so the file
-needs only the pictures beside it. The gameplay grid is a map property. Tiled's own tile-object alignment (bottom left) is why an object's y is the bottom of its picture.
 Compatibility is best effort until a real export has been opened in the tool. An atlas or tileset that fails its own checks is not exported, and an existing
 file is never overwritten. The sheet itself is never changed.
 """
@@ -28,7 +23,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gamearts_atlas as atlas_rules  # noqa: E402
 import gamearts_common as common  # noqa: E402
-import gamearts_layered_map as layered  # noqa: E402
 import gamearts_tileset as tile_rules  # noqa: E402
 import validate_sheet_atlas as sheet_validator  # noqa: E402
 import validate_tileset as tileset_validator  # noqa: E402
@@ -153,120 +147,11 @@ def export_tileset(tileset_path, output=None):
     return _write(output or tileset_path.with_name(tileset["name"] + ".tsj"), tiled_tileset(tileset, atlas))
 
 
-def _embedded_tileset(directory, tileset_file, first_gid):
-    """A terrain's tileset, embedded in the map with its first global tile id."""
-    tileset_path = Path(directory) / tileset_file
-    tileset = common.read_json(tileset_path)
-    atlas = common.read_json(tileset_path.with_name(Path(tileset["atlas"]).name))
-    return dict(tiled_tileset(tileset, atlas), firstgid=first_gid), tileset
-
-
-def _object_tileset(directory, atlas_file, first_gid):
-    """An object atlas as a Tiled tileset of images: one tile per frame, each cut from the sheet by its rectangle, so any layout works."""
-    atlas = common.read_json(Path(directory) / atlas_file)
-    width, height = atlas["image_size"]
-    tiles = [{"id": index, "image": atlas["image"], "imagewidth": width, "imageheight": height,
-              "x": frame["rect"][0], "y": frame["rect"][1], "width": frame["rect"][2], "height": frame["rect"][3]} for index, frame in enumerate(atlas["frames"])]
-    data = {"type": "tileset", "version": TILED_FORMAT, "tiledversion": TILED_LEVEL, "name": Path(atlas_file).name.replace(".atlas.json", ""), "firstgid": first_gid,
-            "tilewidth": max(f["rect"][2] for f in atlas["frames"]), "tileheight": max(f["rect"][3] for f in atlas["frames"]), "tilecount": len(tiles), "columns": 0,
-            "margin": 0, "spacing": 0, "objectalignment": "unspecified", "tiles": tiles}
-    if atlas.get("mask_color") and not atlas.get("full_bleed"):
-        data["transparentcolor"] = atlas["mask_color"].lower()
-    return data, atlas
-
-
-def tiled_map(map_path):
-    """The Tiled map of a layered map. Refuses a map that fails its own checks or a terrain that names no tileset."""
-    map_path = Path(map_path)
-    problems = layered.validate(map_path)
-    if problems:
-        raise ValueError("cannot export a layered map that fails its own checks: " + "; ".join(problems[:3]))
-    data = layered.load(map_path)
-    directory = map_path.parent
-    cell_w, cell_h = data["grid"]["cell_px"]
-    width, height = data["grid"]["width"] + 1, data["grid"]["height"] + 1  # a dual grid has a tile at each corner of the cells
-    base = min(data["terrains"], key=lambda t: t["priority"])["id"]
-    tilesets, first, firsts, sets = [], 1, {}, {}
-    for entry in sorted(data["terrains"], key=lambda t: t["priority"]):
-        if "tileset" not in entry:
-            raise ValueError(f"terrain {entry['id']} names no tileset, so there is nothing to draw it with")
-        embedded, tileset = _embedded_tileset(directory, entry["tileset"], first)
-        tilesets.append(embedded)
-        firsts[entry["id"]], sets[entry["id"]] = first, tileset
-        first += embedded["tilecount"]
-    layers, next_id = [], 1
-    for layer in data["layers"]:
-        if layer["role"] in ("ground", "overlay"):
-            terrain_id = layer["terrain"]
-            cells = [0] * (width * height)
-            if layer["role"] == "ground":
-                tile_id = sets[terrain_id]["tiles"][0]["id"]
-                for y in range(data["grid"]["height"]):
-                    for x in range(data["grid"]["width"]):
-                        cells[y * width + x] = firsts[terrain_id] + tile_id
-                offsets = {}
-            else:
-                for (x, y), tile_id in layered.overlay_plan(data, directory, terrain_id)["tiles"].items():
-                    cells[y * width + x] = firsts[terrain_id] + tile_id
-                offsets = {"offsetx": -cell_w / 2, "offsety": -cell_h / 2}
-            layers.append(dict({"id": next_id, "name": layer["id"], "type": "tilelayer", "width": width, "height": height, "x": 0, "y": 0, "opacity": 1, "visible": True,
-                                "data": cells}, **offsets))
-            next_id += 1
-    objects_by_layer = {"objects": [o for o in data["objects"] if o.get("layer", "objects") == "objects"], "overhead": [o for o in data["objects"] if o.get("layer") == "overhead"]}
-    object_ids = 0
-    if data["objects"]:
-        atlases = sorted({o["sprite"]["atlas"] for o in data["objects"]})
-        atlas_info = {}
-        for atlas_file in atlases:
-            object_set, atlas = _object_tileset(directory, atlas_file, first)
-            tilesets.append(object_set)
-            atlas_info[atlas_file] = (first, {f["name"]: (i, f) for i, f in enumerate(atlas["frames"])})
-            first += object_set["tilecount"]
-    for layer in data["layers"]:
-        if layer["role"] not in ("objects", "overhead"):
-            continue
-        placed = []
-        for obj in objects_by_layer[layer["role"]]:
-            object_ids += 1
-            first_gid, frames = atlas_info[obj["sprite"]["atlas"]]
-            index, frame = frames[obj["sprite"]["frame"]]
-            pivot_x, pivot_y = frame["pivot"]
-            frame_w, frame_h = frame["rect"][2], frame["rect"][3]
-            entry = {"id": object_ids, "name": obj["id"], "type": obj["class"], "gid": first_gid + index, "x": obj["position_px"][0] - pivot_x,
-                     "y": obj["position_px"][1] - pivot_y + frame_h, "width": frame_w, "height": frame_h, "rotation": 0, "visible": True}
-            if obj.get("sort_offset_px"):
-                entry["properties"] = [{"name": "sort_offset_px", "type": "int", "value": obj["sort_offset_px"]}]
-            placed.append(entry)
-        layers.append({"id": next_id, "name": layer["id"], "type": "objectgroup", "draworder": "topdown", "x": 0, "y": 0, "opacity": 1, "visible": True, "objects": placed})
-        next_id += 1
-    blockers = []
-    for obj in data["objects"]:
-        if obj.get("collision") == "footprint":
-            left, top, right, bottom = layered._footprint(obj)
-            object_ids += 1
-            blockers.append({"id": object_ids, "name": obj["id"], "type": "footprint", "x": left, "y": top, "width": right - left, "height": bottom - top, "rotation": 0, "visible": True})
-    layers.append({"id": next_id, "name": "collision", "type": "objectgroup", "draworder": "topdown", "x": 0, "y": 0, "opacity": 1, "visible": True, "objects": blockers})
-    return {"type": "map", "version": TILED_FORMAT, "tiledversion": TILED_LEVEL, "orientation": "orthogonal", "renderorder": "right-down", "width": width, "height": height,
-            "tilewidth": cell_w, "tileheight": cell_h, "infinite": False, "nextlayerid": next_id + 1, "nextobjectid": object_ids + 1, "layers": layers, "tilesets": tilesets,
-            "properties": [{"name": "name", "type": "string", "value": data["name"]}, {"name": "base_terrain", "type": "string", "value": base},
-                           {"name": "gameplay", "type": "string", "value": "\n".join(layered.gameplay_grid(data))},
-                           {"name": "dual_grid_note", "type": "string", "value": "overlay layers are offset by half a cell: a tile sits where four cells meet"}]}
-
-
-def export_layered_map(map_path, output=None):
-    """Write the Tiled map of a layered map; returns the path written."""
-    map_path = Path(map_path)
-    data = tiled_map(map_path)
-    name = common.read_json(map_path)["name"]
-    return _write(output or map_path.with_name(name + ".tmj"), data)
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--atlas", type=Path)
     source.add_argument("--tileset", type=Path)
-    source.add_argument("--layered-map", type=Path)
     parser.add_argument("--format", help="aseprite-array (default), aseprite-hash, or tiled for a tileset")
     parser.add_argument("--frame-names", choices=FRAME_NAMES, default="name", help="name each frame by its own name (default) or by its frame number (some loaders find a tag's frames by number)")
     parser.add_argument("--output", type=Path)
@@ -274,10 +159,6 @@ def main():
     try:
         if args.atlas:
             written = export_atlas(args.atlas, args.format or "aseprite-array", args.output, args.frame_names)
-        elif args.layered_map:
-            if args.format not in (None, "tiled"):
-                raise ValueError(f"Unknown format {args.format!r} for a layered map; the map format is tiled")
-            written = export_layered_map(args.layered_map, args.output)
         else:
             if args.format not in (None, "tiled"):
                 raise ValueError(f"Unknown format {args.format!r} for a tileset; the tileset format is tiled")

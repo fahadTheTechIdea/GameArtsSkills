@@ -96,6 +96,9 @@ def describe_settings(settings):
     if generator:
         label = GENERATOR_LABEL[generator["tool"]]
         rows.append(("Pictures made by", f"{label} ({generator['tool_name']})" if generator.get("tool_name") else label))
+        if generator.get("fallback"):
+            spare = generator["fallback"]
+            rows.append(("If that is unavailable", f"{GENERATOR_LABEL[spare['tool']]} ({spare['tool_name']})" if spare.get("tool_name") else GENERATOR_LABEL[spare["tool"]]))
     engine = presets.resolve_engine_target(settings)
     rows.append(("Engine or tool", engine.get("title") or engine["profile"] + " (no profile installed)"))
     rows.append(("Settings", {"owner_confirmed": "confirmed by the owner", "needs_review": "need the owner to look again",
@@ -124,6 +127,10 @@ def next_steps(settings_state, mockups, assets, storyboard):
     for record in mockups:
         if record.get("status") == "approved" and (record.get("mockup_id"), record.get("revision")) not in built_from:
             steps.append(f"Plan the art from the approved mockup {record.get('mockup_id')} {record.get('revision')}.")
+    for record in mockups:
+        if record.get("status") == "approved" and record.get("scope") in ("world", "scene", "mixed") and not record.get("scene_extraction"):
+            what = "Run the scene extraction (extract-scene) for" if record.get("blueprint") else "Analyze (object sweep and blueprint), then extract the objects of"
+            steps.append(f"{what} the approved scene mockup {record.get('mockup_id')} {record.get('revision')}.")
     for record in assets:
         if record.get("status") == "generated":
             failed = (record.get("technical_validation") or {}).get("status") == "failed"

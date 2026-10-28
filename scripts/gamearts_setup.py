@@ -17,6 +17,7 @@ import argparse
 import functools
 import hashlib
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -87,9 +88,9 @@ SOFT_EDGES = [("hard", "Keep the delivered edges hard", "Soft coverage is kept s
 SOFT_EDGE_RULES = {"hard": "Soft edges: delivered pictures keep hard edges; any soft coverage is kept separately and never claimed to be recovered from the key colour.",
                    "matte": "Soft edges: deliver a companion matte (<name>.matte.png) beside each key sheet where the image tool returns true alpha."}
 ORDER = ["project_name", "world_kind", "look", "soft_edges", "viewpoint", "tile_size", "scale", "layers", "screen_size", "screen_scaling", "directions", "animation",
-         "image_generator", "engine", "palette"]
+         "image_generator", "image_fallback", "engine", "palette"]
 DEPENDS = {"look": {"world_kind"}, "soft_edges": {"look"}, "viewpoint": {"world_kind"}, "tile_size": {"world_kind", "viewpoint"}, "scale": {"world_kind", "viewpoint"},
-           "layers": {"world_kind"}, "screen_size": {"world_kind"}, "screen_scaling": {"world_kind"}, "directions": {"world_kind"}}
+           "layers": {"world_kind"}, "image_fallback": {"image_generator"}, "screen_size": {"world_kind"}, "screen_scaling": {"world_kind"}, "directions": {"world_kind"}}
 
 
 @functools.lru_cache(maxsize=None)
@@ -171,6 +172,12 @@ def question(name, answers):
     if name == "image_generator":
         return {"id": name, "header": "Images", "prompt": "Which image generator should Game Arts use for this game? It is used for every picture.",
                 "options": _opts(IMAGE_TOOLS)}
+    if name == "image_fallback" and answers.get("image_generator", {}).get("value") not in (None, "user_supplied"):
+        main = answers["image_generator"]["value"]
+        options = [{"value": "none", "label": "No fallback", "description": "If my chosen tool is not available in a session, the agent says so and stops; it never uses another."}]
+        options += _opts([t for t in IMAGE_TOOLS if t[0] not in ("user_supplied", main)])
+        return {"id": name, "header": "Fallback", "prompt": "If that image generator is not available in a session, is there another one Game Arts may use instead? It is used only then, and the picture records why.",
+                "options": options}
     if name == "engine":
         found = [(key, profile["title"], profile["summary"]) for key, profile in sorted(_engines().items())]
         options = _opts(found) + [{"value": OTHER, "label": "Another engine", "description": "Name it; everything works as before and no profile is applied."}]
@@ -190,7 +197,7 @@ def unanswered(answers):
 
 
 def _needs_text(name, value):
-    return value == OTHER or (name == "image_generator" and value == "connected_tool") or (name == "palette" and value in ("words", "picture")) or name == "project_name"
+    return value == OTHER or (name in ("image_generator", "image_fallback") and value == "connected_tool") or (name == "palette" and value in ("words", "picture")) or name == "project_name"
 
 
 def _split_size(text, what):
@@ -216,6 +223,8 @@ def check_answer(answers, name, value, text):
         _split_size(text, "the size")
     if name == "project_name":
         project_slug(text)
+    if name == "engine" and value == OTHER:
+        engine_slug(text)
 
 
 def project_slug(text):
@@ -224,6 +233,32 @@ def project_slug(text):
     if not common.SLUG.fullmatch(slug):
         raise ValueError(f"{text!r} cannot be a project name; use letters, digits and hyphens (for example Sunny Farm becomes sunny-farm)")
     return slug
+
+
+ENGINE_NAME = re.compile(r"[a-z0-9][a-z0-9_-]*")  # the contract's pattern for engine_target.profile (schemas/gamearts-project.schema.json)
+
+
+def engine_slug(text):
+    """An engine the owner names in their own words as the profile name the settings keep: lowercase, spaces become hyphens ("Some Engine 4" is some-engine-4), anything else
+    outside letters, digits, hyphens and underscores is refused here, when the owner answers, and not later when the settings are written."""
+    slug = "-".join(str(text or "").strip().lower().split())
+    if not ENGINE_NAME.fullmatch(slug):
+        raise ValueError(f"{text!r} cannot be an engine name; use letters, digits, hyphens and underscores (for example Some Engine 5 becomes some-engine-5)")
+    return slug
+
+
+def check_palette_picture(root, text):
+    """The palette picture the owner named must be there and be a picture, now, so the wizard never reports complete for a settings file that cannot be written."""
+    from PIL import Image
+    source = Path(text.strip())
+    source = source if source.is_absolute() else Path(root) / source
+    if not source.is_file():
+        raise ValueError(f"the palette picture {text.strip()!r} is not a file; give its path (relative to the game folder or absolute)")
+    try:
+        with Image.open(source) as opened:
+            opened.load()
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"the palette picture {text.strip()!r} cannot be read as a picture: {exc}") from exc
 
 
 def state_path(root):
@@ -241,6 +276,8 @@ def answer(root, name, value, text=None, said=None):
         raise ValueError("Record the owner's own words behind this pick (--said); a choice is never made for them")
     answers = load_answers(root)
     check_answer(answers, name, value, text)
+    if name == "palette" and value == "picture":
+        check_palette_picture(root, text)
     same = (answers.get(name) or {}).get("value") == value and (answers.get(name) or {}).get("text") == ((text or "").strip() or None)
     if same:  # choosing the same thing again changes no pick, so the questions that depend on it keep their answers; the owner's words are still recorded
         answers[name]["said"] = said.strip()
@@ -266,7 +303,7 @@ def version(answers):
 TRIGGERS = {"project_name": "always", "world_kind": "always", "look": "after the world kind", "soft_edges": "when the chosen look has soft edges, or is your own words",
             "viewpoint": "for a tile map, free movement or scrolling layers", "tile_size": "for a tile map, after the viewpoint",
             "scale": "for free movement or scrolling layers, after the viewpoint", "layers": "for scrolling layers", "screen_size": "for a screen-only game",
-            "screen_scaling": "for a screen-only game", "directions": "for every game with a world", "animation": "always", "image_generator": "always",
+            "screen_scaling": "for a screen-only game", "directions": "for every game with a world", "animation": "always", "image_generator": "always", "image_fallback": "when you chose an image generator, to say what to use if it is unavailable",
             "engine": "always", "palette": "always"}
 
 
@@ -296,10 +333,36 @@ def _current(root, name):
         return (held.get("animation") or {}).get("preferred_method")
     if name == "image_generator":
         return (held.get("image_generation") or {}).get("tool")
+    if name == "image_fallback":
+        generation = held.get("image_generation") or {}
+        return (generation.get("fallback") or {}).get("tool", "none") if generation.get("tool") else None
     if name == "engine":
         return (held.get("engine_target") or {}).get("profile")
     if name == "project_name":
         return "name" if held.get("project_id") else None
+    world, screen = held.get("world") or {}, held.get("screen") or {}
+    if name == "viewpoint":
+        return next((key for key, view in VIEWS.items() if view[1] == world.get("camera_profile")), None)
+    if name == "tile_size" and world.get("ground_tile_px"):
+        size = "x".join(str(v) for v in world["ground_tile_px"])
+        return size if any(size == f"{w}x{h}" for view in VIEWS.values() for w, h in view[6]) else OTHER
+    if name == "scale" and held.get("world_kind", "grid_world") != "grid_world" and world.get("pixels_per_meter"):
+        return str(world["pixels_per_meter"])
+    if name == "layers" and world.get("layers"):
+        return str(len(world["layers"])) if str(len(world["layers"])) in LAYER_STACKS else None
+    if name == "screen_size" and screen.get("base_resolution_px"):
+        size = "x".join(str(v) for v in screen["base_resolution_px"])
+        return size if size in {value for value, _, _ in SCREENS} else OTHER
+    if name == "screen_scaling":
+        return screen.get("scaling")
+    if name == "soft_edges":
+        constraints = (held.get("prompting") or {}).get("additional_constraints") or []
+        return next((key for key, rule in SOFT_EDGE_RULES.items() if rule in constraints), None)
+    if name == "palette":
+        reference = (held.get("art_style") or {}).get("palette_reference")
+        if not reference:
+            return None
+        return "none" if reference == "no fixed palette (the owner's choice)" else "picture" if reference.endswith(".json") else "words"
     return None
 
 
@@ -391,8 +454,11 @@ def build_settings(answers, root, existing=None):
     settings["export"] = {"background_hex": "#FF00FF", "background_alpha": 255, "atlas_per_sheet": True, "no_zip": True}
     tool = answers["image_generator"]
     settings["image_generation"] = {"tool": tool["value"], **({"tool_name": tool["text"]} if tool["value"] == "connected_tool" else {})}
+    fallback = answers.get("image_fallback")
+    if fallback and fallback["value"] != "none":
+        settings["image_generation"]["fallback"] = {"tool": fallback["value"], **({"tool_name": fallback["text"]} if fallback["value"] == "connected_tool" else {})}
     engine = answers["engine"]
-    settings["engine_target"] = {"profile": (engine["text"].strip().lower() if engine["value"] == OTHER else engine["value"])}
+    settings["engine_target"] = {"profile": (engine_slug(engine["text"]) if engine["value"] == OTHER else engine["value"])}
     prompting = dict(settings.get("prompting") or {})
     constraints = [c for c in prompting.get("additional_constraints", []) if c not in SOFT_EDGE_RULES.values()]
     if "soft_edges" in answers:
@@ -424,6 +490,9 @@ def summary(answers):
                   "built_in_image_gen": "Consequence: every picture is made with your agent's own image tool; the agent never substitutes another.",
                   "cli_image_gen": "Consequence: every picture is made with Codex's command-line image tool, which needs an OpenAI API key.",
                   "connected_tool": "Consequence: every picture is made with the connected tool you named, which may charge for each picture."}[tool])
+    if "image_fallback" in answers:
+        lines.append("Consequence: if that tool is not available in a session, " + ("the agent says so and stops; it never uses another." if answers["image_fallback"]["value"] == "none"
+                     else "the fallback you named is used instead and each picture records why."))
     engine = answers["engine"]["value"]
     lines.append("Consequence: plain guidance for any engine, and no automatic engine-ready copies." if engine == "generic"
                  else "Consequence: import advice and default engine-ready copies come from the engine's profile where one is installed.")

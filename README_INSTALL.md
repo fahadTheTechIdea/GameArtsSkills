@@ -15,7 +15,7 @@ Game-specific files are created later, inside the **game** (never in this framew
 
 ## Requirements
 - Python 3.11 or newer on the machine the agent runs on (run locally on 3.12 and 3.14; the CI matrix adds 3.11).
-- **Pillow** and **`jsonschema`**: `python -m pip install Pillow jsonschema`. A missing `jsonschema` is a hard failure (a skipped contract check would be reported as a pass), so install both.
+- **Pillow** and **`jsonschema`**: `python -m pip install Pillow jsonschema`. A missing `jsonschema` is a hard failure (a skipped contract check would be reported as a pass), so install both. **Optional, only to find scene objects automatically** (`scripts/detect_scene_objects.py`): `torch` and `transformers`; the detection weights are fetched from the Hugging Face hub as plain files and no remote code is run. Nothing else needs them, and a missing package is a refusal that says so, never a silent skip. The draft object-removal step (`scripts/remove_scene_objects.py`) likewise needs `opencv-python`.
 - An image-generation tool available to the agent, which you choose once per game (Codex's built-in image tool, its command-line fallback, a connector you name, or your own pictures). Without one the agent can still plan, import your mockups, build sheets from frames you provide and run every check, but it will say it cannot render art.
 - Git is needed only for the optional updater.
 
