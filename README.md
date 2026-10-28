@@ -36,7 +36,7 @@ Each row is a capability with the script that owns it; the master standard owns 
 
 | Capability | Owner | What it does |
 |---|---|---|
-| Per-game setup | `gamearts_setup.py`, `gamearts_doctor.py`, `gamearts_plan_card.py`, `gamearts_presets.py` | Setup wizard (every setting is the owner's choice), environment doctor, plan card shown before the first picture, ten style presets and engine profiles |
+| Per-game setup | `gamearts_setup.py`, `gamearts_doctor.py`, `gamearts_plan_card.py`, `gamearts_presets.py`, `gamearts_disclosure.py` | Setup wizard (every setting is the owner's choice), environment doctor, plan card shown before the first picture, ten style presets and engine profiles |
 | Storyboard | `gamearts_storyboard.py` | One living campaign storyboard per game, approved before scene mockups |
 | Lifecycle | `gamearts_asset_lifecycle.py` | Register, audit, approve, reject and restore mockups and assets: generated / approved / revoked, hash-bound, rolled back on failure |
 | Mockup analysis | `validate_blueprint.py`, `prepare_reference_crop.py` | Blueprint with a separation inventory and an **object sweep** (14 classes, each present with components or absent with evidence); reference crops of real approved pixels |

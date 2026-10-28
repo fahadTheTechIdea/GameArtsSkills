@@ -476,6 +476,8 @@ Custom instructions are one Markdown file each in `.gamearts/instructions/` (fro
 
 ## 25. Delivery
 
+**AI-content disclosure.** When the owner asks what to declare to a store or publisher, run `scripts/gamearts_disclosure.py`: it reads the manifests and lists, for approved art only, which mockups were made with an image tool (tool, model, whether it was the fallback) or supplied, and which approved assets descend from them. It writes nothing and states what it cannot know (art made elsewhere, how a supplied picture was made, live generation); whether a store requires a disclosure, and its wording, is that store's current rule, so read the store's page and never state it from memory.
+
 Deliver individual files, never a ZIP archive alone: PNG artwork, sprite sheets, per-sheet atlas JSON, component and state metadata, bundle JSON, validation and approval notes. Keep approved source art linked and the full package traceable to its mockup revision and provenance. Show composed previews in addition to the files. One master specification exists; art-style profiles and blueprints are created per project and request. Do not create competing policy documents.
 
 ## 26. Standard versus implementation
