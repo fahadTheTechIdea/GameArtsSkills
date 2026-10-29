@@ -160,7 +160,7 @@ def import_asset(game_root, source, asset_id, revision, layout, rights="user_sup
     """Adopt the sheet at `source`; `layout` is {"grid": (columns, rows)}, {"cell": (w, h)} or {"data": path}. Returns the asset, the reference, the counts
     and, when asked for, the style-anchor offer and the palette. Nothing in the game changes until the sheet, its frames and its data have all checked out."""
     from PIL import Image
-    root = Path(game_root).resolve()
+    root = common.game_root(game_root)
     _check_options(rights, approval_reference, alpha_threshold, layout)
     if not common.SLUG.fullmatch(asset_id or "") or not common.REVISION.fullmatch(revision or ""):
         raise ValueError("The asset id must be a filename-safe id and the revision must look like v001")

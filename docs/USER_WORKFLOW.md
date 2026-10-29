@@ -19,9 +19,13 @@ Real mockup (mockups/generated) -> approve / revise / reject
         |
 Approved mockup (mockups/approved) -> detailed blueprint, coverage audit
         |
+Scene or world: detect (draft) -> extract objects -> evaluate / remove (draft)   [extract must run before any asset is registered]
+        |
 Reference crop -> one master -> compare with the crop -> approve master
         |
 Clean static parent + separate parts -> components, key poses, directions
+        |
+Variants (team colour, season, night): recolour the approved frames by a fixed map -> a new asset, reviewed and approved like any other
         |
 Measured sheets, atlases, bundle (assets/generated) -> mechanical and style checks, animation previews
         |
@@ -35,6 +39,12 @@ Revoked mockups and assets keep their history and are never used as a source. Ev
 - To approve a **mockup revision**, a **storyboard sequence**, a **master**, and the **final art**: each is a separate, explicit decision about the exact thing shown.
 - To confirm the settings once, and to trust the update hook if you enable automatic updates.
 - Nothing else, unless a choice would change the result.
+
+## If the main image generator is unavailable
+If you saved a fallback generator for the game, the agent may use it for that picture only, and says why. The reason is stored with the picture. With no fallback saved, it stops and tells you which pictures are waiting.
+
+## Declaring AI use
+Ask "What do I have to declare about AI?" for a plain summary built from what was recorded. It is not a statement of what any store requires.
 
 ## What the agent will not do
 Claim a picture was made without an image tool; approve a draft because it looks polished; skip mockup approval for new art; use a text description instead of the real approved pixels; ask an image model for a finished sprite sheet or atlas; leave a prop painted into the base while also exporting it; reuse a rejected version; claim an engine test it did not run; deliver only a ZIP; or ask you to run commands.

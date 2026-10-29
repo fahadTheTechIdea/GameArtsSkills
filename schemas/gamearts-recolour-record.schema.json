@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts recolour record",
+  "description": "What a recolour run did: the mapping used, and for every picture the hash it came from, the hash it produced and how many pixels changed. It makes a palette variant traceable to the approved art it came from.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mapping",
+    "snap",
+    "files",
+    "merged",
+    "snapped",
+    "created_at_utc"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^#[0-9A-F]{6}$"
+      }
+    },
+    "snap": {
+      "type": "boolean"
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "source_sha256",
+          "output",
+          "output_sha256",
+          "pixels_changed"
+        ],
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "output": {
+            "type": "string"
+          },
+          "output_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "pixels_changed": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "merged": {
+      "type": "array",
+      "description": "Targets that two or more different source colours were mapped to (detail lost); empty unless the run allowed merging.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "sources"
+        ],
+        "properties": {
+          "target": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "snapped": {
+      "type": "array",
+      "description": "Colours not in the map that were treated as their nearest listed colour, with the perceived distance (CIE76) in each case.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "colour",
+          "treated_as",
+          "distance"
+        ],
+        "properties": {
+          "colour": {
+            "type": "string"
+          },
+          "treated_as": {
+            "type": "string"
+          },
+          "distance": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "created_at_utc": {
+      "type": "string"
+    }
+  }
+}

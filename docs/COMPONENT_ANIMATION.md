@@ -1,6 +1,6 @@
 # Modular moving components
 
-[`scripts/build_component_bundle.py`](../scripts/build_component_bundle.py) builds, for every component and direction, a sprite sheet and measured atlas, plus one `<asset>.bundle.json` with the hierarchy, tracks, draw order and sampled composed transforms. The agent runs it internally. The rules are in the master standard: *Animation candidates and modular components*, *Sprite sheets, atlases and component bundles*, *Parent-artwork cleanup and separation gate*.
+[`scripts/build_component_bundle.py`](../scripts/build_component_bundle.py) builds (with `--game-root <game>` it also says whether the bundle faces the game's directions), for every component and direction, a sprite sheet and measured atlas, plus one `<asset>.bundle.json` with the hierarchy, tracks, draw order and sampled composed transforms. The agent runs it internally. The rules are in the master standard: *Animation candidates and modular components*, *Sprite sheets, atlases and component bundles*, *Parent-artwork cleanup and separation gate*.
 
 ## Job
 Contract: [`schemas/gamearts-component-job.schema.json`](../schemas/gamearts-component-job.schema.json). Illustrative paths and numbers:

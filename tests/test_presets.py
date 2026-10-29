@@ -587,9 +587,9 @@ class GenreRecipeTests(unittest.TestCase):
         for token in set(re.findall(r"`([a-z0-9_]+)`", self.text)):
             self.assertIn(token, self.known, f"GENRE_RECIPES.md names `{token}`, which the framework does not have")
 
-    def test_there_are_twelve_recipes_and_each_row_names_a_world_a_look_and_something_to_make(self):
+    def test_there_are_twenty_recipes_and_each_row_names_a_world_a_look_and_something_to_make(self):
         rows = [line for line in self.text.splitlines() if line.startswith("| ") and not line.startswith(("| Genre", "|---"))]
-        self.assertEqual(len(rows), 12)
+        self.assertEqual(len(rows), 20)
         for row in rows:
             cells = [cell.strip() for cell in row.strip("|").split("|")]
             self.assertEqual(len(cells), 6, row)

@@ -11,6 +11,8 @@ import gamearts_testkit as kit  # noqa: F401  (puts scripts/ on sys.path)
 
 import gamearts_asset_lifecycle as life  # noqa: E402
 import gamearts_common as common  # noqa: E402
+import gamearts_doctor as doctor  # noqa: E402
+import gamearts_report as report  # noqa: E402
 import gamearts_setup as wizard  # noqa: E402
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "gamearts_setup.py"
@@ -39,6 +41,13 @@ def confirm(root, who="owner", words="yes, confirmed"):
 def run(root, plan):
     for name, value, text in plan:
         choose(root, name, value, text)
+
+
+def settle(root):
+    """Answer "No note" to every optional-note question that is open, for the tests that are about something else."""
+    for name in wizard.NOTE_QUESTIONS:
+        if name in wizard.unanswered(wizard.load_answers(root)):
+            choose(root, name, "none")
 
 
 class GameCase(unittest.TestCase):
@@ -115,7 +124,7 @@ class AnswerTests(GameCase):
             with self.subTest(bad), self.assertRaisesRegex(ValueError, "cannot be an engine name"):
                 choose(self.root, "engine", wizard.OTHER, bad)
         self.assertNotIn("engine", wizard.load_answers(self.root))
-        run(self.root, [x for x in PLANS["grid_world"][5:] if x[0] != "engine"] + [("engine", wizard.OTHER, "Godot 4")])
+        run(self.root, [x for x in PLANS["grid_world"][5:] if x[0] != "engine"] + [("engine", wizard.OTHER, "Godot 4"), ("engine_version", "none", None)])
         wizard.finish(self.root)
         self.assertEqual(self.settings()["engine_target"]["profile"], "godot-4")
 
@@ -307,7 +316,8 @@ class FinishTests(GameCase):
     def test_the_owners_own_words_and_custom_sizes_are_kept(self):
         plan = [("project_name", "name", "Iso Demo"), ("world_kind", "grid_world", None), ("look", "pixel_hd", None), ("viewpoint", "isometric", "2:1 dimetric, about 26.57 degrees"),
                 ("tile_size", "other", "96x48"), ("directions", "per_object", None), ("animation", "frame_based", None),
-                ("image_generator", "connected_tool", "SomeTool"), ("image_fallback", "none", None), ("engine", "other", "Bevy"), ("palette", "words", "warm earth tones")]
+                ("image_generator", "connected_tool", "SomeTool"), ("image_notes", "none", None), ("image_fallback", "none", None), ("engine", "other", "Bevy"),
+                ("engine_version", "none", None), ("palette", "words", "warm earth tones")]
         run(self.root, plan)
         wizard.finish(self.root)
         saved = self.settings()
@@ -331,6 +341,7 @@ class FinishTests(GameCase):
                     choose(root, name, alternatives[0])
                     if name == "image_generator":
                         choose(root, "image_fallback", "none")  # a tool that generates asks what to use when it is unavailable
+                    settle(root)  # ...and for a note, and a named engine for its version
                     wizard.finish(root)
                     changed = common.read_json(root / ".gamearts" / "project.json")
                     self.assertNotEqual({k: v for k, v in changed.items() if k != "setup"}, {k: v for k, v in baseline.items() if k != "setup"}, f"{kind}: {name}")
@@ -379,6 +390,7 @@ class ImageFallbackTests(GameCase):
     def after_generator(self, value, text=None):
         run(self.root, [("project_name", "name", "Demo Game"), ("world_kind", "grid_world", None), ("look", "pixel_mid", None), ("viewpoint", "oblique", None),
                         ("tile_size", "32x32", None), ("directions", "dirs_4", None), ("animation", "hybrid", None), ("image_generator", value, text)])
+        settle(self.root)  # a tool that makes the pictures is asked for a note first
 
     def test_it_is_asked_after_a_generating_tool_with_none_among_the_choices_and_the_main_tool_left_out(self):
         self.after_generator("built_in_image_gen")
@@ -397,6 +409,7 @@ class ImageFallbackTests(GameCase):
         with self.assertRaisesRegex(ValueError, "own words"):
             choose(self.root, "image_fallback", "connected_tool")
         choose(self.root, "image_fallback", "connected_tool", "SpriteCook (gpt-image 2.5)")
+        settle(self.root)  # the fallback is asked for a note too
         run(self.root, [("engine", "generic", None), ("palette", "none", None)])
         wizard.finish(self.root)
         saved = common.read_json(self.root / ".gamearts" / "project.json")
@@ -413,12 +426,109 @@ class ImageFallbackTests(GameCase):
         self.assertTrue(any("never uses another" in line for line in wizard.summary(wizard.load_answers(self.root))))
 
 
+class OptionalNoteTests(GameCase):
+    """The notes an owner can give: a model or quality preference for the image generator and for its fallback, and the engine version.
+    "No note" is a pick like any other, so none of them is left to a default."""
+
+    def up_to_generator(self, tool="built_in_image_gen"):
+        run(self.root, [("project_name", "name", "Demo Game"), ("world_kind", "grid_world", None), ("look", "pixel_mid", None), ("viewpoint", "oblique", None),
+                        ("tile_size", "32x32", None), ("directions", "dirs_4", None), ("animation", "hybrid", None), ("image_generator", tool, None)])
+
+    def asked(self):
+        return [q["id"] for q in wizard.applicable(wizard.load_answers(self.root))]
+
+    def test_the_image_note_is_asked_for_a_generating_tool_and_never_when_the_owner_makes_the_pictures(self):
+        self.up_to_generator("user_supplied")
+        self.assertNotIn("image_notes", self.asked())
+        self.up_to_generator("built_in_image_gen")
+        asked = wizard.next_question(self.root)["question"]
+        self.assertEqual((asked["id"], [o["value"] for o in asked["options"]]), ("image_notes", ["none", "words"]))
+
+    def test_a_note_needs_the_owners_words_and_is_saved_with_its_tool_and_its_fallback(self):
+        self.up_to_generator()
+        with self.assertRaisesRegex(ValueError, "own words"):
+            choose(self.root, "image_notes", "words")
+        choose(self.root, "image_notes", "words", "second newest model, high quality")
+        choose(self.root, "image_fallback", "connected_tool", "Other Tool")
+        choose(self.root, "fallback_notes", "words", "model two point five")
+        run(self.root, [("engine", "generic", None), ("palette", "none", None)])
+        wizard.finish(self.root)
+        self.assertEqual(self.settings()["image_generation"],
+                         {"tool": "built_in_image_gen", "notes": "second newest model, high quality",
+                          "fallback": {"tool": "connected_tool", "tool_name": "Other Tool", "notes": "model two point five"}})
+        lines = " ".join(wizard.summary(wizard.load_answers(self.root)))
+        self.assertIn("carries your note: “second newest model, high quality”", lines)
+        self.assertIn("carries your note: “model two point five”", lines)
+
+    def test_no_note_adds_nothing_and_the_fallback_note_is_asked_only_for_a_fallback(self):
+        self.up_to_generator()
+        choose(self.root, "image_notes", "none")
+        choose(self.root, "image_fallback", "none")
+        self.assertNotIn("fallback_notes", self.asked())
+        run(self.root, [("engine", "generic", None), ("palette", "none", None)])
+        wizard.finish(self.root)
+        self.assertEqual(self.settings()["image_generation"], {"tool": "built_in_image_gen"})
+
+    def test_changing_a_tool_asks_its_note_again_and_choosing_the_same_one_keeps_it(self):
+        self.up_to_generator()
+        choose(self.root, "image_notes", "words", "high quality")
+        choose(self.root, "image_fallback", "connected_tool", "Other Tool")
+        choose(self.root, "fallback_notes", "words", "model two")
+        choose(self.root, "image_fallback", "connected_tool", "Other Tool", said="same again")
+        self.assertEqual(wizard.load_answers(self.root)["fallback_notes"]["text"], "model two")
+        choose(self.root, "image_fallback", "cli_image_gen")  # another fallback: its note belonged to the old one
+        self.assertNotIn("fallback_notes", wizard.load_answers(self.root))
+        self.assertIn("fallback_notes", wizard.unanswered(wizard.load_answers(self.root)))
+        choose(self.root, "image_generator", "cli_image_gen")  # another main tool: its note belonged to the old one
+        self.assertNotIn("image_notes", wizard.load_answers(self.root))
+        self.assertIn("image_notes", wizard.unanswered(wizard.load_answers(self.root)))
+
+    def test_the_engine_version_is_asked_for_a_named_engine_only_and_saved_as_the_version_note(self):
+        self.up_to_generator("user_supplied")
+        named = next(key for key in sorted(wizard._engines()) if key != "generic")
+        choose(self.root, "engine", "generic")
+        self.assertNotIn("engine_version", self.asked())
+        choose(self.root, "engine", named)
+        self.assertIn("engine_version", self.asked())
+        choose(self.root, "engine_version", "words", "5.2")
+        choose(self.root, "palette", "none")
+        wizard.finish(self.root)
+        self.assertEqual(self.settings()["engine_target"], {"profile": named, "version_note": "5.2"})
+        self.assertEqual(life.check_settings(self.root)["engine_target"]["version_note"], "5.2")
+
+    def test_a_game_set_up_before_these_questions_is_asked_them_and_its_notes_are_not_silently_lost(self):
+        kit.write_settings(self.root, image_generation={"tool": "built_in_image_gen", "notes": "keep me"}, engine_target={"profile": "generic"})
+        before = self.settings()
+        self.up_to_generator()
+        run(self.root, [("image_fallback", "none", None), ("engine", "generic", None), ("palette", "none", None)])  # the answers such a game had
+        with self.assertRaisesRegex(ValueError, "image_notes"):
+            wizard.finish(self.root)
+        self.assertEqual(self.settings(), before)  # the refused finish changed nothing
+        shown = next(q for q in wizard.show(self.root)["questions"] if q["question"]["id"] == "image_notes")
+        self.assertEqual(shown["current"], "words")
+        self.assertIn("keep me", shown["text"])  # the owner sees the words they would keep
+        choose(self.root, "image_notes", "words", "keep me")
+        wizard.finish(self.root)
+        self.assertEqual(self.settings()["image_generation"]["notes"], "keep me")
+
+    def test_the_report_and_the_doctor_show_the_notes(self):
+        kit.write_settings(self.root, image_generation={"tool": "built_in_image_gen", "notes": "high quality",
+                                                         "fallback": {"tool": "connected_tool", "tool_name": "Other Tool", "notes": "model two"}},
+                           engine_target={"profile": "generic", "version_note": "5.2"})
+        rows = dict(report.describe_settings(self.settings()))
+        self.assertEqual((rows["Note with every picture"], rows["Note with the fallback"], rows["Engine version"]), ("high quality", "model two", "5.2"))
+        detail = next(item["detail"] for item in doctor.check_settings(self.root) if item["name"] == "image generator")
+        self.assertIn("note: high quality", detail)
+        self.assertIn("with the note: model two", detail)
+
+
 class ContractTests(GameCase):
     """What other tools build on (the Storyboard framework drives the wizard and reads check-settings): the names here change only with a notice."""
 
     def test_the_question_ids_and_the_shape_of_next_are_stable(self):
         self.assertEqual(wizard.ORDER, ["project_name", "world_kind", "look", "soft_edges", "viewpoint", "tile_size", "scale", "layers", "screen_size",
-                                        "screen_scaling", "directions", "animation", "image_generator", "image_fallback", "engine", "palette"])
+                                        "screen_scaling", "directions", "animation", "image_generator", "image_notes", "image_fallback", "fallback_notes", "engine",
+                                        "engine_version", "palette"])
         asked = wizard.next_question(self.root)
         self.assertEqual(set(asked) >= {"question", "complete", "text", "progress"}, True)
         self.assertEqual(set(asked["question"]) >= {"id", "prompt", "options"}, True)

@@ -148,7 +148,7 @@ def recover_pending(game, state):
 
 
 def sync(source, game, *, adopt=False, rev=None, source_verification="not_requested"):
-    source, game = source.resolve(), game.resolve()
+    source, game = source.resolve(), common.game_root(game)
     if source == game:
         raise ValueError("Source must be a separate complete GameArtsSkills checkout")
     if not game.is_dir():
@@ -314,7 +314,7 @@ def install_hooks(game, scope="local", *, python_command="python3", require_sign
     """Place the session-start hook where `scope` says; remove this updater's entries from every other game-level file."""
     if scope not in ("local", "project", "none"):
         raise ValueError("hooks scope must be local, project or none")
-    game = game.resolve()
+    game = common.game_root(game)
     home = Path(home) if home else Path.home()
     claude_local, claude_project = game / ".claude/settings.local.json", game / ".claude/settings.json"
     codex_project, codex_user = game / ".codex/hooks.json", home / ".codex/hooks.json"
@@ -399,7 +399,7 @@ def main():
     upd.add_argument("--require-signed", action="store_true")
     args = parser.parse_args()
     try:
-        game = args.game_root.expanduser().resolve()
+        game = common.game_root(args.game_root.expanduser())
         if not game.is_dir():
             raise ValueError("Game project does not exist: " + str(game))
         if args.mode == "bootstrap":

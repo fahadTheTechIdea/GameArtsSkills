@@ -137,6 +137,52 @@
                   "not_applicable"
                 ]
               },
+              "settings_fit": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "description": "How the finished art compares with the game's saved settings (facing directions, ground tile size, scale). A mismatch is reported to the owner and never blocks approval by itself.",
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "passed",
+                      "mismatch",
+                      "untested",
+                      "not_applicable"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "checks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "status",
+                        "detail"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "enum": [
+                            "passed",
+                            "mismatch",
+                            "not_applicable"
+                          ]
+                        },
+                        "detail": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
               "style_conformance": {
                 "type": "object",
                 "required": [
@@ -359,6 +405,40 @@
                 },
                 "status": {
                   "const": "derived"
+                }
+              }
+            }
+          },
+          "limited_profile": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "approval_ref"
+            ],
+            "description": "The owner's own words approving a component bundle that faces only some of the game's directions. Recorded only when the bundle needs it; the settings-fit check then passes instead of reporting a mismatch.",
+            "properties": {
+              "approval_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "source_assets": {
+            "type": "array",
+            "description": "Approved assets this one was made from (a palette variant names its base sheet). Checked at registration; an audit fails when one is missing or no longer approved.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "asset_id",
+                "revision"
+              ],
+              "properties": {
+                "asset_id": {
+                  "type": "string"
+                },
+                "revision": {
+                  "type": "string"
                 }
               }
             }

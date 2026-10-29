@@ -20,6 +20,14 @@
       "type": "string",
       "pattern": "^[A-Za-z0-9_-]+$"
     },
+    "resolved_prompting": {
+      "type": "object",
+      "description": "The game's prompt preferences as used for this prompt: the three switches and the owner's extra constraints."
+    },
+    "resolved_layer": {
+      "type": "object",
+      "description": "For a parallax_layer: the entry of the game's world.layers this picture is."
+    },
     "asset_class": {
       "enum": [
         "static_structure",

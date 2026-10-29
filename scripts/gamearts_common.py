@@ -241,9 +241,55 @@ def resolve_directions(settings):
     return list(value)
 
 
+FRAMEWORK_SOURCE_MARKERS = ("plans/enhancements/MASTER_TRACKER.md", "scripts/gamearts_common.py")  # the maintainers' tree; the plans never ship
+STATE_ANCESTORS = ((".gamearts",), (".claude", "skills"), (".agents", "skills"))  # a game's state folder and the folders skills are installed in
+
+
+def not_a_game_folder(path):
+    """Why `path` cannot be a game's folder, or None when it can. A game keeps its settings and art in its own `.gamearts` folder, so the
+    folder must not be the framework's own source checkout (a copy of the framework installed inside a game has no plans folder and is fine),
+    nor inside a `.gamearts` folder or an installed skill folder."""
+    root = Path(path).resolve()
+    names = [part.lower() for part in root.parts]
+    for ancestor in STATE_ANCESTORS:
+        if any(tuple(names[i:i + len(ancestor)]) == ancestor for i in range(len(names))):
+            return (f"{root} is inside {'/'.join(ancestor)}, which is not a game's folder. Pass the game's own folder as --game-root: "
+                    "its settings and art are kept there, never in the framework's folders")
+    if all((root / marker).is_file() for marker in FRAMEWORK_SOURCE_MARKERS):
+        return (f"{root} is the Game Arts framework's own source folder, not a game. Pass the game's own folder as --game-root: "
+                "its settings and art are kept in its own .gamearts folder (the framework may be installed inside it or live elsewhere)")
+    return None
+
+
+def game_root(path):
+    """The resolved folder of one game, or a ValueError saying why it cannot be one. Every stage that reads or writes a game's `.gamearts`
+    state takes its root through here, so no setting or picture can land in the framework's own folders."""
+    reason = not_a_game_folder(path)
+    if reason:
+        raise ValueError(reason)
+    return Path(path).resolve()
+
+
+PROMPTING_SWITCHES = ("reference_lock", "strict_camera_lock", "single_master_first")  # each is on unless the owner turned it off
+
+
+def resolve_prompting(settings):
+    """The game's prompt preferences with the schema's defaults filled in: the three switches, and the owner's extra constraints (the setup
+    wizard's soft-edge rule is one of them)."""
+    given = settings.get("prompting") or {}
+    resolved = {switch: given.get(switch, True) for switch in PROMPTING_SWITCHES}
+    resolved["additional_constraints"] = list(given.get("additional_constraints") or [])
+    return resolved
+
+
+def world_layers(settings):
+    """The game's scrolling layers, back to front; none for a game that does not scroll in layers."""
+    return list((settings.get("world") or {}).get("layers") or [])
+
+
 def load_project_settings(root, require_confirmed=True):
     """Return (settings, canonical_hash, raw_hash) after validating `.gamearts/project.json` against its schema."""
-    path = Path(root) / ".gamearts" / "project.json"
+    path = game_root(root) / ".gamearts" / "project.json"
     if not path.is_file():
         raise ValueError("Missing .gamearts/project.json")
     settings = read_json(path)

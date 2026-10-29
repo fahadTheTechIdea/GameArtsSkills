@@ -81,6 +81,9 @@ def check_interpreters(which):
 
 
 def check_game_folder(root, can_write):
+    wrong = common.not_a_game_folder(root)
+    if wrong:
+        return [check("game folder", "fail", wrong, "Open the agent in the game's own folder or pass the game's folder as --game-root")]
     if not root.is_dir():
         return [check("game folder", "fail", f"{root} is not a folder", "Open the agent in the game's own folder or pass the right --game-root")]
     findings = [check("game folder", "ok", str(root))]
@@ -114,7 +117,9 @@ def check_settings(root):
     if generator:
         findings.append(check("image generator", "info", f"Saved choice: {generator['tool']}"
                               + (f" ({generator['tool_name']})" if generator.get("tool_name") else "")
+                              + (f"; note: {generator['notes']}" if generator.get("notes") else "")
                               + (f"; fallback: {generator['fallback']['tool']}" + (f" ({generator['fallback']['tool_name']})" if generator["fallback"].get("tool_name") else "")
+                                 + (f" with the note: {generator['fallback']['notes']}" if generator["fallback"].get("notes") else "")
                                  if generator.get("fallback") else "")
                               + ". Whether this session has that tool is for the agent to check against its own tools."))
     else:
@@ -165,7 +170,7 @@ def run(game_root, importer=importlib.import_module, version=None, which=shutil.
     root = Path(game_root).resolve()
     findings = [check_python(version or sys.version_info), *check_packages(importer), check_interpreters(which)]
     findings += check_game_folder(root, can_write)
-    if root.is_dir():
+    if root.is_dir() and not common.not_a_game_folder(root):
         findings += check_settings(root)
         findings += check_presets()
         findings.append(check_updater(root))

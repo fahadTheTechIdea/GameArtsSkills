@@ -62,6 +62,17 @@ def _credits(settings, problem):
     return "You make the pictures yourself, so no tool is called; the count above is how many pictures you will need to supply."
 
 
+def _method_note(method, actions, parts, rig_by_transform):
+    """A sentence when the plan goes against the animation method the game saved; nothing when it agrees, or when nothing is animated."""
+    if method == "frame_based" and rig_by_transform:
+        return ("The game's saved animation method is frame-based (every frame drawn), but this plan moves cut-out parts by transforms; "
+                "plan it as frames, or have the owner change the method first.")
+    if method == "transform_based" and parts and not rig_by_transform and actions:
+        return ("The game's saved animation method is transform-based (cut-out parts moved by the game), but this plan draws a picture for every frame; "
+                "rig it by transform (--rig-by-transform), or have the owner change the method first.")
+    return None
+
+
 def plan(game_root, asset_class, actions=None, frames_per_action=1, detachable_parts=0, pictures=None, mockup_approved=False, rig_by_transform=False):
     """The plan card for one piece of work, as a dict with `lane`, `why`, `image_calls`, `estimated_pictures`, `approvals`, `credits` and `message`."""
     if asset_class not in CLASSES:
@@ -72,7 +83,7 @@ def plan(game_root, asset_class, actions=None, frames_per_action=1, detachable_p
     parts = _whole(detachable_parts, "detachable parts")
     if asset_class in SET_CLASSES and (pictures is None or _whole(pictures, "pictures") < 1):
         raise ValueError(f"A {asset_class} is a set of pictures: say how many pictures the set has")
-    settings, problem = _settings(Path(game_root))
+    settings, problem = _settings(common.game_root(game_root))
     if settings is not None and common.world_kind(settings) == "screen_space" and asset_class not in SCREEN_CLASSES | EITHER_CLASSES:
         raise ValueError(f"This game is screen_space (it has no ground world), so {asset_class} art does not apply; "
                          f"plan {', '.join(sorted(SCREEN_CLASSES | EITHER_CLASSES))} art, or change the game's world kind first")
@@ -121,7 +132,12 @@ def plan(game_root, asset_class, actions=None, frames_per_action=1, detachable_p
                f"and retries are not counted. You will be asked to approve {', then '.join(approvals)}. Credits: {credits}")
     if lane == "quick" and asset_class in COMPOSITE_CLASSES and not parts:
         message += " This assumes nothing on it opens or moves on its own; if a door, lamp or lid does, count those parts and plan the Full lane."
-    return {"lane": lane, "why": why, "image_calls": calls, "estimated_pictures": total, "approvals": approvals, "credits": credits, "message": message}
+    method = ((settings or {}).get("animation") or {}).get("preferred_method")
+    note = _method_note(method, actions, parts, rig_by_transform)
+    if note:
+        message += " " + note
+    return {"lane": lane, "why": why, "image_calls": calls, "estimated_pictures": total, "approvals": approvals, "credits": credits,
+            "animation_method": method, "message": message}
 
 
 def main():

@@ -43,7 +43,7 @@ def _stamp():
 
 # ------------------------------------------------------------------------------------------------ plumbing
 def _paths(game_root, kind):
-    root = Path(game_root).resolve()
+    root = common.game_root(game_root)
     if kind not in KINDS:
         raise ValueError("Invalid lifecycle type")
     return root, root / ".gamearts" / "outputs", root / ".gamearts" / "outputs" / "manifests" / (kind + ".json")
@@ -198,13 +198,17 @@ def _anchor_summary(root, settings):
 
 
 def _settings_warnings(settings):
-    """Things valid settings can still get wrong, said once and never refused: a diamond grid whose tile is not 2:1."""
+    """Things valid settings can still get wrong, said once and never refused: a diamond grid whose tile is not 2:1, a square tile that disagrees with the scale."""
     warnings = []
     world = settings.get("world") or {}
     tile = world.get("ground_tile_px")
     if world.get("grid") == "isometric" and tile and tile[0] != 2 * tile[1]:
         warnings.append(f"world.grid is isometric but ground_tile_px is {tile[0]} x {tile[1]}, which is not 2:1; a 2:1 diamond is twice as wide as it is tall. "
                         "Confirm the tile size with the owner (a different ratio needs world.grid custom).")
+    meters, per_meter = world.get("logical_tile_m"), world.get("pixels_per_meter")
+    if world.get("grid") == "orthogonal_square" and tile and meters and per_meter and any(abs(m * per_meter - px) > 1e-6 for m, px in zip(meters, tile)):
+        warnings.append(f"world.ground_tile_px is {tile[0]} x {tile[1]}, but logical_tile_m {meters[0]} x {meters[1]} at {per_meter} pixels per metre makes a tile "
+                        f"{meters[0] * per_meter:g} x {meters[1] * per_meter:g}. Confirm the tile size and the scale with the owner.")
     return warnings
 
 
@@ -212,7 +216,7 @@ def confirm_settings(game_root, confirmed_by, confirmation_reference, presented_
     """Record the owner's confirmation of the saved settings: the real time, who, and the owner's words. Nothing else in the file changes."""
     if not (confirmed_by or "").strip() or not (confirmation_reference or "").strip():
         raise ValueError("Say who confirmed (--by) and quote the owner's words (--user-confirmation-ref); a confirmation is never invented")
-    root = Path(game_root).resolve()
+    root = common.game_root(game_root)
     settings, _, _ = common.load_project_settings(root, require_confirmed=False)
     chosen = setup_wizard.setup_problems(settings)
     shown = setup_wizard.version((settings.get("setup") or {}).get("answers") or {})
@@ -228,7 +232,7 @@ def confirm_settings(game_root, confirmed_by, confirmation_reference, presented_
 
 
 def check_settings(game_root):
-    root = Path(game_root).resolve()
+    root = common.game_root(game_root)
     settings, canonical, raw = common.load_project_settings(root, require_confirmed=False)
     engine = presets.resolve_engine_target(settings)
     return {"status": "valid", "settings_status": settings.get("settings_status", "unset"),
@@ -253,11 +257,13 @@ def _gate_settings(root):
         return None, str(exc)
 
 
-def technical_check_bundle(folder, settings=None, settings_problem=None, root=None):
+def technical_check_bundle(folder, settings=None, settings_problem=None, root=None, limited_profile=None):
     """Mechanical artwork gate for an asset bundle: every sheet's atlas and exact-key pixels, the component gate, and the style checks
     the game's preset requires. `settings` (with `root`, to find the game's palette) turns the style checks on; without them the result
-    says they were not applicable or, when `settings_problem` is given, untested and why."""
+    says they were not applicable or, when `settings_problem` is given, untested and why. `limited_profile` is the asset's recorded owner approval
+    of a limited facing set, which lets a bundle that faces only some of the game's directions pass the settings-fit check."""
     from validate_component_bundle import validate as validate_bundle
+    from validate_settings_fit import fit_report
     from validate_sheet_atlas import validate as validate_sheet
     from validate_style_conformance import bundle_report
     from validate_tileset import validate as validate_tileset
@@ -287,7 +293,8 @@ def technical_check_bundle(folder, settings=None, settings_problem=None, root=No
     style = bundle_report(folder, [a for a in atlases if not any(i.startswith(a.name) for i in issues)], settings, root, settings_problem)
     issues += style.pop("issues")
     result = {"status": "failed" if issues else "passed", "checked_at_utc": _now(),
-              "atlases": [a.name for a in atlases], "bundle_gate": gate, "style_conformance": style, "issues": issues}
+              "atlases": [a.name for a in atlases], "bundle_gate": gate, "style_conformance": style,
+              "settings_fit": fit_report(folder, settings, settings_problem, limited_profile), "issues": issues}
     if tilesets:
         result["tilesets"] = [tileset.name for tileset in tilesets]
     return result
@@ -357,7 +364,7 @@ def export_runtime(game_root, item_id, revision=None, replace=False):
 def auto_exports(game_root, item_id):
     """The derived files this game's engine profile asks for when an asset is approved, made now. Returns {kind: outcome}; empty when the profile
     asks for none. The approval has already happened, so a failure is reported in the outcome and never undoes it."""
-    root = Path(game_root).resolve()
+    root = common.game_root(game_root)
     settings, problem = _gate_settings(root)
     if settings is None:
         return {"settings": {"status": "unread", "reason": problem}}
@@ -476,6 +483,16 @@ def audit_asset(game_root, item_id, notes=None):
                     issues.append("approved source mockup image bytes have changed")
             except (OSError, ValueError) as exc:
                 issues.append(f"approved source unavailable: {exc}")
+    if record.get("source_assets"):
+        try:
+            _, _, _, _, asset_rows = _read(game_root, "assets")
+        except (OSError, ValueError, TypeError) as exc:
+            issues.append(f"cannot validate source assets: {exc}")
+            asset_rows = []
+        for ref in record["source_assets"]:
+            found = [a for a in asset_rows if isinstance(a, dict) and _id(a, "assets") == ref.get("asset_id") and a.get("revision") == ref.get("revision")]
+            if len(found) != 1 or found[0].get("status") != "approved":
+                issues.append(f"asset is made from {ref.get('asset_id')} {ref.get('revision')}, which is missing or no longer approved")
     checksums = record.get("artifact_hashes")
     if checksums is not None:
         if not isinstance(checksums, dict) or not checksums:
@@ -636,8 +653,11 @@ def _require_scene_extraction(root, mockup, label):
         raise ValueError(f"source mockup {label}: its recorded extraction is missing or has changed since it was recorded; run extract-scene again on a new revision")
 
 
-def register_asset(game_root, asset_id, revision, bundle, source_mockups, extra=None):
-    """Register a generated asset bundle (already inside assets/generated) with verified source links and a technical check."""
+def register_asset(game_root, asset_id, revision, bundle, source_mockups, extra=None, source_assets=None, limited_profile_ref=None):
+    """Register a generated asset bundle (already inside assets/generated) with verified source links and a technical check.
+    `source_assets` ([(asset_id, revision)]) names approved assets this one was made from, as a palette variant names its base.
+    `limited_profile_ref` is the owner's own words approving a bundle that faces only some of the game's directions; it is refused for a bundle
+    that does not need it, so it can never be recorded and then ignored."""
     root, out, _ = _paths(game_root, "assets")
     if not common.SLUG.fullmatch(asset_id or "") or not common.REVISION.fullmatch(revision or ""):
         raise ValueError("asset_id must be a filename-safe ID and revision must look like v001")
@@ -662,11 +682,31 @@ def register_asset(game_root, asset_id, revision, bundle, source_mockups, extra=
                 raise ValueError(f"source mockup {mockup_id} {mockup_revision} bytes differ from the approved hash")
             _require_scene_extraction(root, match, f"{mockup_id} {mockup_revision}")
             links.append({"mockup_id": mockup_id, "revision": mockup_revision, "reference_sha256": match["sha256"]})
+        asset_links = []
+        for source_id, source_revision in source_assets or []:
+            if (source_id, source_revision) == (asset_id, revision):
+                raise ValueError("an asset cannot be made from itself")
+            found = next((r for r in rows if isinstance(r, dict) and _id(r, "assets") == source_id and r.get("revision") == source_revision), None)
+            if found is None or found.get("status") != "approved":
+                raise ValueError(f"source asset {source_id} {source_revision} is not an approved asset; a variant is made from approved art only")
+            if any(link["asset_id"] == source_id and link["revision"] == source_revision for link in asset_links):
+                raise ValueError(f"source asset {source_id} {source_revision} is named twice")
+            asset_links.append({"asset_id": source_id, "revision": source_revision})
         files = sorted(p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file() and not p.name.startswith("."))
-        technical = technical_check_bundle(folder, *_gate_settings(root), root=root)
+        if limited_profile_ref is not None and not str(limited_profile_ref).strip():
+            raise ValueError("A limited facing profile needs the owner's own words approving it (--limited-profile-ref)")
+        limited = {"approval_ref": limited_profile_ref.strip()} if limited_profile_ref else None
+        technical = technical_check_bundle(folder, *_gate_settings(root), root=root, limited_profile=limited)
+        if limited and not any(item.get("limited_profile") for item in technical["settings_fit"].get("checks", [])):
+            raise ValueError("A limited facing profile applies only to a component bundle that faces some, but not all, of the game's directions; "
+                             "this bundle does not, so there is nothing to approve")
         record = {"asset_id": asset_id, "revision": revision, "status": "generated", "bundle_path": folder.relative_to(root).as_posix(),
                   "files": files, "approval": "pending", "visual_review": "pending", "source_mockups": links,
                   "technical_validation": technical, "engine_validation": "not_tested", "registered_at_utc": _now()}
+        if asset_links:
+            record["source_assets"] = asset_links
+        if limited:
+            record["limited_profile"] = limited
         for key in ("provenance", "rights"):
             if extra and key in extra:
                 record[key] = extra[key]
@@ -710,7 +750,7 @@ def approve_asset(game_root, item_id, user_approval_reference, review_records=No
                 _bundle_file(src, name)
             except ValueError:
                 raise ValueError("Required generated bundle file is missing or unsafe: " + str(name)) from None
-        technical = technical_check_bundle(src, *_gate_settings(root), root=root)
+        technical = technical_check_bundle(src, *_gate_settings(root), root=root, limited_profile=record.get("limited_profile"))
         if technical["status"] != "passed":
             raise ValueError("Technical artwork gate failed: " + "; ".join(technical["issues"]))
         needs_packet = _needs_packet(src, record)
@@ -801,10 +841,20 @@ def _dependents(root, mockup_id, revision):
                     for m in r.get("source_mockups", []))]
 
 
+def _asset_dependents(root, asset_id, revision):
+    """Assets (not revoked) that name this asset revision as a source, as a palette variant names its base."""
+    try:
+        _, _, _, _, rows = _read(root, "assets")
+    except ValueError:
+        return []
+    return [{"asset_id": _id(r, "assets"), "status": r.get("status")} for r in rows if isinstance(r, dict) and r.get("status") != "revoked"
+            and any(isinstance(s, dict) and s.get("asset_id") == asset_id and s.get("revision") == revision for s in r.get("source_assets", []))]
+
+
 def revoke(game_root, kind, item_id, reason, revision=None, replaced_by=None):
     if not isinstance(reason, str) or not reason.strip():
         raise ValueError("Explicit nonempty rejection/revocation reason required")
-    root = Path(game_root).resolve()
+    root = common.game_root(game_root)
     with manifest_lock(root):
         root, out, file, data, rows = _read(game_root, kind)
         record = _record(rows, kind, item_id, revision)
@@ -836,7 +886,7 @@ def revoke(game_root, kind, item_id, reason, revision=None, replaced_by=None):
                     if not common.inside(companion, src.parent) or not companion.is_file():
                         raise ValueError(f"Mockup {key} companion is missing or unsafe; refuse incomplete revocation")
                     companion_paths[key] = companion
-        dependents = _dependents(root, item_id, record.get("revision")) if kind == "mockups" else []
+        dependents = (_dependents if kind == "mockups" else _asset_dependents)(root, item_id, record.get("revision"))
         contents = _snapshot(companion_paths.values())
         dest.parent.mkdir(parents=True, exist_ok=True)
         moved = []
@@ -878,8 +928,7 @@ def revoke(game_root, kind, item_id, reason, revision=None, replaced_by=None):
                 result["derived_exports_removed"].append(entry["path"])
             except OSError as exc:  # the revocation is already recorded; say which files are still there
                 result["problems"].append(f"{entry['path']} could not be removed ({exc}); delete that folder by hand")
-    if kind == "mockups":
-        result["dependents"] = dependents  # approved/generated assets built on this mockup; their next audit will fail
+    result["dependents"] = dependents  # approved/generated assets built on this mockup or made from this asset; their next audit will fail
     return result
 
 
@@ -887,7 +936,7 @@ def restore(game_root, kind, item_id, revision, user_restore_reference):
     """Move a revoked revision back to `generated` (never straight to approved): it must be validated and approved again."""
     if not isinstance(user_restore_reference, str) or not user_restore_reference.strip():
         raise ValueError("A reference to the user's explicit restore request is required")
-    root = Path(game_root).resolve()
+    root = common.game_root(game_root)
     with manifest_lock(root):
         root, out, file, data, rows = _read(game_root, kind)
         record = _record(rows, kind, item_id, revision)
@@ -898,7 +947,7 @@ def restore(game_root, kind, item_id, revision, user_restore_reference):
         if dest.exists():
             raise FileExistsError("A generated revision with that name already exists")
         if kind == "assets":
-            technical = technical_check_bundle(src, *_gate_settings(root), root=root)
+            technical = technical_check_bundle(src, *_gate_settings(root), root=root, limited_profile=record.get("limited_profile"))
             if technical["status"] != "passed":
                 raise ValueError("Restore refused; the bundle fails the technical gate: " + "; ".join(technical["issues"]))
         backup = _backup(root, f"{kind}_before_restore", file)
@@ -1244,7 +1293,7 @@ def import_mockup(game_root, source, mockup_id, revision, scope, rights="user_su
     approved. Returns the registration result plus informational image checks; the checks never certify anything.
     """
     from PIL import Image
-    root = Path(game_root).resolve()
+    root = common.game_root(game_root)
     _check_mockup_identity(mockup_id, revision, scope)
     common.require_rights(rights)
     source = Path(source)
@@ -1296,7 +1345,7 @@ def register_generated_mockup(game_root, image, mockup_id, revision, scope, prom
     and awaits the owner's approval; the pixel facts returned never certify anything.
     """
     from PIL import Image
-    root = Path(game_root).resolve()
+    root = common.game_root(game_root)
     _check_mockup_identity(mockup_id, revision, scope)
     if not isinstance(prompt, str) or not prompt.strip():
         raise ValueError("the prompt that was actually sent to the image tool is required")
@@ -1352,7 +1401,7 @@ def register_generated_mockup(game_root, image, mockup_id, revision, scope, prom
 def approve_mockup(game_root, item_id, revision, user_approval_reference):
     if not isinstance(user_approval_reference, str) or not user_approval_reference.strip():
         raise ValueError("Explicit user approval message reference is required")
-    root = Path(game_root).resolve()
+    root = common.game_root(game_root)
     with manifest_lock(root):
         root, out, manifest_path, manifest, rows = _read(game_root, "mockups")
         record = _record(rows, "mockups", item_id, revision)
@@ -1429,7 +1478,7 @@ def extract_scene(game_root, item_id, revision, masks_from=None):
     """Cut every object out of an approved scene mockup as its reviewed blueprint says and record the account on the mockup's row. The
     extractor itself refuses a blueprint with an inconsistent object sweep or one that does not belong to this picture."""
     import extract_scene_objects as extractor
-    with manifest_lock(Path(game_root).resolve()):
+    with manifest_lock(common.game_root(game_root)):
         root, out, manifest, record = _scene_mockup(game_root, item_id, revision)
         target = out / "scenes" / f"{item_id}_{revision}" / "extraction"
         with tempfile.TemporaryDirectory() as staging:
@@ -1447,7 +1496,7 @@ def detect_scene(game_root, item_id, revision, command=None, detector_args=()):
     own environment, so it runs as a separate process (`command` is the interpreter and script; `detector_args` are the step's own options).
     The draft is pending review: it is never the mockup's blueprint, and nothing downstream reads it except `evaluate-scene`."""
     import subprocess
-    with manifest_lock(Path(game_root).resolve()):
+    with manifest_lock(common.game_root(game_root)):
         root, out, manifest, record = _scene_mockup(game_root, item_id, revision, need_blueprint=False)
         target = out / "scenes" / f"{item_id}_{revision}" / "detection"
         command = list(command) if command else [sys.executable, str(SCRIPTS / "detect_scene_objects.py")]
@@ -1498,7 +1547,7 @@ def remove_scene(game_root, item_id, revision, inpainter=None, grow=2, max_share
     extraction (the objects are first accounted for, then removed). The masks come from `masks_from`, a folder inside the game (default: the
     recorded detection's `masks`), and are staged with a copy of the blueprint so the approved mockup's folder is not written to."""
     import remove_scene_objects as remover
-    with manifest_lock(Path(game_root).resolve()):
+    with manifest_lock(common.game_root(game_root)):
         root, out, manifest, record = _scene_mockup(game_root, item_id, revision)
         if not record.get("scene_extraction"):
             raise ValueError("The mockup has not been extracted: run extract-scene first, so the objects are accounted for before they are removed")
@@ -1517,7 +1566,7 @@ def evaluate_scene(game_root, item_id, revision, iou=0.5):
     """Score the recorded detection draft against the mockup's reviewed blueprint: how many of the reviewed objects the detector found and how many
     of its own were real. Measures the detector; it does not approve anything and does not say the reviewed account is complete."""
     import evaluate_extraction as evaluator
-    with manifest_lock(Path(game_root).resolve()):
+    with manifest_lock(common.game_root(game_root)):
         root, out, manifest, record = _scene_mockup(game_root, item_id, revision)
         detected = record.get("scene_detection")
         if not detected:
@@ -1849,6 +1898,9 @@ def main():
     sub.add_argument("--bundle", required=True, help="Folder inside .gamearts/outputs/assets/generated, relative to the game root")
     sub.add_argument("--source-mockup", type=_pair, action="append", required=True, help="Approved mockup as id:revision (repeatable)")
     sub.add_argument("--extra", type=Path, help="JSON file holding optional provenance / rights objects")
+    sub.add_argument("--source-asset", type=_pair, action="append", metavar="ID:REVISION",
+                     help="An approved asset this one is made from, as a palette variant names its base (repeatable)")
+    sub.add_argument("--limited-profile-ref", help="The owner's own words approving a bundle that faces only some of the game's directions")
     op("reconcile")
     op("reconcile-assets")
     sub = op("revoke")
@@ -1920,7 +1972,7 @@ def main():
                       "artistic_fidelity": "not_assessed", "engine_validation": "not_assessed"}
         elif name == "register-asset":
             extra = common.read_json(args.extra) if args.extra else None
-            result = register_asset(args.game_root, args.id, args.revision, args.bundle, args.source_mockup, extra)
+            result = register_asset(args.game_root, args.id, args.revision, args.bundle, args.source_mockup, extra, args.source_asset, args.limited_profile_ref)
         elif name == "reconcile":
             result = reconcile_mockups(args.game_root)
         elif name == "reconcile-assets":

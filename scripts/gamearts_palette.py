@@ -2,15 +2,25 @@
 """Single owner of palettes: extract one from an approved picture, load the one a project points at, and compare colours.
 
   python scripts/gamearts_palette.py extract --game-root GAME --image PICTURE --name NAME [--max-colours 32]
+  python scripts/gamearts_palette.py recolour --game-root GAME (--image IN --output OUT | --folder DIR --output-folder DIR)
+         (--map MAP.json | --from-palette A.palette.json --to-palette B.palette.json) [--snap] [--allow-merge]
 
 Extraction is deterministic and does not depend on the Pillow version: a picture with no more colours than allowed yields exactly its
 colours; a larger one is reduced by a weighted median cut over 5-bit colour buckets. The exact key colour and transparent pixels are
 never part of a palette. The palette is saved as project data under .gamearts/palette/ (a .palette.json and a GIMP .gpl) and is
 named in `art_style.palette_reference`, which the style-conformance checks and the pixel-grid snapper read.
+
+`recolour` makes a palette variant (a team colour, a season, night) of approved pictures by a fixed colour-for-colour map, never by an
+ad hoc filter: every colour of the picture must be in the map (or be snapped to the nearest listed one, and the distance is recorded),
+the key colour and transparent pixels are never touched, alpha is kept, two colours are not merged unless asked, and no target may
+sit near the key colour. Inputs are never changed and outputs never overwrite. A variant is new art: it is built into a sheet and goes
+through the same registration and approval as any other asset; the record it writes ties it to the pictures it came from.
 """
 import argparse
+import io
 import json
 import sys
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 
@@ -19,6 +29,8 @@ import gamearts_common as common  # noqa: E402
 
 PALETTE_DIR = Path(".gamearts") / "palette"
 SUFFIX = ".palette.json"
+RECOLOUR_RECORD = "recolour.record.json"
+MASK_LIMIT = 64  # most colours recoloured by mask; beyond this one pass over the pixels is cheaper
 BUCKET_SHIFT = 3  # 5 bits per channel: at most 32768 points for the median cut, whatever the picture
 
 
@@ -164,6 +176,165 @@ def project_palette(root, settings):
     return load_palette(path)
 
 
+# ------------------------------------------------------------------------------------------------ variants
+def _rgb(text):
+    return tuple(int(text[i:i + 2], 16) for i in (1, 3, 5))
+
+
+def load_colour_map(path):
+    """{source (r, g, b): target (r, g, b)} from a recolour map file; a file that breaks its contract, or lists one colour twice, is refused."""
+    data = common.read_json(path)
+    common.validate_schema(data, "gamearts-recolour-map")
+    mapping = {_rgb(source): _rgb(target) for source, target in data["colours"].items()}
+    if len(mapping) != len(data["colours"]):
+        raise ValueError("The recolour map lists the same source colour twice (letters may differ in case)")
+    return mapping
+
+
+def pair_palettes(from_path, to_path):
+    """Map the colours of one saved palette to the colours of another by position; the two must hold the same number of colours."""
+    source, target = load_palette(from_path), load_palette(to_path)
+    if len(source) != len(target):
+        raise ValueError(f"The palettes must hold the same number of colours to be paired by position ({len(source)} against {len(target)})")
+    if len(set(source)) != len(source):
+        raise ValueError("The source palette lists a colour twice, so its position pairing is ambiguous")
+    return dict(zip(source, target))
+
+
+def _check_mapping(mapping, allow_merge):
+    """Refuse a target at or near the key colour, and (unless allowed) two sources sharing a target; returns the merges, if any."""
+    for source, target in mapping.items():
+        if max(abs(target[i] - common.KEY_RGB[i]) for i in range(3)) <= common.NEAR_KEY_TOLERANCE:
+            raise ValueError(f"{hex_of(source)} would become {hex_of(target)}, which is the key colour or too close to it; choose another target")
+    grouped = {}
+    for source, target in mapping.items():
+        grouped.setdefault(target, []).append(source)
+    merged = [{"target": hex_of(target), "sources": sorted(hex_of(s) for s in sources)} for target, sources in sorted(grouped.items()) if len(sources) > 1]
+    if merged and not allow_merge:
+        first = merged[0]
+        raise ValueError(f"{', '.join(first['sources'])} would all become {first['target']} and lose the detail between them "
+                         f"({len(merged)} such target(s)); give each its own target, or allow the merge on purpose")
+    return merged
+
+
+def _resolve(counts, mapping, snap, label):
+    """The colour-for-colour table for one picture, and the stray colours that had to be snapped (colour, nearest listed colour, distance)."""
+    missing = sorted(colour for colour in counts if colour not in mapping)
+    if not missing:
+        return dict(mapping), []
+    if not snap:
+        shown = ", ".join(hex_of(c) for c in missing[:8]) + (f" and {len(missing) - 8} more" if len(missing) > 8 else "")
+        raise ValueError(f"{label} has {len(missing)} colour(s) the map does not list: {shown}. List them, or snap strays to the nearest listed colour on purpose")
+    sources = sorted(mapping)
+    table, snapped = dict(mapping), []
+    for colour in missing:
+        near = nearest(colour, sources)
+        table[colour] = mapping[near]
+        snapped.append((colour, near, lab_distance(colour, near)))
+    return table, snapped
+
+
+def recolour_image(image, table):
+    """A recoloured copy of `image` and the number of pixels changed. The key colour and transparent pixels stay as they are; alpha is kept.
+    A colour the table does not list is left as it is (`recolour` has already refused or snapped every such colour). Few colours change in pixel
+    art, so each is found with a mask in one pass over the image; many colours (a snapped painted picture) go through a single pixel loop."""
+    from PIL import Image, ImageChops
+    rgba = image.convert("RGBA")
+    changes = {source: target for source, target in table.items() if source != target and source != common.KEY_RGB}
+    if len(changes) > MASK_LIMIT:
+        return _recolour_pixels(rgba, table)
+    red, green, blue, alpha = rgba.split()
+    visible = alpha.point(lambda value: 255 if value else 0)
+    channels, changed = [red.copy(), green.copy(), blue.copy()], 0
+    for source, target in changes.items():
+        mask = visible
+        for original, wanted in zip((red, green, blue), source):
+            mask = ImageChops.multiply(mask, original.point(lambda value, wanted=wanted: 255 if value == wanted else 0))  # always from the original, so a swap cannot chain
+        count = mask.histogram()[255]
+        changed += count
+        if count:
+            for channel, value in zip(channels, target):
+                channel.paste(value, mask=mask)
+    return Image.merge("RGBA", (*channels, alpha)), changed
+
+
+def _recolour_pixels(rgba, table):
+    """The one-pass-per-pixel form of `recolour_image`: slow on a large sheet, but its cost does not grow with the number of colours."""
+    from PIL import Image
+    key, changed, out = common.KEY_RGB, 0, bytearray()
+    data = rgba.tobytes()  # tobytes and frombytes behave the same on every Pillow version this framework supports; getdata does not
+    for offset in range(0, len(data), 4):
+        pixel = data[offset:offset + 4]
+        rgb = (pixel[0], pixel[1], pixel[2])
+        if pixel[3] == 0 or rgb == key:
+            out += pixel
+            continue
+        target = table.get(rgb, rgb)
+        changed += target != rgb
+        out += bytes((*target, pixel[3]))
+    return Image.frombytes("RGBA", rgba.size, bytes(out)), changed
+
+
+def recolour(game_root, mapping, sources, output, folder=False, snap=False, allow_merge=False):
+    """Recolour one picture (`sources` = [path], `output` = the new file) or every PNG under a folder (`output` = a new folder).
+    Everything is checked before anything is written, outputs never overwrite, and a failure part-way removes what was written."""
+    from PIL import Image
+    root = common.game_root(game_root)
+    output = Path(output)
+    if not mapping:
+        raise ValueError("The recolour map is empty")
+    merged = _check_mapping(mapping, allow_merge)
+    base = Path(sources[0]).resolve()
+    if folder:
+        if not base.is_dir():
+            raise ValueError(f"{base.name} is not a folder")
+        pairs = [(path, output / path.relative_to(base)) for path in sorted(base.rglob("*.png"))]
+        if not pairs:
+            raise ValueError(f"{base.name} holds no PNG pictures")
+        if output.exists() and any(output.iterdir()):
+            raise ValueError(f"{output.name} already holds files; a recolour never overwrites, so choose a new folder")
+        record_path = output / RECOLOUR_RECORD
+    else:
+        pairs = [(base, output)]
+        if output.exists():
+            raise ValueError(f"{output.name} already exists; a recolour never overwrites, so choose a new name")
+        record_path = output.with_name(output.name + ".recolour.json")
+    for _, target in pairs:
+        if not common.inside(target.resolve(), root):
+            raise ValueError(f"{target.name} would be written outside the game folder")
+    plans = []
+    for source, target in pairs:
+        with Image.open(source) as opened:
+            image = opened.convert("RGBA")
+        table, snapped = _resolve(art_colour_counts(image), mapping, snap, source.name)
+        plans.append((source, target, image, table, snapped))
+    written, files, strays = [], [], {}
+    try:
+        for source, target, image, table, snapped in plans:
+            result, changed = recolour_image(image, table)
+            buffer = io.BytesIO()
+            result.save(buffer, format="PNG")
+            data = buffer.getvalue()
+            common.atomic_write_bytes(target, data)
+            written.append(target)
+            files.append({"source": source.relative_to(base).as_posix() if folder else source.name, "source_sha256": common.sha256_file(source),
+                          "output": target.relative_to(output).as_posix() if folder else target.name,
+                          "output_sha256": common.sha256_bytes(data), "pixels_changed": changed})
+            for colour, near, distance in snapped:
+                strays[colour] = (near, distance)
+        record = {"schema_version": "1.0", "mapping": {hex_of(s): hex_of(t) for s, t in sorted(mapping.items())}, "snap": bool(snap), "files": files,
+                  "merged": merged, "snapped": [{"colour": hex_of(c), "treated_as": hex_of(n), "distance": round(d, 3)} for c, (n, d) in sorted(strays.items())],
+                  "created_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+        common.validate_schema(record, "gamearts-recolour-record")
+        common.atomic_write_json(record_path, record)
+    except Exception:
+        # A half-written variant would look like finished art; take back what this run wrote, then let the failure reach the caller.
+        for path in written:
+            path.unlink(missing_ok=True)
+        raise
+    return record
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -172,9 +343,35 @@ def main():
     item.add_argument("--image", type=Path, required=True, help="Normally the approved style board or another approved mockup")
     item.add_argument("--name", required=True)
     item.add_argument("--max-colours", type=int, default=32)
+    swap = sub.add_parser("recolour", help="make a palette variant of approved pictures by a fixed colour map")
+    swap.add_argument("--game-root", type=Path, required=True)
+    one = swap.add_mutually_exclusive_group(required=True)
+    one.add_argument("--image", type=Path)
+    one.add_argument("--folder", type=Path, help="recolour every PNG under this folder")
+    swap.add_argument("--output", type=Path, help="the new picture (with --image)")
+    swap.add_argument("--output-folder", type=Path, help="the new folder (with --folder)")
+    how = swap.add_mutually_exclusive_group(required=True)
+    how.add_argument("--map", type=Path, help="a recolour map file")
+    how.add_argument("--from-palette", type=Path, help="pair this palette's colours, by position, with --to-palette's")
+    swap.add_argument("--to-palette", type=Path)
+    swap.add_argument("--snap", action="store_true", help="treat a colour the map does not list as its nearest listed colour (recorded)")
+    swap.add_argument("--allow-merge", action="store_true", help="allow two source colours to share a target")
     args = parser.parse_args()
     try:
-        root = args.game_root.resolve()
+        if args.command == "recolour":
+            if bool(args.image) != bool(args.output) or bool(args.folder) != bool(args.output_folder):
+                raise ValueError("--image goes with --output, and --folder with --output-folder")
+            if bool(args.from_palette) != bool(args.to_palette):
+                raise ValueError("--from-palette and --to-palette go together")
+            mapping = load_colour_map(args.map) if args.map else pair_palettes(args.from_palette, args.to_palette)
+            record = recolour(args.game_root, mapping, [args.image or args.folder], args.output or args.output_folder, folder=bool(args.folder),
+                              snap=args.snap, allow_merge=args.allow_merge)
+            print(json.dumps({"files": len(record["files"]), "pixels_changed": sum(f["pixels_changed"] for f in record["files"]),
+                              "merged": len(record["merged"]), "snapped": len(record["snapped"]),
+                              "next_step": "A variant is new art: build its sheet from these pictures, register it as its own asset with the same approved mockup, "
+                                           "and show it for review like any other asset."}, indent=2))
+            return 0
+        root = common.game_root(args.game_root)
         record = extract(args.image, args.name, root / PALETTE_DIR, args.max_colours, root)
         reference = (PALETTE_DIR / f"{args.name}{SUFFIX}").as_posix()
         print(json.dumps({"palette_reference": reference, "method": record["method"], "colours": len(record["colours"]),

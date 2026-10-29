@@ -88,9 +88,12 @@ SOFT_EDGES = [("hard", "Keep the delivered edges hard", "Soft coverage is kept s
 SOFT_EDGE_RULES = {"hard": "Soft edges: delivered pictures keep hard edges; any soft coverage is kept separately and never claimed to be recovered from the key colour.",
                    "matte": "Soft edges: deliver a companion matte (<name>.matte.png) beside each key sheet where the image tool returns true alpha."}
 ORDER = ["project_name", "world_kind", "look", "soft_edges", "viewpoint", "tile_size", "scale", "layers", "screen_size", "screen_scaling", "directions", "animation",
-         "image_generator", "image_fallback", "engine", "palette"]
+         "image_generator", "image_notes", "image_fallback", "fallback_notes", "engine", "engine_version", "palette"]
+NOTE_QUESTIONS = ("image_notes", "fallback_notes", "engine_version")  # optional words of the owner's; "No note" is a pick like any other, so nothing is left to a default
+NOTE_CHOICES = [("none", "No note"), ("words", "Add a note")]
 DEPENDS = {"look": {"world_kind"}, "soft_edges": {"look"}, "viewpoint": {"world_kind"}, "tile_size": {"world_kind", "viewpoint"}, "scale": {"world_kind", "viewpoint"},
-           "layers": {"world_kind"}, "image_fallback": {"image_generator"}, "screen_size": {"world_kind"}, "screen_scaling": {"world_kind"}, "directions": {"world_kind"}}
+           "layers": {"world_kind"}, "image_notes": {"image_generator"}, "image_fallback": {"image_generator"}, "fallback_notes": {"image_fallback"}, "engine_version": {"engine"},
+           "screen_size": {"world_kind"}, "screen_scaling": {"world_kind"}, "directions": {"world_kind"}}
 
 
 @functools.lru_cache(maxsize=None)
@@ -128,6 +131,10 @@ def _soft(answers):
     if chosen is None:
         return False
     return chosen == OTHER or bool(_styles()[chosen].get("soft_edges"))
+
+
+def _note_options(none_description, words_description):
+    return _opts([(value, label, none_description if value == "none" else words_description) for value, label in NOTE_CHOICES])
 
 
 def question(name, answers):
@@ -172,17 +179,26 @@ def question(name, answers):
     if name == "image_generator":
         return {"id": name, "header": "Images", "prompt": "Which image generator should Game Arts use for this game? It is used for every picture.",
                 "options": _opts(IMAGE_TOOLS)}
+    if name == "image_notes" and answers.get("image_generator", {}).get("value") not in (None, "user_supplied"):
+        return {"id": name, "header": "Image note", "prompt": "Should every picture request to that image generator carry a note from you, such as a model name or a quality level?",
+                "options": _note_options("Nothing extra is sent; the tool's own defaults apply.", "In your own words; you will be asked for the note.")}
     if name == "image_fallback" and answers.get("image_generator", {}).get("value") not in (None, "user_supplied"):
         main = answers["image_generator"]["value"]
         options = [{"value": "none", "label": "No fallback", "description": "If my chosen tool is not available in a session, the agent says so and stops; it never uses another."}]
         options += _opts([t for t in IMAGE_TOOLS if t[0] not in ("user_supplied", main)])
         return {"id": name, "header": "Fallback", "prompt": "If that image generator is not available in a session, is there another one Game Arts may use instead? It is used only then, and the picture records why.",
                 "options": options}
+    if name == "fallback_notes" and answers.get("image_fallback", {}).get("value") not in (None, "none"):
+        return {"id": name, "header": "Fallback note", "prompt": "Should every picture made with the fallback carry a note from you, such as the model to use?",
+                "options": _note_options("Nothing extra is sent; the fallback's own defaults apply.", "In your own words; you will be asked for the note.")}
     if name == "engine":
         found = [(key, profile["title"], profile["summary"]) for key, profile in sorted(_engines().items())]
         options = _opts(found) + [{"value": OTHER, "label": "Another engine", "description": "Name it; everything works as before and no profile is applied."}]
         return {"id": name, "header": "Engine", "prompt": "Which engine or tool will use this art? 'Generic' means none yet, with plain guidance and no engine assumed.",
                 "options": options}
+    if name == "engine_version" and answers.get("engine", {}).get("value") not in (None, "generic"):
+        return {"id": name, "header": "Engine version", "prompt": "Which version of that engine will use the art? Import advice can differ between versions.",
+                "options": _note_options("The import advice stays general.", "Name the version in your own words; you will be asked for it.")}
     if name == "palette":
         return {"id": name, "header": "Palette", "prompt": "Do you have a fixed palette of colours?", "options": _opts(PALETTE)}
     return None
@@ -197,7 +213,7 @@ def unanswered(answers):
 
 
 def _needs_text(name, value):
-    return value == OTHER or (name in ("image_generator", "image_fallback") and value == "connected_tool") or (name == "palette" and value in ("words", "picture")) or name == "project_name"
+    return value == OTHER or (name in ("image_generator", "image_fallback") and value == "connected_tool") or (name == "palette" and value in ("words", "picture")) or (name in NOTE_QUESTIONS and value == "words") or name == "project_name"
 
 
 def _split_size(text, what):
@@ -262,7 +278,7 @@ def check_palette_picture(root, text):
 
 
 def state_path(root):
-    return Path(root) / STATE
+    return common.game_root(root) / STATE
 
 
 def load_answers(root):
@@ -303,8 +319,9 @@ def version(answers):
 TRIGGERS = {"project_name": "always", "world_kind": "always", "look": "after the world kind", "soft_edges": "when the chosen look has soft edges, or is your own words",
             "viewpoint": "for a tile map, free movement or scrolling layers", "tile_size": "for a tile map, after the viewpoint",
             "scale": "for free movement or scrolling layers, after the viewpoint", "layers": "for scrolling layers", "screen_size": "for a screen-only game",
-            "screen_scaling": "for a screen-only game", "directions": "for every game with a world", "animation": "always", "image_generator": "always", "image_fallback": "when you chose an image generator, to say what to use if it is unavailable",
-            "engine": "always", "palette": "always"}
+            "screen_scaling": "for a screen-only game", "directions": "for every game with a world", "animation": "always", "image_generator": "always", "image_notes": "when you chose an image generator that makes the pictures",
+            "image_fallback": "when you chose an image generator that makes the pictures, to say what to use if it is unavailable",
+            "fallback_notes": "when you chose a fallback image generator", "engine": "always", "engine_version": "when you chose an engine other than generic", "palette": "always"}
 
 
 def status(root):
@@ -314,7 +331,7 @@ def status(root):
 
 
 def _existing(root):
-    path = Path(root) / ".gamearts" / "project.json"
+    path = common.game_root(root) / ".gamearts" / "project.json"
     return common.read_json(path) if path.is_file() else None
 
 
@@ -336,6 +353,15 @@ def _current(root, name):
     if name == "image_fallback":
         generation = held.get("image_generation") or {}
         return (generation.get("fallback") or {}).get("tool", "none") if generation.get("tool") else None
+    if name == "image_notes":
+        generation = held.get("image_generation") or {}
+        return ("words" if generation.get("notes") else "none") if generation.get("tool") else None
+    if name == "fallback_notes":
+        spare = (held.get("image_generation") or {}).get("fallback")
+        return ("words" if spare.get("notes") else "none") if spare else None
+    if name == "engine_version":
+        target = held.get("engine_target") or {}
+        return ("words" if target.get("version_note") else "none") if target.get("profile") else None
     if name == "engine":
         return (held.get("engine_target") or {}).get("profile")
     if name == "project_name":
@@ -366,17 +392,26 @@ def _current(root, name):
     return None
 
 
-def render(asked, current=None):
+def _held_words(root, name):
+    """The note an existing game already holds for a note question, so the owner sees what they would keep; never counted as an answer."""
+    held = _existing(root) or {}
+    generation = held.get("image_generation") or {}
+    return {"image_notes": generation.get("notes"), "fallback_notes": (generation.get("fallback") or {}).get("notes"),
+            "engine_version": (held.get("engine_target") or {}).get("version_note")}.get(name)
+
+
+def render(asked, current=None, current_words=None):
     """The question as plain text to show the owner: the prompt and the numbered options."""
     lines = [asked["prompt"]]
     for number, option in enumerate(asked["options"], 1):
-        mark = "  (current setting)" if option["value"] == current else ""
+        mark = (f"  (current setting: “{current_words}”)" if current_words else "  (current setting)") if option["value"] == current else ""
         lines.append(f"  {number}. {option['label']}: {option['description']}{mark}")
     return "\n".join(lines)
 
 
 def describe(root, asked):
-    return {"question": asked, "current": _current(root, asked["id"]), "text": render(asked, _current(root, asked["id"]))}
+    words = _held_words(root, asked["id"]) if asked["id"] in NOTE_QUESTIONS else None
+    return {"question": asked, "current": _current(root, asked["id"]), "text": render(asked, _current(root, asked["id"]), words)}
 
 
 def show(root):
@@ -392,6 +427,12 @@ def next_question(root):
         return {"complete": True, "message": "Every setting is answered; run `finish` to write the settings, then confirm them with the owner."}
     asked = question(open_questions[0], answers)
     return dict(describe(root, asked), progress=f"question {len(answers) + 1}; {len(open_questions)} left so far, and an answer can add questions", complete=False)
+
+
+def _words(answers, name):
+    """The owner's own words for an optional note, or None when they chose no note (or the question did not apply to their game)."""
+    item = answers.get(name)
+    return item["text"] if item and item["value"] == "words" else None
 
 
 def build_settings(answers, root, existing=None):
@@ -453,12 +494,19 @@ def build_settings(answers, root, existing=None):
     settings["workflow"] = {"mockup_approval_required": True, "detail_decomposition_required": True}
     settings["export"] = {"background_hex": "#FF00FF", "background_alpha": 255, "atlas_per_sheet": True, "no_zip": True}
     tool = answers["image_generator"]
-    settings["image_generation"] = {"tool": tool["value"], **({"tool_name": tool["text"]} if tool["value"] == "connected_tool" else {})}
+    generation = {"tool": tool["value"], **({"tool_name": tool["text"]} if tool["value"] == "connected_tool" else {})}
+    if _words(answers, "image_notes"):
+        generation["notes"] = _words(answers, "image_notes")
     fallback = answers.get("image_fallback")
     if fallback and fallback["value"] != "none":
-        settings["image_generation"]["fallback"] = {"tool": fallback["value"], **({"tool_name": fallback["text"]} if fallback["value"] == "connected_tool" else {})}
+        generation["fallback"] = {"tool": fallback["value"], **({"tool_name": fallback["text"]} if fallback["value"] == "connected_tool" else {})}
+        if _words(answers, "fallback_notes"):
+            generation["fallback"]["notes"] = _words(answers, "fallback_notes")
+    settings["image_generation"] = generation
     engine = answers["engine"]
     settings["engine_target"] = {"profile": (engine_slug(engine["text"]) if engine["value"] == OTHER else engine["value"])}
+    if _words(answers, "engine_version"):
+        settings["engine_target"]["version_note"] = _words(answers, "engine_version")
     prompting = dict(settings.get("prompting") or {})
     constraints = [c for c in prompting.get("additional_constraints", []) if c not in SOFT_EDGE_RULES.values()]
     if "soft_edges" in answers:
@@ -498,13 +546,18 @@ def summary(answers):
                  else "Consequence: import advice and default engine-ready copies come from the engine's profile where one is installed.")
     if "soft_edges" in answers:
         lines.append("Consequence: " + SOFT_EDGE_RULES[answers["soft_edges"]["value"]])
+    for name, sentence in (("image_notes", "every picture request to the image generator carries your note: “{}”"),
+                           ("fallback_notes", "every picture made with the fallback carries your note: “{}”"),
+                           ("engine_version", "the engine version you named (“{}”) is kept with the settings and shown beside the import advice")):
+        if _words(answers, name):
+            lines.append("Consequence: " + sentence.format(_words(answers, name)) + ".")
     return lines
 
 
 def finish(root):
     """Write project.json from a complete wizard. Settings that were confirmed and are materially unchanged keep their confirmation; any other change needs
     the owner's confirmation again (`confirm-settings`)."""
-    root = Path(root)
+    root = common.game_root(root)
     answers = load_answers(root)
     open_questions = unanswered(answers)
     if open_questions:

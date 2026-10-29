@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_sheet_atlas as sheets  # noqa: E402
 import gamearts_common as common  # noqa: E402
 import gamearts_tileset as rules  # noqa: E402
+import validate_settings_fit as settings_fit  # noqa: E402
 
 DEFAULT_COLUMNS = 8
 
@@ -30,15 +31,32 @@ def build(job, output_dir):
     layout, terrains, (tile_w, tile_h) = job["layout"], job["terrains"], job["tile_size"]
     full_bleed = job.get("full_bleed", True)
     columns = min(job.get("columns", DEFAULT_COLUMNS), len(job["tiles"]))
+    animations = job.get("animations", [])
+    owner = {}
+    for animation in animations:
+        for frame in animation["frames"]:
+            if frame["tile"] != animation["tile"]:
+                owner.setdefault(frame["tile"], animation["tile"])
     tiles = []
     for index, item in enumerate(job["tiles"]):
+        if index in owner:
+            if item.get("neighbours") or item.get("terrain"):
+                raise ValueError(f"tile {index} is a frame of tile {owner[index]}'s animation and takes that tile's labels; leave its terrain and neighbours out")
+            tiles.append({"id": index})  # labels are copied from the animated tile below
+            continue
         neighbours = item.get("neighbours")
         if layout in ("single", "variants") and not neighbours:
             neighbours = {side: terrains[0] for side in rules.SIDES}
         tiles.append({"id": index, "terrain": item.get("terrain", terrains[0]),
                       "neighbours": {side: label for side, label in (neighbours or {}).items() if label is not None}})
+    for tile in tiles:
+        if "terrain" not in tile:
+            animated = tiles[owner[tile["id"]]] if 0 <= owner[tile["id"]] < len(tiles) else {}
+            tile.update(terrain=animated.get("terrain", terrains[0]), neighbours=dict(animated.get("neighbours", {})))
     tileset = {"schema_version": "1.0", "name": name, "atlas": f"{name}.atlas.json", "tile_size": [tile_w, tile_h], "layout": layout,
                "terrains": terrains, "full_bleed": full_bleed, "columns": columns, "tiles": tiles}
+    if animations:
+        tileset["animations"] = animations
     problems = rules.label_problems(tileset)
     if problems:
         raise ValueError("tileset: " + "; ".join(problems))
@@ -70,6 +88,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("job", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--game-root", type=Path, help="Say whether the new tileset fits this game's saved settings (ground tile size, scale)")
     args = parser.parse_args()
     try:
         job = json.loads(args.job.read_text(encoding="utf-8"))
@@ -78,6 +97,8 @@ def main():
         job["_input_dir"] = str(args.job.resolve().parent)
         png, atlas, tileset = build(job, args.output_dir.resolve())
         print(f"BUILT {png}, {atlas} and {tileset}")
+        if args.game_root:
+            settings_fit.announce(args.game_root, args.output_dir.resolve())
         return 0
     except (OSError, ValueError, KeyError, TypeError) as exc:
         print("ERROR:", exc, file=sys.stderr)

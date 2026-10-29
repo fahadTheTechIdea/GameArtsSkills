@@ -25,7 +25,7 @@ Run `python scripts/gamearts_asset_lifecycle.py <operation> --game-root <game> .
 | `detect-scene --id ID --revision vNNN [--python ENV] [-- options]` | Detection draft blueprint (pending review, never the mockup's blueprint) |
 | `remove-scene --id ID --revision vNNN [--masks-from DIR]` | After `extract-scene`: draft clean parent from the blueprint's masks (inferred pixels) |
 | `evaluate-scene --id ID --revision vNNN` | Score the detection draft against the reviewed blueprint |
-| `register-asset --id ID --revision vNNN --bundle .gamearts/outputs/assets/generated/<folder> --source-mockup MOCKUP:vNNN [--extra provenance.json]` | Register a generated bundle; links approved mockups (hash-checked) and runs the technical gate |
+| `register-asset --id ID --revision vNNN --bundle .gamearts/outputs/assets/generated/<folder> --source-mockup MOCKUP:vNNN [--source-asset ASSET:vNNN] [--limited-profile-ref "OWNER'S WORDS"] [--extra provenance.json]` | Register a generated bundle; links approved mockups (hash-checked) and runs the technical gate. `--source-asset` names the approved asset a variant was made from, so withdrawing that asset names the variant. `--limited-profile-ref` records the owner's words approving a bundle that faces only some of the game's directions (refused otherwise) |
 | `audit --id ID` | Audit an asset: files, hashes, source links, blueprint and validation consistency, review evidence |
 | `approve --id ID --user-approval-ref "<message>" [--visual-review PACKET DECISION]` | Promote a generated bundle after the technical artwork gate and review evidence |
 | `select --kind assets|mockups --stage approved|generated [--id ID --revision vNNN]` | Eligible records for production use; blocked ones are reported with reasons |

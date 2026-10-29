@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gamearts_common as common  # noqa: E402
 from build_sheet_atlas import build as build_sheet  # noqa: E402
 from validate_parent_cleanup import validate as validate_cleanup  # noqa: E402
+import validate_settings_fit as settings_fit  # noqa: E402
 
 
 def xy(value, name):
@@ -413,12 +414,15 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("manifest", type=Path)
     p.add_argument("--output-dir", required=True, type=Path)
+    p.add_argument("--game-root", type=Path, help="Say whether the new bundle fits this game's saved settings (facing directions, scale)")
     args = p.parse_args()
     try:
         inp = args.manifest.resolve()
         data = json.loads(inp.read_text(encoding="utf-8"))
         result = build(data, args.output_dir.resolve(), inp.parent)
         print("BUILT", result)
+        if args.game_root:
+            settings_fit.announce(args.game_root, args.output_dir.resolve())
     except (ValueError, OSError, KeyError, TypeError) as e:  # ValueError covers JSON and contract errors
         p.exit(1, "ERROR: " + str(e) + "\n")
 

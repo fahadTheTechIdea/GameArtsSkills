@@ -34,6 +34,33 @@ SIDE_KIND = {"single": "same", "variants": "same", "wang_corner_16": "corner", "
 OPPOSITE = {"top": "bottom", "bottom": "top", "left": "right", "right": "left"}
 
 
+def animation_frame_ids(tileset):
+    """The ids of tiles that exist only as frames of another tile's animation. They take the labels of the tile they animate."""
+    return {frame["tile"] for animation in tileset.get("animations", []) for frame in animation["frames"] if frame["tile"] != animation["tile"]}
+
+
+def animation_problems(tileset):
+    """Every reason the animations are not sound; empty when they are. A tile has one animation, a frame belongs to one animation, and every id exists."""
+    problems, count = [], len(tileset["tiles"])
+    animated, owner = {}, {}
+    for number, animation in enumerate(tileset.get("animations", []), 1):
+        base, name = animation["tile"], f"animation {number} (tile {animation['tile']})"
+        if not 0 <= base < count:
+            problems.append(f"{name}: tile {base} is not in the tileset")
+            continue
+        if base in animated:
+            problems.append(f"{name}: tile {base} already has animation {animated[base]}; a tile has one animation")
+        animated.setdefault(base, number)
+        for frame in animation["frames"]:
+            tile = frame["tile"]
+            if not 0 <= tile < count:
+                problems.append(f"{name}: frame tile {tile} is not in the tileset")
+            elif tile != base and owner.setdefault(tile, number) != number:
+                problems.append(f"{name}: tile {tile} is already a frame of animation {owner[tile]}; a frame belongs to one animation")
+    problems += [f"tile {tile} is a frame of animation {number} and is also animated itself; a frame has no animation of its own" for tile, number in sorted(owner.items()) if tile in animated]
+    return [f"animation: {problem}" for problem in problems]
+
+
 def _indexes(layout, neighbours, terrains):
     """The terrain index (0 or 1) of every used side, or None when a used side is missing or names an unknown terrain."""
     result = {}
@@ -126,7 +153,10 @@ def label_problems(tileset):
         problems.append("tile ids must be 0, 1, 2 ... in the order of the atlas frames")
     shape_bad = False
     seen = {}
+    frames = animation_frame_ids(tileset)
     for tile in tiles:
+        if tile["id"] in frames:
+            continue  # a frame of another tile's animation takes that tile's labels, so it is neither a repeat nor a missing piece
         name = f"tile {tile['id']}"
         shape = _label_shape_problems(layout, tile, name, terrains)
         problems += shape
@@ -145,7 +175,7 @@ def label_problems(tileset):
         for required in layout_tiles(layout, terrains):
             if required["identity"] not in seen:
                 problems.append(f"missing tile: {tile_name(layout, required['neighbours'], terrains)}")
-    return problems
+    return problems + animation_problems(tileset)
 
 
 def edge_signature(layout, neighbours, side):

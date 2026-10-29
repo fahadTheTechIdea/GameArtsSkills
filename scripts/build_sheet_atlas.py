@@ -17,6 +17,7 @@ from PIL import Image  # noqa: E402
 import gamearts_atlas as atlas_rules  # noqa: E402
 import gamearts_common as common  # noqa: E402
 import gamearts_matte as matte_rules  # noqa: E402
+import validate_settings_fit as settings_fit  # noqa: E402
 
 DEFAULT_MAX_WIDTH = 2048
 MAX_SHEET_SIDE = 16384  # the largest side of a sheet: the common graphics-card texture limit, and the schema's own ceiling for max_width
@@ -269,6 +270,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("manifest", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--game-root", type=Path, help="Say whether the new sheet fits this game's saved settings (scale)")
     args = parser.parse_args()
     try:
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
@@ -277,6 +279,8 @@ def main():
         manifest["_input_dir"] = str(args.manifest.resolve().parent)
         png, atlas = build(manifest, args.output_dir.resolve())
         print(f"BUILT {png} and {atlas}")
+        if args.game_root:
+            settings_fit.announce(args.game_root, args.output_dir.resolve())
     except (OSError, ValueError, KeyError, TypeError) as exc:  # ValueError covers JSON and contract errors
         parser.exit(1, f"ERROR: {exc}\n")
 

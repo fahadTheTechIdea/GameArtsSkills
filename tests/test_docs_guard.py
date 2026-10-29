@@ -300,5 +300,35 @@ class RepositoryHygieneTests(unittest.TestCase):
             self.assertIn(MASTER, wanted)
             self.assertNotIn(BRIDGE, wanted)
 
+
+class PortablePathTests(unittest.TestCase):
+    """The framework is downloaded onto other people's machines, so shipped text never names a path that exists on only one of them."""
+
+    # A drive-letter path, a user's home folder or an app-data folder. A URL scheme such as https:// is not one: its letter follows another letter.
+    MACHINE_PATH = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/](?=[^\s/\\])|/Users/[^/\s]+/|/home/[^/\s]+/|AppData[\\/]")
+
+    def test_no_shipped_text_names_a_path_on_one_machine(self):
+        found = [f"{relative(path)}: {match.group(0)}" for path in shipped_text_files() for match in self.MACHINE_PATH.finditer(read(path))]
+        self.assertEqual(found, [], "shipped text uses relative paths, <game> placeholders or environment variables, never a path from one machine")
+
+    def test_the_pattern_catches_what_it_is_for_and_leaves_ordinary_text_alone(self):
+        for sample in (r"C:\Users\someone\game", "H:/Source/Repos/game", "/Users/someone/game", "/home/someone/game", r"x\AppData\Local\Temp"):
+            self.assertTrue(self.MACHINE_PATH.search(sample), sample)
+        for sample in ("https://example.com/a", "file:///a", "scripts/gamearts_palette.py", "<game>/.gamearts/outputs", "$CLAUDE_PROJECT_DIR/scripts", "note: next"):
+            self.assertIsNone(self.MACHINE_PATH.search(sample), sample)
+
+
+class WizardQuestionsDocumentedTests(unittest.TestCase):
+    """docs/PROJECT_SETTINGS.md lists the wizard's questions and when each appears. The wizard owns that list, so the table must equal it."""
+
+    def test_the_settings_guide_lists_every_question_in_order_with_the_wizards_own_wording(self):
+        import sys
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import gamearts_setup
+        section = read(ROOT / "docs" / "PROJECT_SETTINGS.md").split("## The questions", 1)[1].split("\n## ", 1)[0]
+        rows = re.findall(r"^\| `([a-z_]+)` \| (.+?) \|$", section, re.M)
+        self.assertEqual(rows, [(name, gamearts_setup.TRIGGERS[name]) for name in gamearts_setup.ORDER])
+
+
 if __name__ == "__main__":
     unittest.main()

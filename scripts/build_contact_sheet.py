@@ -90,7 +90,7 @@ def label_picture(letter, record):
 def build(game_root, specs, name="candidates", cell=DEFAULT_CELL, scaling=None):
     """Write the contact sheet and its letter map; returns {"sheet", "map", "candidates", "scaling", "note"}."""
     from PIL import Image
-    root = Path(game_root).resolve()
+    root = common.game_root(game_root)
     if not re.fullmatch(r"[A-Za-z0-9_-]+", name):
         raise ValueError("The sheet name may contain only letters, digits, - and _")
     if cell[0] < 64 or cell[1] < 64:

@@ -106,6 +106,10 @@
     },
     "rotation_policy": {
       "type": "string"
+    },
+    "layer_id": {
+      "type": "string",
+      "description": "For a parallax_layer in a game with scrolling layers: the id of the layer in world.layers this picture is."
     }
   },
   "additionalProperties": true

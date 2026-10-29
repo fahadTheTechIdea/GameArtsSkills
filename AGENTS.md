@@ -56,6 +56,7 @@ Check the **target game repository** (not this framework repository) for `.gamea
 - Approved mockup: `mockup-analyzer`, then reference crop and one master, then components, sheets and atlases (`animation-planner`, `sheet-atlas`, `art-profile`).
 - Every object in an approved scene (plants, cars, signs, fences, parking and the rest): `mockup-analyzer`: complete the object sweep, run the detection and extraction scripts, then show the draft for review; say what the detector missed rather than claiming a complete extraction.
 - Register, approve, reject, restore, list or select any mockup or asset revision: `game-arts-lifecycle`; rejected or revoked art is never a source. Production approval is separate from mockup approval.
+- What to declare to a store about AI-made art: run `scripts/gamearts_disclosure.py` (read-only), give the summary and its "not covered" list, and point to the store's current page for what it requires.
 - Everyday user phrases are catalogued in `docs/COMMANDS.md`; the full flow is `docs/USER_WORKFLOW.md`.
 
 Ask only meaningful design and approval questions; every setting is the owner's own choice through the wizard, never a default; keep storage, manifests and tooling out of the conversation unless asked.

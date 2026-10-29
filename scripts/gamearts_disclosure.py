@@ -26,7 +26,7 @@ NOT_COVERED = (
 
 
 def _rows(root, kind):
-    path = Path(root) / MANIFESTS / f"{kind}.json"
+    path = common.game_root(root) / MANIFESTS / f"{kind}.json"
     if not path.is_file():
         return []
     return common.read_json(path).get(kind, [])

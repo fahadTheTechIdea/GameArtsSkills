@@ -32,12 +32,19 @@ Every tile carries the terrain found at each of the eight places around it, name
 ```
 `columns` defaults to 8. `full_bleed` defaults to true: ground tiles fill their whole square with no key colour. A tileset of objects on a clear background says `"full_bleed": false` and keeps the key colour around the art. `single` and `variants` tiles need no `neighbours`.
 
+## Animated tiles
+Water, lava and torches are tiles that show several pictures in turn. Add the extra pictures to `tiles` (after the real tiles, without terrain or neighbours) and name the animation in the job:
+```json
+"animations": [{"tile": 3, "frames": [{"tile": 3, "duration_ms": 200}, {"tile": 16, "duration_ms": 200}, {"tile": 17, "duration_ms": 200}]}]
+```
+A frame other than the tile itself exists only as a frame: it takes the labels of the tile it animates, so an animation never changes what terrain a tile is, and the seam check holds it to the same edges. A tile has one animation, a frame belongs to one animation, an unknown id is refused by name, and a frame that brings its own labels is refused. The Tiled export lists each animation (frame tile and milliseconds) and gives the frames no wang id of their own. Durations are the art's intent; how an engine plays them is the game project's.
+
 ## Run
 ```text
-python scripts/build_tileset.py <job.json> --output-dir <candidate-folder>
+python scripts/build_tileset.py <job.json> --output-dir <candidate-folder> [--game-root <game>]
 python scripts/validate_tileset.py <name>.tileset.json
 ```
-The builder refuses an incomplete set (the missing tile is described in words: "missing tile: corners top_left=grass top_right=water ..."), a repeated tile, a label on a place the layout does not use, a blob corner that cannot exist, a picture that is not the tile size, and an existing output. It writes `<name>.png` and `<name>.atlas.json` through the one sheet builder and `<name>.tileset.json` with the layout and labels. Tile number *n* is frame *n* of the atlas, and the sheet is a regular grid with no spacing, so any tile editor reads it.
+With `--game-root` the builder also says whether the tiles are the game's ground tile (`world.ground_tile_px`) and its scale; a mismatch is advice, never a refusal. The builder refuses an incomplete set (the missing tile is described in words: "missing tile: corners top_left=grass top_right=water ..."), a repeated tile, a label on a place the layout does not use, a blob corner that cannot exist, a picture that is not the tile size, and an existing output. It writes `<name>.png` and `<name>.atlas.json` through the one sheet builder and `<name>.tileset.json` with the layout and labels. Tile number *n* is frame *n* of the atlas, and the sheet is a regular grid with no spacing, so any tile editor reads it.
 
 ## What is checked
 Labels (complete, consistent, canonical), tile size and grid position, the sheet's pixel contract, no key-coloured pixel in a ground tile, and **shared sides**: two tiles that claim the same side must have matching pixels along it. Matching is judged on the outermost row or column of each tile against the other, allowing the difference the tile's own texture already has between its outermost and next row plus a tolerance (16 on a 0 to 255 scale by default). A registered bundle with a tileset has all of this run by the technical artwork gate, so a broken tileset cannot be approved. It proves the tiles can be placed without a visible break; it does not say whether they look good.

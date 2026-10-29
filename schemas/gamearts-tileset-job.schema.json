@@ -131,6 +131,47 @@
           }
         }
       }
+    },
+    "animations": {
+      "type": "array",
+      "description": "Animated tiles (water, lava, torches). Each entry names the tile that animates and the frames it shows in order, with how long each stays (milliseconds). A frame other than the tile itself is a tile that exists only as a frame: it takes the labels of the tile it animates, so an animation never changes what terrain a tile is.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tile",
+          "frames"
+        ],
+        "properties": {
+          "tile": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "frames": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tile",
+                "duration_ms"
+              ],
+              "properties": {
+                "tile": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "duration_ms": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 60000
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

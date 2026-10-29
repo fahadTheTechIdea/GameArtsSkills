@@ -54,7 +54,7 @@ def required_id(value, label, pattern):
 def find_game_root(start):
     for folder in [Path(start).resolve(), *Path(start).resolve().parents]:
         if (folder / ".gamearts").is_dir():
-            return folder
+            return common.game_root(folder)
     fail("Cannot locate the game root (no .gamearts folder above the packet); pass --game-root")
 
 
@@ -98,6 +98,56 @@ def scale_sentence(world, screen):
     return text
 
 
+def task_sentence(cls, asset, prompting):
+    if prompting["single_master_first"]:
+        return f"TASK: Produce exactly ONE {cls} master candidate for {asset}; not a sprite sheet."
+    return f"TASK: Produce the {cls} candidate for {asset}."
+
+
+def prompting_lines(prompting):
+    """The prompt lines the game's `prompting` settings decide: its own constraints, the reference-authority line, the camera and identity
+    lock, and what the picture must not contain. With every switch on (the default) this is the framework's standard wording."""
+    lines = []
+    if prompting["additional_constraints"]:
+        lines.append("PROJECT CONSTRAINTS (from the saved game settings): " + " ".join(prompting["additional_constraints"]))
+    if prompting["reference_lock"]:
+        lines.append("Use the ATTACHED crop as the authority, not a generic style description.")
+    lines.append("Do not alter viewpoint, object identity, proportions or previously approved features." if prompting["strict_camera_lock"]
+                 else "Do not alter object identity, proportions or previously approved features.")
+    lines.append("Do not invent hidden wall details without design approval.")
+    lines.append("No " + ", ".join((["multi-view contact sheets"] if prompting["single_master_first"] else [])
+                                    + (["alternate camera"] if prompting["strict_camera_lock"] else [])
+                                    + ["labels", "UI", "frames", "or printed JSON"]) + ".")
+    return lines
+
+
+def resolve_layer(settings, cls, layer_id):
+    """The scrolling layer a parallax picture is for, from the game's `world.layers`; None when the picture is not one. A game with layers must
+    be told which layer this is, and a name the game does not have is refused."""
+    layers = common.world_layers(settings)
+    if cls != "parallax_layer" or not layers:
+        if layer_id:
+            fail("layer_id names one of the game's scrolling layers (world.layers) and applies only to a parallax_layer in a game that has them")
+        return None
+    names = ", ".join(layer["id"] for layer in layers)
+    if not layer_id:
+        fail(f"This game scrolls in layers ({names}): name this picture's layer with layer_id")
+    found = next((layer for layer in layers if layer["id"] == layer_id), None)
+    if found is None:
+        fail(f"layer_id {layer_id!r} is not one of the game's layers ({names})")
+    return found
+
+
+def layer_sentence(layer):
+    across, down = layer["scroll_scale"]
+    text = (f"SCROLLING LAYER FROM SAVED GAME SETTINGS: {layer['id']}; it moves {across} across and {down} down for each unit the camera moves "
+            "(below 1 is farther away).")
+    repeat = layer.get("repeat_px")
+    if repeat and any(repeat):
+        text += f" It repeats every {repeat[0]} px across and {repeat[1]} px down (0 means no repeat on that axis); the repeating edges must meet seamlessly."
+    return text
+
+
 def export_sentence(cls):
     if cls in FULL_BLEED:
         return ("FINAL ART EXPORT: opaque PNG, no transparency. This class fills its canvas, so painted art may cover it "
@@ -106,7 +156,7 @@ def export_sentence(cls):
 
 
 def prepare(game_root, job_file, out):
-    root = Path(game_root).resolve()
+    root = common.game_root(game_root)
     job = common.read_json(job_file)
     if not isinstance(job, dict):
         fail("Reference job must be an object")
@@ -166,6 +216,8 @@ def prepare(game_root, job_file, out):
             and (len(directions) != len(project_directions) or set(directions) != set(project_directions)):
         fail(f"Free-facing mobile assets require {len(project_directions)} directions ({', '.join(project_directions)}) "
              "unless an approved limited profile applies")
+    prompting = common.resolve_prompting(settings)
+    layer = resolve_layer(settings, cls, job.get("layer_id"))
     with Image.open(source) as image:
         sw, sh = image.size
         if x + w > sw or y + h > sh:
@@ -199,7 +251,7 @@ def prepare(game_root, job_file, out):
     elif preset and preset.get("problem"):
         fail(f"The saved style preset cannot be read: {preset['problem']}")
     prompt = "\n".join([
-        f"TASK: Produce exactly ONE {cls} master candidate for {asset}; not a sprite sheet.",
+        task_sentence(cls, asset, prompting),
         f"MANDATORY IMAGE INPUT: Attach the actual image file {crop_path.name} that sits beside this prompt file.",
         f"APPROVED SOURCE: mockup {mockup_id}, revision {revision}; region {region_id}; sha256 {source_hash}.",
         f"STYLE FROM SAVED GAME SETTINGS: {style_desc}.",
@@ -208,12 +260,10 @@ def prepare(game_root, job_file, out):
         f"RESOLVED CAMERA FROM SELECTED GAME SETTINGS / APPROVED REFERENCE: {camera}.",
         f"ALLOWED VIEWS/DIRECTIONS: {', '.join(directions)}.",
         scale_sentence(world, settings.get("screen")),
+        *([layer_sentence(layer)] if layer else []),
         "IDENTITY LOCK — observed visible features: " + ("; ".join(detail) or "preserve all visible details from the image"),
         "CUSTOM INSTRUCTIONS: " + ("; ".join(rules) or "none applicable"),
-        "Use the ATTACHED crop as the authority, not a generic style description.",
-        "Do not alter viewpoint, object identity, proportions or previously approved features.",
-        "Do not invent hidden wall details without design approval.",
-        "No multi-view contact sheets, alternate camera, labels, UI, frames, or printed JSON.",
+        *prompting_lines(prompting),
         export_sentence(cls),
         "If the image tool cannot accept the reference image as input, STOP: reference fidelity cannot be verified.",
     ]) + "\n"
@@ -225,10 +275,12 @@ def prepare(game_root, job_file, out):
         "region": {"id": region_id, "rect": rect, "actual_crop_box": box}, "source_image_size": [sw, sh],
         "reference_crop": crop_path.name, "reference_crop_size": list(crop.size), "reference_crop_sha256": common.sha256_file(crop_path),
         "settings_file": ".gamearts/project.json", "settings_sha256": common.sha256_file(root / ".gamearts" / "project.json"),
-        "resolved_style": style, "resolved_camera": camera, "resolved_directions": directions,
+        "resolved_style": style, "resolved_camera": camera, "resolved_directions": directions, "resolved_prompting": prompting,
         "export_rule": "full_bleed" if cls in FULL_BLEED else "key_background",
         "identity_lock": detail, "applicable_custom_instructions": rules, "prompt_path": prompt_path.name,
         "conditioning_status": "prepared_not_attached", "visual_review": "pending", "production_approval": "not_granted"}
+    if layer is not None:
+        packet["resolved_layer"] = layer
     if anchor is not None:
         packet["style_anchor"] = {"id": anchor["id"], "revision": anchor["revision"], "image": ANCHOR_COPY,
                                   "sha256": common.sha256_file(anchor_copy), "source_image": rel(root, anchor["path"])}
@@ -258,7 +310,7 @@ def verify(packet_file, receipt_file, game_root=None):
     packet_file = Path(packet_file).resolve()
     packet = common.read_json(packet_file)
     common.validate_schema(packet, "gamearts-reference-packet")
-    root = Path(game_root).resolve() if game_root else find_game_root(packet_file.parent)
+    root = common.game_root(game_root) if game_root else find_game_root(packet_file.parent)
     crop_path = packet_file.parent / packet["reference_crop"]
     mockup = packet["approved_mockup"]
     for path, expected in ((crop_path, packet["reference_crop_sha256"]), (root / packet["settings_file"], packet["settings_sha256"]),

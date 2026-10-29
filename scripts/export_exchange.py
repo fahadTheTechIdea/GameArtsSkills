@@ -117,15 +117,19 @@ def _representative(tiles, layout, terrains, index):
 
 
 def tiled_tileset(tileset, atlas):
-    layout, terrains, tiles = tileset["layout"], tileset["terrains"], tileset["tiles"]
+    layout, terrains = tileset["layout"], tileset["terrains"]
+    tiles = [tile for tile in tileset["tiles"] if tile["id"] not in tile_rules.animation_frame_ids(tileset)]  # a frame has no wang id of its own
     tile_w, tile_h = tileset["tile_size"]
     columns = tileset.get("columns") or atlas.get("columns") or len(tiles)
     data = {"type": "tileset", "version": TILED_FORMAT, "tiledversion": TILED_LEVEL, "name": tileset["name"], "image": atlas["image"],
             "imagewidth": atlas["image_size"][0], "imageheight": atlas["image_size"][1], "tilewidth": tile_w, "tileheight": tile_h,
-            "tilecount": len(tiles), "columns": columns, "margin": 0, "spacing": 0}
+            "tilecount": len(tileset["tiles"]), "columns": columns, "margin": 0, "spacing": 0}
     if not tileset.get("full_bleed", True):
         data["transparentcolor"] = atlas["mask_color"].lower()
     data["properties"] = [{"name": "layout", "type": "string", "value": layout}, {"name": "terrains", "type": "string", "value": ", ".join(terrains)}]
+    if tileset.get("animations"):
+        data["tiles"] = [{"id": animation["tile"], "animation": [{"tileid": frame["tile"], "duration": frame["duration_ms"]} for frame in animation["frames"]]}
+                         for animation in sorted(tileset["animations"], key=lambda item: item["tile"])]
     data["wangsets"] = []
     if layout in WANG_TYPE:
         data["wangsets"].append({

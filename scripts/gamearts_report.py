@@ -96,11 +96,17 @@ def describe_settings(settings):
     if generator:
         label = GENERATOR_LABEL[generator["tool"]]
         rows.append(("Pictures made by", f"{label} ({generator['tool_name']})" if generator.get("tool_name") else label))
+        if generator.get("notes"):
+            rows.append(("Note with every picture", generator["notes"]))
         if generator.get("fallback"):
             spare = generator["fallback"]
             rows.append(("If that is unavailable", f"{GENERATOR_LABEL[spare['tool']]} ({spare['tool_name']})" if spare.get("tool_name") else GENERATOR_LABEL[spare["tool"]]))
+            if spare.get("notes"):
+                rows.append(("Note with the fallback", spare["notes"]))
     engine = presets.resolve_engine_target(settings)
     rows.append(("Engine or tool", engine.get("title") or engine["profile"] + " (no profile installed)"))
+    if engine.get("version_note"):
+        rows.append(("Engine version", engine["version_note"]))
     rows.append(("Settings", {"owner_confirmed": "confirmed by the owner", "needs_review": "need the owner to look again",
                               "inferred": "saved, waiting for the owner to confirm"}.get(settings.get("settings_status"), "not confirmed")))
     return rows
@@ -244,6 +250,17 @@ def asset_card(record, root, folder, previews_dir, pixel_art, problems, written)
               'derived files, not new art, kept outside the approved folder.</p>') if exports else ""
     sources = ", ".join(f'{m.get("mockup_id")} {m.get("revision")}' for m in record.get("source_mockups", []) if isinstance(m, dict))
     source_line = f'<p class="muted">Built from: {esc(sources)}</p>' if sources else ""
+    bases = ", ".join(f'{a.get("asset_id")} {a.get("revision")}' for a in record.get("source_assets", []) if isinstance(a, dict))
+    source_line += f'<p class="muted">Made from the asset: {esc(bases)}</p>' if bases else ""
+    made_with = record.get("provenance") or {}
+    tool = " ".join(str(made_with[key]) for key in ("provider", "model") if made_with.get(key))
+    source_line += (f'<p class="muted">Made with: {esc(tool)}</p>' if tool
+                    else '<p class="muted">The tool that made this is not recorded.</p>') if status != "revoked" else ""
+    fit = technical.get("settings_fit") or {}
+    mismatches = [item["detail"] for item in fit.get("checks", []) if item.get("status") == "mismatch"]
+    source_line += f'<p class="problem">Does not match the saved settings of this game: {esc(_short("; ".join(mismatches)))}</p>' if mismatches else ""
+    limited = record.get("limited_profile") or {}
+    source_line += f'<p class="muted">Faces only some of the directions of this game; the owner approved that: {esc(_short(limited["approval_ref"]))}</p>' if limited else ""
     reason = f'<p class="problem">Withdrawn because: {esc(_short(record["revocation_reason"]))}</p>' if status == "revoked" and record.get("revocation_reason") else ""
     return (f'<li class="card {esc(status)}" data-record="asset:{esc(record.get("asset_id"))}:{esc(record.get("revision"))}" data-status="{esc(status)}">'
             f'<h3>{esc(title)}</h3><p><span class="badge">{esc(STATUS_LABEL.get(status, status))}</span></p>{"".join(pictures)}'
@@ -263,7 +280,7 @@ def _storyboard_summary(root):
 def build(game_root, now=None):
     """Write the report and its previews; returns {"path", "counts", "next_steps", "problems"}. Problems are listed on the page too."""
     import gamearts_asset_lifecycle as lifecycle
-    root = Path(game_root).resolve()
+    root = common.game_root(game_root)
     folder = root / REPORT
     previews = folder / "previews"
     problems = []

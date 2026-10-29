@@ -37,7 +37,7 @@ def _now():
 
 
 def folder(root):
-    return Path(root).resolve() / ".gamearts" / "storyboard"
+    return common.game_root(root) / ".gamearts" / "storyboard"
 
 
 def document(root):
@@ -49,7 +49,7 @@ def exists(root):
 
 
 def lock(root):
-    return common.file_lock(Path(root).resolve() / ".gamearts" / "system" / "storyboard.lock", wait_seconds=15, name="storyboard change")
+    return common.file_lock(common.game_root(root) / ".gamearts" / "system" / "storyboard.lock", wait_seconds=15, name="storyboard change")
 
 
 def load(root):
@@ -284,7 +284,7 @@ def reject(root, scene_ids, reason):
 
 
 def _mockup_links(root):
-    manifest = Path(root).resolve() / ".gamearts" / "outputs" / "manifests" / "mockups.json"
+    manifest = common.game_root(root) / ".gamearts" / "outputs" / "manifests" / "mockups.json"
     if not manifest.is_file():
         return []
     rows = common.read_json(manifest).get("mockups", [])

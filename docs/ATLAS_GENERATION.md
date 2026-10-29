@@ -35,10 +35,10 @@ All of these are off unless the job asks for them; a job without them builds exa
 
 ## Run
 ```text
-python scripts/build_sheet_atlas.py <job.json> --output-dir <candidate-folder>
+python scripts/build_sheet_atlas.py <job.json> --output-dir <candidate-folder> [--game-root <game>]
 python scripts/validate_sheet_atlas.py <name>.png <name>.atlas.json
 ```
-The builder refuses a non-opaque, empty or near-key-contaminated frame, an out-of-bounds pivot, duplicate names, an invalid job, an existing output name and a sheet over 16384 px on a side (the common texture limit; use fewer or smaller frames, less padding, `pack: "shelf"` with `trim`, or several sheets). It places frames on one canonical pivot per cell without scaling art to a category frame, fills every unused pixel with exact opaque `#FF00FF`, checks the finished sheet against the same policy, and writes both files or neither.
+With `--game-root` the builder also says whether the sheet fits the game's saved settings (`SETTINGS FIT passed` or `mismatch`, for the scale); a mismatch is advice, never a refusal. The builder refuses a non-opaque, empty or near-key-contaminated frame, an out-of-bounds pivot, duplicate names, an invalid job, an existing output name and a sheet over 16384 px on a side (the common texture limit; use fewer or smaller frames, less padding, `pack: "shelf"` with `trim`, or several sheets). It places frames on one canonical pivot per cell without scaling art to a category frame, fills every unused pixel with exact opaque `#FF00FF`, checks the finished sheet against the same policy, and writes both files or neither.
 
 ## Outputs (saved together in the candidate bundle under `.gamearts/outputs/assets/generated/`)
 - `<name>.png`: the sheet.

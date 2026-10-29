@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts recolour map",
+  "description": "Which colour becomes which, for a palette variant of approved art (a team colour, a season, night). Every source colour of the picture must be listed, unless the run asks to snap strays to the nearest listed colour.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "colours"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "colours": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^#[0-9A-Fa-f]{6}$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^#[0-9A-Fa-f]{6}$"
+      }
+    }
+  }
+}
