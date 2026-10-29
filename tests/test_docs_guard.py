@@ -326,7 +326,7 @@ class WizardQuestionsDocumentedTests(unittest.TestCase):
         sys.path.insert(0, str(ROOT / "scripts"))
         import gamearts_setup
         section = read(ROOT / "docs" / "PROJECT_SETTINGS.md").split("## The questions", 1)[1].split("\n## ", 1)[0]
-        rows = re.findall(r"^\| `([a-z_]+)` \| (.+?) \|$", section, re.M)
+        rows = re.findall(r"^\| `([a-z0-9_]+)` \| (.+?) \|$", section, re.M)
         self.assertEqual(rows, [(name, gamearts_setup.TRIGGERS[name]) for name in gamearts_setup.ORDER])
 
 

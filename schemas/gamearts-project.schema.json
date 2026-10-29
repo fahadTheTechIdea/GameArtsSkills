@@ -1,5 +1,47 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "spare_image_tool": {
+      "type": "object",
+      "required": [
+        "tool"
+      ],
+      "properties": {
+        "tool": {
+          "enum": [
+            "built_in_image_gen",
+            "cli_image_gen",
+            "connected_tool"
+          ]
+        },
+        "tool_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required for connected_tool."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional owner preferences for this tool, such as the model."
+        }
+      },
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "tool": {
+            "const": "connected_tool"
+          }
+        },
+        "required": [
+          "tool"
+        ]
+      },
+      "then": {
+        "required": [
+          "tool_name"
+        ]
+      }
+    }
+  },
   "title": "Game Arts Project Settings",
   "type": "object",
   "required": [
@@ -318,45 +360,20 @@
           "description": "Optional owner preferences for the tool, such as a model or quality choice, applied to every call."
         },
         "fallback": {
-          "type": "object",
-          "description": "The tool the owner chose to use only when the main one is unavailable in the session. The agent never decides on its own that a tool is unavailable for convenience: it says why and records the reason with the picture.",
-          "required": [
-            "tool"
-          ],
-          "properties": {
-            "tool": {
-              "enum": [
-                "built_in_image_gen",
-                "cli_image_gen",
-                "connected_tool"
-              ]
+          "description": "The tool, or the ordered list of tools, the owner allowed to be used when the main one is unavailable in the session: the first that the session has is used, in the owner's order. One tool is saved as an object and several as an array, and both mean the same. The agent never decides on its own that a tool is unavailable for convenience: it says why and records the reason, and which one it used, with the picture.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/spare_image_tool"
             },
-            "tool_name": {
-              "type": "string",
-              "minLength": 1,
-              "description": "Required for connected_tool."
-            },
-            "notes": {
-              "type": "string",
-              "description": "Optional owner preferences for the fallback tool, such as the model."
-            }
-          },
-          "additionalProperties": false,
-          "if": {
-            "properties": {
-              "tool": {
-                "const": "connected_tool"
+            {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/spare_image_tool"
               }
-            },
-            "required": [
-              "tool"
-            ]
-          },
-          "then": {
-            "required": [
-              "tool_name"
-            ]
-          }
+            }
+          ]
         }
       },
       "additionalProperties": false,

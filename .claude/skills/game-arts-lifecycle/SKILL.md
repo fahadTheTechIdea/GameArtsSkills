@@ -17,7 +17,7 @@ Run `python scripts/gamearts_asset_lifecycle.py <operation> --game-root <game> .
 | `check-settings` | Confirm `project.json` is valid and owner-confirmed; `warnings` lists what valid settings can still get wrong |
 | `confirm-settings --by WHO --user-confirmation-ref "<the owner's words>"` | Record the owner's confirmation with the real time; never type `confirmed_at` by hand |
 | `register --metadata M.json [--image I.png]` | Register a generated mockup (needs owner-confirmed settings) |
-| `register-generated --image PNG --id ID --revision vNNN --scope S --prompt-file P [--tool-mode M --tool-name N | --use-fallback --fallback-reason WHY] [--storyboard-scene-id X]` | Register the picture an image tool just made: names, hashes, writes the metadata and registers it; the tool defaults to the owner's saved image generator and any other is refused |
+| `register-generated --image PNG --id ID --revision vNNN --scope S --prompt-file P [--tool-mode M --tool-name N | --use-fallback [NUMBER] --fallback-reason WHY] [--storyboard-scene-id X]` | Register the picture an image tool just made: names, hashes, writes the metadata and registers it; the tool defaults to the owner's saved image generator and any other is refused |
 | `import-mockup --source FILE --id ID --revision vNNN --scope S [--rights R] [--storyboard-scene-id X] [--user-approval-ref "<user's statement>"]` | Bring in a mockup the user made elsewhere as a managed copy (see below) |
 | `audit-mockup --id ID --revision vNNN` | Check files, hashes, metadata, approval evidence; `review_flags` lists material settings changes |
 | `approve-mockup --id ID --revision vNNN --user-approval-ref "<user's actual message>"` | Promote the exact revision the user approved |

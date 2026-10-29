@@ -95,9 +95,9 @@ CONSUMERS = {
     "image_generation.tool": ("gamearts_plan_card.py", 'chosen["tool"]'),
     "image_generation.tool_name": ("gamearts_plan_card.py", "tool_name"),
     "image_generation.notes": ("gamearts_doctor.py", "generator['notes']"),
-    "image_generation.fallback.tool": ("gamearts_doctor.py", 'generator["fallback"]'),
-    "image_generation.fallback.tool_name": ("gamearts_doctor.py", "tool_name"),
-    "image_generation.fallback.notes": ("gamearts_doctor.py", "notes"),
+    "image_generation.fallback.tool": ("gamearts_doctor.py", "spare['tool']"),
+    "image_generation.fallback.tool_name": ("gamearts_doctor.py", "spare['tool_name']"),
+    "image_generation.fallback.notes": ("gamearts_doctor.py", "spare['notes']"),
     "prompting.reference_lock": ("prepare_reference_crop.py", 'prompting["reference_lock"]'),
     "prompting.strict_camera_lock": ("prepare_reference_crop.py", 'prompting["strict_camera_lock"]'),
     "prompting.single_master_first": ("prepare_reference_crop.py", 'prompting["single_master_first"]'),
@@ -110,10 +110,31 @@ CONSUMERS = {
 }
 
 
+PROJECT_SCHEMA = common.read_json(ROOT / "schemas" / "gamearts-project.schema.json")
+
+
+def _shape(body):
+    """The object shape of a field: a local $ref is followed, and a field that may be one object or a list of them (oneOf) is read by the object's own
+    fields, so a setting kept in two shapes is still checked field by field."""
+    while isinstance(body, dict) and "properties" not in body:
+        if "$ref" in body:
+            target = PROJECT_SCHEMA
+            for step in body["$ref"].removeprefix("#/").split("/"):
+                target = target[step]
+            body = target
+        elif "oneOf" in body:
+            arms = [_shape(arm) for arm in body["oneOf"]]
+            return next((arm for arm in arms if isinstance(arm, dict) and "properties" in arm), body)
+        else:
+            break
+    return body
+
+
 def schema_fields(properties=None, prefix=""):
     """Every leaf field of project.json that the schema declares, as a dotted path."""
-    properties = common.read_json(ROOT / "schemas" / "gamearts-project.schema.json")["properties"] if properties is None else properties
+    properties = PROJECT_SCHEMA["properties"] if properties is None else properties
     for name, body in properties.items():
+        body = _shape(body)
         if isinstance(body, dict) and "properties" in body:
             yield from schema_fields(body["properties"], prefix + name + ".")
         else:

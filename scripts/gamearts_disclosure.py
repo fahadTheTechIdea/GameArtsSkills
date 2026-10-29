@@ -42,6 +42,8 @@ def _mockup_entry(row):
             entry["model"] = provenance["model"]
         if provenance.get("generator_role") == "fallback":
             entry["generator_role"] = "fallback"
+            if provenance.get("fallback_position"):
+                entry["fallback_position"] = provenance["fallback_position"]
     return entry
 
 

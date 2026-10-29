@@ -1020,7 +1020,7 @@ def _check_image_tool(settings, metadata):
     if tool == "user_supplied":
         raise ValueError("The project's image generator is user_supplied: the owner makes the pictures, so a generated mockup cannot be "
                          "registered. Import the owner's picture with import-mockup, or have the owner change the image generator setting first")
-    allowed = [chosen] + ([chosen["fallback"]] if chosen.get("fallback") else [])  # the owner's main tool, then the one they chose for when it is unavailable
+    allowed = [chosen, *common.image_fallbacks(chosen)]  # the owner's main tool, then the ones they allowed for when it is unavailable
     mismatch = None
     for candidate in allowed:
         if mode != candidate["tool"]:
@@ -1354,15 +1354,22 @@ def register_generated_mockup(game_root, image, mockup_id, revision, scope, prom
         raise ValueError(f"image must be a regular file: {image}")
     settings, _, _ = _settings_snapshot(root)
     chosen = settings.get("image_generation")
-    if use_fallback:
-        if not chosen or not chosen.get("fallback"):
+    spares = common.image_fallbacks(chosen)
+    wants_fallback = use_fallback is not None and use_fallback is not False  # 0 is a wrong number, not "no fallback"
+    position = 1 if use_fallback is True else use_fallback  # which of the owner's fallbacks, counted from 1 in their order
+    if wants_fallback:
+        if not spares:
             raise ValueError("This game has no fallback image generator: the owner chose none, so the main tool is the only one. Say that it is unavailable and stop, "
                              "or have the owner add a fallback to the image generator setting")
+        if not isinstance(position, int) or not 1 <= position <= len(spares):
+            raise ValueError(f"This game has {len(spares)} fallback image generator{'s' if len(spares) != 1 else ''}, in the owner's order: "
+                             f"use the number of the one you used, from 1 to {len(spares)}")
         if not str(fallback_reason).strip():
-            raise ValueError("Say why the main image generator was not used (--fallback-reason): the fallback is only for when it is unavailable in the session")
+            raise ValueError("Say why the main image generator was not used, and any fallback before this one (--fallback-reason): a fallback is only for when "
+                             "the ones before it are unavailable in the session")
         if tool_mode is not None:
             raise ValueError("use_fallback names the owner's fallback tool itself: do not also name a tool")
-        tool_mode, tool_name = chosen["fallback"]["tool"], chosen["fallback"].get("tool_name")
+        tool_mode, tool_name = spares[position - 1]["tool"], spares[position - 1].get("tool_name")
     elif tool_mode is None:
         if not chosen:
             raise ValueError("No image generator is saved for this game: ask the owner which one to use and save it in the project "
@@ -1384,7 +1391,7 @@ def register_generated_mockup(game_root, image, mockup_id, revision, scope, prom
             "prompt_origin": "agent_brief", "imagegen_prompt_captured": True, "tool_mode": tool_mode, "created_at_utc": _now(),
             "source_references": [{"original_name": image.name, "original_sha256": original_hash}],
             "provenance": {"provider": tool_name or tool_mode, "edit_mode": "generated", **({"model": model} if model else {}),
-                           **({"generator_role": "fallback", "fallback_reason": str(fallback_reason).strip()} if use_fallback else {})}}
+                           **({"generator_role": "fallback", "fallback_position": position, "fallback_reason": str(fallback_reason).strip()} if wants_fallback else {})}}
         if tool_name:
             metadata["tool_name"] = tool_name
         if scene_id:
@@ -1851,8 +1858,10 @@ def main():
                      help="Omit to use the image generator saved in the project settings")
     sub.add_argument("--tool-name", help="Name of the connected tool; omit to use the saved one")
     sub.add_argument("--model", help="Model the tool reported, when it reports one")
-    sub.add_argument("--use-fallback", action="store_true", help="The picture came from the owner's fallback image generator (the main one is unavailable in this session)")
-    sub.add_argument("--fallback-reason", default="", help="Why the main image generator was not used; required with --use-fallback and recorded with the picture")
+    sub.add_argument("--use-fallback", nargs="?", const=True, type=int, metavar="NUMBER",
+                     help="The picture came from one of the owner's fallback image generators (the ones before it are unavailable in this session): its number in the "
+                          "owner's order, from 1; needed only when the owner saved more than one")
+    sub.add_argument("--fallback-reason", default="", help="Why the main image generator and any fallback before this one were not used; required with --use-fallback and recorded with the picture")
     sub.add_argument("--storyboard-scene-id")
     sub.add_argument("--notes", default="")
     sub = op("import-mockup")

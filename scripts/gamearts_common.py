@@ -270,6 +270,13 @@ def game_root(path):
     return Path(path).resolve()
 
 
+def image_fallbacks(generation):
+    """The image generators the owner allowed besides the main one, in the order to try them. A game that saved one fallback holds it as an object and one
+    that saved several holds an array; this is the one place that tells them apart, so every reader sees a list."""
+    spare = (generation or {}).get("fallback")
+    return [spare] if isinstance(spare, dict) else list(spare or [])
+
+
 PROMPTING_SWITCHES = ("reference_lock", "strict_camera_lock", "single_master_first")  # each is on unless the owner turned it off
 
 

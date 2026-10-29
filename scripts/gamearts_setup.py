@@ -87,13 +87,30 @@ SOFT_EDGES = [("hard", "Keep the delivered edges hard", "Soft coverage is kept s
               ("matte", "Deliver a soft-edge companion", "A matte picture beside each sheet; needs an image tool that returns true alpha. The runtime export turns it into real soft alpha.")]
 SOFT_EDGE_RULES = {"hard": "Soft edges: delivered pictures keep hard edges; any soft coverage is kept separately and never claimed to be recovered from the key colour.",
                    "matte": "Soft edges: deliver a companion matte (<name>.matte.png) beside each key sheet where the image tool returns true alpha."}
+FALLBACKS = [("image_fallback", "fallback_notes"), ("image_fallback_2", "fallback_notes_2"), ("image_fallback_3", "fallback_notes_3")]  # the owner's other image generators in the order to try them: each a tool question and its note question
 ORDER = ["project_name", "world_kind", "look", "soft_edges", "viewpoint", "tile_size", "scale", "layers", "screen_size", "screen_scaling", "directions", "animation",
-         "image_generator", "image_notes", "image_fallback", "fallback_notes", "engine", "engine_version", "palette"]
-NOTE_QUESTIONS = ("image_notes", "fallback_notes", "engine_version")  # optional words of the owner's; "No note" is a pick like any other, so nothing is left to a default
+         "image_generator", "image_notes", *[name for pair in FALLBACKS for name in pair], "engine", "engine_version", "palette"]
+NOTE_QUESTIONS = ("image_notes", *[note for _, note in FALLBACKS], "engine_version")  # optional words of the owner's; "No note" is a pick like any other, so nothing is left to a default
 NOTE_CHOICES = [("none", "No note"), ("words", "Add a note")]
 DEPENDS = {"look": {"world_kind"}, "soft_edges": {"look"}, "viewpoint": {"world_kind"}, "tile_size": {"world_kind", "viewpoint"}, "scale": {"world_kind", "viewpoint"},
-           "layers": {"world_kind"}, "image_notes": {"image_generator"}, "image_fallback": {"image_generator"}, "fallback_notes": {"image_fallback"}, "engine_version": {"engine"},
+           "layers": {"world_kind"}, "image_notes": {"image_generator"}, "engine_version": {"engine"},
            "screen_size": {"world_kind"}, "screen_scaling": {"world_kind"}, "directions": {"world_kind"}}
+DEPENDS.update({tool: {"image_generator" if position == 1 else FALLBACKS[position - 2][0]} for position, (tool, _) in enumerate(FALLBACKS, 1)})  # each is asked after the one before it
+DEPENDS.update({note: {tool} for tool, note in FALLBACKS})
+
+
+def _fallback_slot(name):
+    """(position counted from 1, whether it is the note question) for a fallback question; None for any other question."""
+    for position, pair in enumerate(FALLBACKS, 1):
+        if name in pair:
+            return position, name == pair[1]
+    return None
+
+
+def _names_a_tool(name):
+    """Whether the question asks which image generator, so a connected tool needs its name."""
+    slot = _fallback_slot(name)
+    return name == "image_generator" or (slot is not None and not slot[1])
 
 
 @functools.lru_cache(maxsize=None)
@@ -182,14 +199,25 @@ def question(name, answers):
     if name == "image_notes" and answers.get("image_generator", {}).get("value") not in (None, "user_supplied"):
         return {"id": name, "header": "Image note", "prompt": "Should every picture request to that image generator carry a note from you, such as a model name or a quality level?",
                 "options": _note_options("Nothing extra is sent; the tool's own defaults apply.", "In your own words; you will be asked for the note.")}
-    if name == "image_fallback" and answers.get("image_generator", {}).get("value") not in (None, "user_supplied"):
-        main = answers["image_generator"]["value"]
-        options = [{"value": "none", "label": "No fallback", "description": "If my chosen tool is not available in a session, the agent says so and stops; it never uses another."}]
-        options += _opts([t for t in IMAGE_TOOLS if t[0] not in ("user_supplied", main)])
-        return {"id": name, "header": "Fallback", "prompt": "If that image generator is not available in a session, is there another one Game Arts may use instead? It is used only then, and the picture records why.",
+    slot = _fallback_slot(name)
+    if slot and not slot[1] and answers.get("image_generator", {}).get("value") not in (None, "user_supplied"):
+        position = slot[0]
+        earlier = [answers.get(tool, {}).get("value") for tool, _ in FALLBACKS[:position - 1]]
+        if None in earlier or "none" in earlier:  # the one before it is not answered, or the owner has no more
+            return None
+        used = {answers["image_generator"]["value"], *earlier} - {"connected_tool"}  # a built-in or command-line tool is one tool; connected tools are told apart by their names
+        first = position == 1
+        options = [{"value": "none", "label": "No fallback" if first else "No further fallback",
+                    "description": ("If my chosen tool is not available in a session, the agent says so and stops; it never uses another." if first
+                                    else "If none of those is available in a session, the agent says so and stops; it never uses another.")}]
+        options += _opts([t for t in IMAGE_TOOLS if t[0] != "user_supplied" and t[0] not in used])
+        return {"id": name, "header": "Fallback" if first else f"Fallback {position}",
+                "prompt": ("If that image generator is not available in a session, is there another one Game Arts may use instead? It is used only then, and the picture records why." if first
+                           else "If that one is not available either, is there another image generator Game Arts may try after it? It is used only then, and the picture records why."),
                 "options": options}
-    if name == "fallback_notes" and answers.get("image_fallback", {}).get("value") not in (None, "none"):
-        return {"id": name, "header": "Fallback note", "prompt": "Should every picture made with the fallback carry a note from you, such as the model to use?",
+    if slot and slot[1] and answers.get(FALLBACKS[slot[0] - 1][0], {}).get("value") not in (None, "none"):
+        return {"id": name, "header": "Fallback note" if slot[0] == 1 else f"Fallback {slot[0]} note",
+                "prompt": "Should every picture made with that fallback carry a note from you, such as the model to use?",
                 "options": _note_options("Nothing extra is sent; the fallback's own defaults apply.", "In your own words; you will be asked for the note.")}
     if name == "engine":
         found = [(key, profile["title"], profile["summary"]) for key, profile in sorted(_engines().items())]
@@ -213,7 +241,7 @@ def unanswered(answers):
 
 
 def _needs_text(name, value):
-    return value == OTHER or (name in ("image_generator", "image_fallback") and value == "connected_tool") or (name == "palette" and value in ("words", "picture")) or (name in NOTE_QUESTIONS and value == "words") or name == "project_name"
+    return value == OTHER or (_names_a_tool(name) and value == "connected_tool") or (name == "palette" and value in ("words", "picture")) or (name in NOTE_QUESTIONS and value == "words") or name == "project_name"
 
 
 def _split_size(text, what):
@@ -235,6 +263,11 @@ def check_answer(answers, name, value, text):
         raise ValueError(f"{value!r} is not one of the options of {name!r}: {', '.join(option['value'] for option in asked['options'])}")
     if _needs_text(name, value) and not (text or "").strip():
         raise ValueError(f"{name} {value!r} needs the owner's own words: pass --text")
+    slot = _fallback_slot(name)
+    if slot and not slot[1] and value == "connected_tool":  # the same tool twice in the owner's list would only repeat itself
+        earlier = [answers.get("image_generator", {}), *[answers.get(tool, {}) for tool, _ in FALLBACKS[:slot[0] - 1]]]
+        if any(item.get("value") == "connected_tool" and item.get("text", "").strip().casefold() == text.strip().casefold() for item in earlier):
+            raise ValueError(f"{text.strip()!r} is already earlier in the list of image generators: name a different tool")
     if name in ("tile_size", "screen_size") and value == OTHER:
         _split_size(text, "the size")
     if name == "project_name":
@@ -324,6 +357,10 @@ TRIGGERS = {"project_name": "always", "world_kind": "always", "look": "after the
             "fallback_notes": "when you chose a fallback image generator", "engine": "always", "engine_version": "when you chose an engine other than generic", "palette": "always"}
 
 
+TRIGGERS.update({tool: "when you named a fallback image generator before it, to say what to use if that one is unavailable too" for tool, _ in FALLBACKS[1:]})
+TRIGGERS.update({note: "when you named a fallback image generator at this position" for _, note in FALLBACKS[1:]})
+
+
 def status(root):
     answers = load_answers(root)
     open_questions = unanswered(answers)
@@ -350,15 +387,20 @@ def _current(root, name):
         return (held.get("animation") or {}).get("preferred_method")
     if name == "image_generator":
         return (held.get("image_generation") or {}).get("tool")
-    if name == "image_fallback":
+    slot = _fallback_slot(name)
+    if slot:
         generation = held.get("image_generation") or {}
-        return (generation.get("fallback") or {}).get("tool", "none") if generation.get("tool") else None
+        spares = common.image_fallbacks(generation)
+        position, is_note = slot
+        if is_note:
+            spare = spares[position - 1] if len(spares) >= position else None
+            return ("words" if spare.get("notes") else "none") if spare else None
+        if not generation.get("tool") or len(spares) < position - 1:
+            return None
+        return spares[position - 1]["tool"] if len(spares) >= position else "none"
     if name == "image_notes":
         generation = held.get("image_generation") or {}
         return ("words" if generation.get("notes") else "none") if generation.get("tool") else None
-    if name == "fallback_notes":
-        spare = (held.get("image_generation") or {}).get("fallback")
-        return ("words" if spare.get("notes") else "none") if spare else None
     if name == "engine_version":
         target = held.get("engine_target") or {}
         return ("words" if target.get("version_note") else "none") if target.get("profile") else None
@@ -396,8 +438,11 @@ def _held_words(root, name):
     """The note an existing game already holds for a note question, so the owner sees what they would keep; never counted as an answer."""
     held = _existing(root) or {}
     generation = held.get("image_generation") or {}
-    return {"image_notes": generation.get("notes"), "fallback_notes": (generation.get("fallback") or {}).get("notes"),
-            "engine_version": (held.get("engine_target") or {}).get("version_note")}.get(name)
+    slot = _fallback_slot(name)
+    if slot and slot[1]:
+        spares = common.image_fallbacks(generation)
+        return spares[slot[0] - 1].get("notes") if len(spares) >= slot[0] else None
+    return {"image_notes": generation.get("notes"), "engine_version": (held.get("engine_target") or {}).get("version_note")}.get(name)
 
 
 def render(asked, current=None, current_words=None):
@@ -497,11 +542,15 @@ def build_settings(answers, root, existing=None):
     generation = {"tool": tool["value"], **({"tool_name": tool["text"]} if tool["value"] == "connected_tool" else {})}
     if _words(answers, "image_notes"):
         generation["notes"] = _words(answers, "image_notes")
-    fallback = answers.get("image_fallback")
-    if fallback and fallback["value"] != "none":
-        generation["fallback"] = {"tool": fallback["value"], **({"tool_name": fallback["text"]} if fallback["value"] == "connected_tool" else {})}
-        if _words(answers, "fallback_notes"):
-            generation["fallback"]["notes"] = _words(answers, "fallback_notes")
+    spares = []
+    for tool_question, note_question in FALLBACKS:  # in the owner's order, up to the first they did not name
+        pick = answers.get(tool_question)
+        if not pick or pick["value"] == "none":
+            break
+        spares.append({"tool": pick["value"], **({"tool_name": pick["text"]} if pick["value"] == "connected_tool" else {}),
+                       **({"notes": _words(answers, note_question)} if _words(answers, note_question) else {})})
+    if spares:
+        generation["fallback"] = spares[0] if len(spares) == 1 else spares  # one is saved as it always was; several as an ordered list
     settings["image_generation"] = generation
     engine = answers["engine"]
     settings["engine_target"] = {"profile": (engine_slug(engine["text"]) if engine["value"] == OTHER else engine["value"])}
@@ -539,15 +588,17 @@ def summary(answers):
                   "cli_image_gen": "Consequence: every picture is made with Codex's command-line image tool, which needs an OpenAI API key.",
                   "connected_tool": "Consequence: every picture is made with the connected tool you named, which may charge for each picture."}[tool])
     if "image_fallback" in answers:
-        lines.append("Consequence: if that tool is not available in a session, " + ("the agent says so and stops; it never uses another." if answers["image_fallback"]["value"] == "none"
-                     else "the fallback you named is used instead and each picture records why."))
+        named = [tool for tool, _ in FALLBACKS if answers.get(tool, {}).get("value") not in (None, "none")]
+        lines.append("Consequence: if that tool is not available in a session, " + ("the agent says so and stops; it never uses another." if not named
+                     else ("the fallback you named is used instead" if len(named) == 1 else "the fallbacks you named are tried in the order you gave them")
+                     + " and each picture records which was used and why."))
     engine = answers["engine"]["value"]
     lines.append("Consequence: plain guidance for any engine, and no automatic engine-ready copies." if engine == "generic"
                  else "Consequence: import advice and default engine-ready copies come from the engine's profile where one is installed.")
     if "soft_edges" in answers:
         lines.append("Consequence: " + SOFT_EDGE_RULES[answers["soft_edges"]["value"]])
     for name, sentence in (("image_notes", "every picture request to the image generator carries your note: “{}”"),
-                           ("fallback_notes", "every picture made with the fallback carries your note: “{}”"),
+                           *[(note, "every picture made with the fallback carries your note: “{}”") for _, note in FALLBACKS],
                            ("engine_version", "the engine version you named (“{}”) is kept with the settings and shown beside the import advice")):
         if _words(answers, name):
             lines.append("Consequence: " + sentence.format(_words(answers, name)) + ".")

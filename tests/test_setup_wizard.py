@@ -410,6 +410,7 @@ class ImageFallbackTests(GameCase):
             choose(self.root, "image_fallback", "connected_tool")
         choose(self.root, "image_fallback", "connected_tool", "SpriteCook (gpt-image 2.5)")
         settle(self.root)  # the fallback is asked for a note too
+        choose(self.root, "image_fallback_2", "none")  # and whether there is another after it
         run(self.root, [("engine", "generic", None), ("palette", "none", None)])
         wizard.finish(self.root)
         saved = common.read_json(self.root / ".gamearts" / "project.json")
@@ -451,6 +452,7 @@ class OptionalNoteTests(GameCase):
         choose(self.root, "image_notes", "words", "second newest model, high quality")
         choose(self.root, "image_fallback", "connected_tool", "Other Tool")
         choose(self.root, "fallback_notes", "words", "model two point five")
+        choose(self.root, "image_fallback_2", "none")
         run(self.root, [("engine", "generic", None), ("palette", "none", None)])
         wizard.finish(self.root)
         self.assertEqual(self.settings()["image_generation"],
@@ -522,13 +524,125 @@ class OptionalNoteTests(GameCase):
         self.assertIn("with the note: model two", detail)
 
 
+class ImageFallbackChainTests(GameCase):
+    """The owner's ordered list of image generators: a built-in tool, then connected tools the owner names, each asked after the one before it."""
+
+    def up_to_generator(self, value="built_in_image_gen", text=None):
+        run(self.root, [("project_name", "name", "Demo Game"), ("world_kind", "grid_world", None), ("look", "pixel_mid", None), ("viewpoint", "oblique", None),
+                        ("tile_size", "32x32", None), ("directions", "dirs_4", None), ("animation", "hybrid", None), ("image_generator", value, text)])
+        choose(self.root, "image_notes", "none")
+
+    def finish_chain(self):
+        run(self.root, [("engine", "generic", None), ("palette", "none", None)])
+        wizard.finish(self.root)
+        return self.settings()["image_generation"]
+
+    def asked_values(self):
+        return [option["value"] for option in wizard.next_question(self.root)["question"]["options"]]
+
+    def test_each_tool_is_asked_after_the_one_before_and_several_are_saved_as_an_ordered_list(self):
+        self.up_to_generator()
+        choose(self.root, "image_fallback", "connected_tool", "First Tool")
+        choose(self.root, "fallback_notes", "none")
+        self.assertEqual(wizard.next_question(self.root)["question"]["id"], "image_fallback_2")
+        self.assertEqual(self.asked_values(), ["none", "cli_image_gen", "connected_tool"])  # the built-in tool is used once; connected tools are told apart by name
+        choose(self.root, "image_fallback_2", "connected_tool", "Second Tool")
+        choose(self.root, "fallback_notes_2", "words", "model two")
+        self.assertEqual(wizard.next_question(self.root)["question"]["id"], "image_fallback_3")
+        choose(self.root, "image_fallback_3", "none")
+        saved = self.finish_chain()
+        self.assertEqual(saved["fallback"], [{"tool": "connected_tool", "tool_name": "First Tool"},
+                                             {"tool": "connected_tool", "tool_name": "Second Tool", "notes": "model two"}])
+        self.assertEqual(life.check_settings(self.root)["image_generation"]["fallback"], saved["fallback"])  # the contract accepts it
+        self.assertEqual([spare["tool_name"] for spare in common.image_fallbacks(saved)], ["First Tool", "Second Tool"])
+
+    def test_a_connected_main_tool_can_have_a_different_connected_fallback_and_a_later_tool_is_not_offered_what_is_used(self):
+        self.up_to_generator("connected_tool", "Main Tool")
+        self.assertEqual(self.asked_values(), ["none", "built_in_image_gen", "cli_image_gen", "connected_tool"])
+        choose(self.root, "image_fallback", "cli_image_gen")
+        choose(self.root, "fallback_notes", "none")
+        self.assertEqual(self.asked_values(), ["none", "built_in_image_gen", "connected_tool"])  # the command-line tool is already in the list
+
+    def test_the_list_ends_at_the_first_tool_the_owner_does_not_name(self):
+        self.up_to_generator()
+        choose(self.root, "image_fallback", "none")
+        self.assertNotIn("image_fallback_2", wizard.unanswered(wizard.load_answers(self.root)))
+        self.assertIsNone(wizard.question("image_fallback_2", wizard.load_answers(self.root)))
+        self.assertNotIn("fallback", self.finish_chain())
+
+    def test_one_fallback_is_still_saved_as_one_tool_and_means_the_same(self):
+        self.up_to_generator()
+        choose(self.root, "image_fallback", "connected_tool", "Only Tool")
+        choose(self.root, "fallback_notes", "none")
+        choose(self.root, "image_fallback_2", "none")
+        saved = self.finish_chain()
+        self.assertEqual(saved["fallback"], {"tool": "connected_tool", "tool_name": "Only Tool"})
+        self.assertEqual(common.image_fallbacks(saved), [saved["fallback"]])
+
+    def test_the_same_connected_tool_cannot_be_named_twice(self):
+        self.up_to_generator("connected_tool", "Main Tool")
+        with self.assertRaisesRegex(ValueError, "already earlier"):
+            choose(self.root, "image_fallback", "connected_tool", " main TOOL ")
+        choose(self.root, "image_fallback", "connected_tool", "Second Tool")
+        choose(self.root, "fallback_notes", "none")
+        with self.assertRaisesRegex(ValueError, "already earlier"):
+            choose(self.root, "image_fallback_2", "connected_tool", "second tool")
+        choose(self.root, "image_fallback_2", "connected_tool", "Third Tool")  # a different name is fine
+
+    def test_a_connected_fallback_in_any_position_needs_its_name(self):
+        self.up_to_generator()
+        choose(self.root, "image_fallback", "cli_image_gen")
+        choose(self.root, "fallback_notes", "none")
+        with self.assertRaisesRegex(ValueError, "own words"):
+            choose(self.root, "image_fallback_2", "connected_tool")
+
+    def test_changing_an_earlier_tool_asks_the_later_ones_again(self):
+        self.up_to_generator()
+        choose(self.root, "image_fallback", "connected_tool", "First Tool")
+        choose(self.root, "fallback_notes", "none")
+        choose(self.root, "image_fallback_2", "connected_tool", "Second Tool")
+        choose(self.root, "fallback_notes_2", "none")
+        choose(self.root, "image_fallback_3", "none")
+        choose(self.root, "image_fallback", "cli_image_gen")  # the list was built on the first tool, so the later answers are asked again
+        answers = wizard.load_answers(self.root)
+        self.assertTrue({"image_fallback_2", "fallback_notes_2", "image_fallback_3"}.isdisjoint(answers))
+        self.assertIn("fallback_notes", wizard.unanswered(answers))
+        choose(self.root, "image_generator", "cli_image_gen")  # a new main tool asks for the whole list again
+        self.assertNotIn("image_fallback", wizard.load_answers(self.root))
+
+    def test_a_game_that_holds_a_list_shows_the_current_pick_and_note_of_each_position(self):
+        self.up_to_generator()
+        choose(self.root, "image_fallback", "connected_tool", "First Tool")
+        choose(self.root, "fallback_notes", "words", "model one")
+        choose(self.root, "image_fallback_2", "connected_tool", "Second Tool")
+        choose(self.root, "fallback_notes_2", "none")
+        choose(self.root, "image_fallback_3", "none")
+        self.finish_chain()
+        self.assertEqual([wizard._current(self.root, name) for name in ("image_fallback", "image_fallback_2", "image_fallback_3")],
+                         ["connected_tool", "connected_tool", "none"])
+        self.assertEqual([wizard._current(self.root, name) for name in ("fallback_notes", "fallback_notes_2", "fallback_notes_3")], ["words", "none", None])
+        self.assertEqual((wizard._held_words(self.root, "fallback_notes"), wizard._held_words(self.root, "fallback_notes_2")), ("model one", None))
+
+    def test_the_summary_says_the_tools_are_tried_in_the_owners_order(self):
+        self.up_to_generator()
+        choose(self.root, "image_fallback", "connected_tool", "First Tool")
+        choose(self.root, "fallback_notes", "none")
+        choose(self.root, "image_fallback_2", "connected_tool", "Second Tool")
+        choose(self.root, "fallback_notes_2", "words", "model two")
+        choose(self.root, "engine", "generic")
+        lines = " ".join(wizard.summary(wizard.load_answers(self.root)))
+        self.assertIn("tried in the order you gave them", lines)
+        self.assertIn("Fallback 2: ", lines)
+        self.assertIn("carries your note: “model two”", lines)
+
+
 class ContractTests(GameCase):
     """What other tools build on (the Storyboard framework drives the wizard and reads check-settings): the names here change only with a notice."""
 
     def test_the_question_ids_and_the_shape_of_next_are_stable(self):
         self.assertEqual(wizard.ORDER, ["project_name", "world_kind", "look", "soft_edges", "viewpoint", "tile_size", "scale", "layers", "screen_size",
-                                        "screen_scaling", "directions", "animation", "image_generator", "image_notes", "image_fallback", "fallback_notes", "engine",
-                                        "engine_version", "palette"])
+                                        "screen_scaling", "directions", "animation", "image_generator", "image_notes", "image_fallback", "fallback_notes",
+                                        "image_fallback_2", "fallback_notes_2", "image_fallback_3", "fallback_notes_3", "engine", "engine_version", "palette"])
         asked = wizard.next_question(self.root)
         self.assertEqual(set(asked) >= {"question", "complete", "text", "progress"}, True)
         self.assertEqual(set(asked["question"]) >= {"id", "prompt", "options"}, True)

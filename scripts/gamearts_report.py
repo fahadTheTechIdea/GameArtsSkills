@@ -98,11 +98,13 @@ def describe_settings(settings):
         rows.append(("Pictures made by", f"{label} ({generator['tool_name']})" if generator.get("tool_name") else label))
         if generator.get("notes"):
             rows.append(("Note with every picture", generator["notes"]))
-        if generator.get("fallback"):
-            spare = generator["fallback"]
-            rows.append(("If that is unavailable", f"{GENERATOR_LABEL[spare['tool']]} ({spare['tool_name']})" if spare.get("tool_name") else GENERATOR_LABEL[spare["tool"]]))
+        spares = common.image_fallbacks(generator)
+        for number, spare in enumerate(spares, 1):
+            ordinal = "" if len(spares) == 1 else f" ({number})"
+            rows.append((f"If that is unavailable{ordinal}" if number == 1 else f"If that is unavailable too{ordinal}",
+                         f"{GENERATOR_LABEL[spare['tool']]} ({spare['tool_name']})" if spare.get("tool_name") else GENERATOR_LABEL[spare["tool"]]))
             if spare.get("notes"):
-                rows.append(("Note with the fallback", spare["notes"]))
+                rows.append((f"Note with the fallback{ordinal}", spare["notes"]))
     engine = presets.resolve_engine_target(settings)
     rows.append(("Engine or tool", engine.get("title") or engine["profile"] + " (no profile installed)"))
     if engine.get("version_note"):

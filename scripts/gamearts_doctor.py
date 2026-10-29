@@ -114,13 +114,15 @@ def check_settings(root):
         findings.append(check("settings", "warn", f"Settings are valid but {settings.get('settings_status', 'not confirmed')}",
                               "Show the owner the settings and ask for one confirmation; mockups cannot be registered before that"))
     generator = settings.get("image_generation")
+    spares = common.image_fallbacks(generator)
     if generator:
         findings.append(check("image generator", "info", f"Saved choice: {generator['tool']}"
                               + (f" ({generator['tool_name']})" if generator.get("tool_name") else "")
                               + (f"; note: {generator['notes']}" if generator.get("notes") else "")
-                              + (f"; fallback: {generator['fallback']['tool']}" + (f" ({generator['fallback']['tool_name']})" if generator["fallback"].get("tool_name") else "")
-                                 + (f" with the note: {generator['fallback']['notes']}" if generator["fallback"].get("notes") else "")
-                                 if generator.get("fallback") else "")
+                              + "".join(f"; {'fallback' if len(spares) == 1 else f'fallback {number}'}: {spare['tool']}"
+                                        + (f" ({spare['tool_name']})" if spare.get("tool_name") else "")
+                                        + (f" with the note: {spare['notes']}" if spare.get("notes") else "")
+                                        for number, spare in enumerate(spares, 1))
                               + ". Whether this session has that tool is for the agent to check against its own tools."))
     else:
         findings.append(check("image generator", "warn", "No image generator is saved for this game",
