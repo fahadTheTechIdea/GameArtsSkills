@@ -33,6 +33,9 @@ All of these are off unless the job asks for them; a job without them builds exa
 - `soft_alpha: true`: the frames are true-alpha pictures from a tool that can return alpha. Each is split into key-colour art and coverage, and the sheet is delivered with a companion `<name>.matte.png` of the same size (and an atlas `matte` entry with its hash). Only for looks with soft edges; hard-edged looks never get a matte. `python scripts/gamearts_matte.py split` does the same for one picture and `check` proves a pair agrees.
 - `blend_mode`: `normal`, `additive`, `subtractive`, `multiply`, `screen` or `premultiplied`, for glow, shadow and light sheets. It is advice for the game project to use; nothing here applies it.
 
+## From a generated strip
+An image tool returns every action as one picture. `scripts/slice_generated_strip.py --source STRIP.png --frames 8 --out NEW_FOLDER --name hero_clap_e --direction E --action clap [--columns 8] [--reference APPROVED_POSE.png] [--planted]` cuts it into frames at the empty gutters between the figures, places every figure on one frame size with the same pivot (the centre of the planted sole) and writes the job described above. It refuses, saying where and how many pixels, a strip with no gutter or with a figure touching the picture's edge, and, with a reference, a strip that needs a different scale per frame. The source is never changed, and the scale is reported, not applied. Then run the builder on the job it wrote.
+
 ## Run
 ```text
 python scripts/build_sheet_atlas.py <job.json> --output-dir <candidate-folder> [--game-root <game>]

@@ -32,6 +32,8 @@ KINDS = ("mockups", "assets", "storyboard", "settings", "restore", "other")
 NEEDS_A_REASON = ("changes", "rejected")  # the agent can do nothing with a bare "no"
 DEFAULT_WAIT_SECONDS = 1800.0
 ID_PATTERN = r"^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$"
+PICTURE_KINDS = ("mockups", "assets", "restore")  # what the owner approves here is a picture
+PICTURE_ITEM_PREFIXES = ("import-asset-", "import-mockup-", "limited-profile-", "visual-review-")  # `other` items about pictures
 
 
 def _now():
@@ -69,6 +71,11 @@ def _fingerprint(root, image):
     return path, {"sha256": common.sha256_file(path), "bytes": size, "width": width, "height": height}
 
 
+def shows_a_picture(item):
+    """True for an item whose approval is a judgement of artwork, which the owner must therefore see."""
+    return item["kind"] in PICTURE_KINDS or (item["kind"] == "other" and item["id"].startswith(PICTURE_ITEM_PREFIXES))
+
+
 def prepare(root, spec):
     """The request as it is saved: checked against its contract, every picture found inside the game, confirmed to be one, and fingerprinted,
     so the page shows and the decision records exactly the files that were named."""
@@ -81,6 +88,8 @@ def prepare(root, spec):
         if key in seen:
             raise ValueError(f"{item['kind']} {item['id']}" + (f" {item['revision']}" if item.get("revision") else "") + " is listed twice in one request")
         seen.add(key)
+        if shows_a_picture(item) and not item.get("images"):
+            raise ValueError(f"“{item.get('title') or item['id']}” is artwork, so the form must show it: name its picture(s) in `images` (the owner never approves a picture they were not shown)")
         for image in item.get("images", []):
             image.update(_fingerprint(root, image)[1])
     return request

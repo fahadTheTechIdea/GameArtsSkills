@@ -94,6 +94,20 @@ class PrepareTests(GameCase):
         self.assertEqual(image["sha256"], common.sha256_file(self.root / "art/market.png"))
         self.assertEqual(image["bytes"], (self.root / "art/market.png").stat().st_size)
 
+    def test_artwork_is_never_asked_about_without_its_picture(self):
+        """Approving a mockup, a sprite sheet, a restore or an imported or reviewed picture is judging a picture: the request must carry it."""
+        for item in ({"kind": "mockups", "id": "market", "revision": "v001"}, {"kind": "assets", "id": "hero", "revision": "v001"}, {"kind": "restore", "id": "market", "revision": "v001"},
+                     {"kind": "other", "id": "import-asset-hero"}, {"kind": "other", "id": "import-mockup-tavern"}, {"kind": "other", "id": "limited-profile-hero"},
+                     {"kind": "other", "id": "visual-review-hero"}):
+            with self.subTest(item=f"{item['kind']} {item['id']}"), self.assertRaisesRegex(ValueError, "is artwork, so the form must show it"):
+                approval.prepare(self.root, self.spec(dict(item, title="Artwork")))
+            with self.subTest(item=f"{item['kind']} {item['id']} with its picture"):
+                approval.prepare(self.root, self.spec(dict(item, title="Artwork", images=[{"path": self.picture()}])))
+
+    def test_what_is_not_a_picture_needs_none(self):
+        approval.prepare(self.root, self.spec({"kind": "settings", "id": "project", "revision": "abc123def456"}, {"kind": "storyboard", "id": "scene-1", "revision": "abc"},
+                                              {"kind": "other", "id": "scene-list"}, {"kind": "other", "id": "change-request-9"}))
+
     def test_a_picture_the_form_cannot_honestly_show_is_refused(self):
         self.picture()  # makes the art folder
         (self.root / "art/notes.png").write_text("not a picture", encoding="utf-8")
@@ -179,6 +193,12 @@ class PageTests(ServerCase):
             self.assertNotIn(unsafe, page)
         for outside in ("http://", "https://", "//cdn"):
             self.assertNotIn(outside, page)  # nothing is fetched from anywhere but this computer
+
+    def test_the_page_will_not_let_a_picture_be_approved_before_it_is_shown(self):
+        page = call(self.link)[1].decode("utf-8")
+        for needle in ('addEventListener("load"', 'addEventListener("error"', "pictures[index].shown < pictures[index].total", "!state.unseen"):
+            self.assertIn(needle, page)
+        self.assertNotIn('loading: "lazy"', page)  # a picture below the fold must still load, or it could never be approved
 
     def test_a_picture_is_served_exactly_as_saved_and_only_by_its_place_in_the_request(self):
         status, body, headers = call(self.link + "image/0/0")
@@ -507,7 +527,7 @@ class MockupCommandTests(CommandCase):
     def test_a_revoked_mockup_is_restored_on_the_owners_decision_in_the_form(self):
         self.register("market", approved=True)
         life.revoke(self.root, "mockups", "market", "the light was wrong", "v001")
-        approval_id = self.ask(self.spec({"kind": "restore", "id": "market", "revision": "v001", "title": "Bring back the market"}))["approval_id"]
+        approval_id = self.ask(self.spec({"kind": "restore", "id": "market", "revision": "v001", "title": "Bring back the market", "images": [{"path": self.picture()}]}))["approval_id"]
         done = self.lifecycle("restore", "--kind", "mockups", "--id", "market", "--revision", "v001", "--approval-id", approval_id)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertEqual(self.record("market")["status"], "generated")  # a restored picture is back for review, as with the owner's words
@@ -596,7 +616,7 @@ class ImportCommandTests(CommandCase):
         return self.lifecycle("import-asset", "--source", self.sheet(), "--id", "hero", "--revision", "v001", "--grid", "2x2", "--rights", "owned", *words)
 
     def test_an_imported_sheet_is_approved_on_the_decision_the_owner_made_for_that_asset(self):
-        approval_id = self.ask(self.spec({"kind": "other", "id": "import-asset-hero", "revision": "v001", "title": "My hero sheet is mine and approved"}),
+        approval_id = self.ask(self.spec({"kind": "other", "id": "import-asset-hero", "revision": "v001", "title": "My hero sheet is mine and approved", "images": [{"path": self.picture()}]}),
                                lambda r: everything(r, comment="mine, I drew it"))["approval_id"]
         done = self.import_asset("--approval-id", approval_id)
         self.assertEqual(done.returncode, 0, done.stderr)
@@ -605,9 +625,9 @@ class ImportCommandTests(CommandCase):
         self.assertIn("mine, I drew it", json.dumps(mockups))
 
     def test_a_decision_for_another_asset_or_a_refusal_imports_nothing(self):
-        other = self.ask(self.spec({"kind": "other", "id": "import-asset-villain", "revision": "v001", "title": "Villain"}))["approval_id"]
-        refused = self.ask(self.spec({"kind": "other", "id": "import-asset-hero", "revision": "v001", "title": "Hero"}), lambda r: everything(r, "rejected", "not mine"))["approval_id"]
-        later = self.ask(self.spec({"kind": "other", "id": "import-asset-hero", "revision": "v002", "title": "Hero, the next revision"}))["approval_id"]
+        other = self.ask(self.spec({"kind": "other", "id": "import-asset-villain", "revision": "v001", "title": "Villain", "images": [{"path": self.picture()}]}))["approval_id"]
+        refused = self.ask(self.spec({"kind": "other", "id": "import-asset-hero", "revision": "v001", "title": "Hero", "images": [{"path": self.picture()}]}), lambda r: everything(r, "rejected", "not mine"))["approval_id"]
+        later = self.ask(self.spec({"kind": "other", "id": "import-asset-hero", "revision": "v002", "title": "Hero, the next revision", "images": [{"path": self.picture()}]}))["approval_id"]
         for approval_id in (other, refused, later):
             with self.subTest(approval_id=approval_id):
                 done = self.import_asset("--approval-id", approval_id)
@@ -623,7 +643,7 @@ class ImportCommandTests(CommandCase):
         left = self.lifecycle(*arguments)
         self.assertEqual(left.returncode, 0, left.stderr)
         self.assertEqual(json.loads(left.stdout)["status"], "generated")  # no approval given: left for review
-        approval_id = self.ask(self.spec({"kind": "other", "id": "import-mockup-tavern2", "revision": "v001", "title": "Tavern"}))["approval_id"]
+        approval_id = self.ask(self.spec({"kind": "other", "id": "import-mockup-tavern2", "revision": "v001", "title": "Tavern", "images": [{"path": self.picture()}]}))["approval_id"]
         done = self.lifecycle("import-mockup", "--source", source, "--id", "tavern2", "--revision", "v001", "--scope", "scene", "--approval-id", approval_id)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertEqual(json.loads(done.stdout)["status"], "approved")
@@ -631,12 +651,12 @@ class ImportCommandTests(CommandCase):
         self.assertEqual(mismatch.returncode, 1)
 
     def test_a_limited_facing_profile_is_approved_on_the_owners_decision(self):
-        approval_id = self.ask(self.spec({"kind": "other", "id": "limited-profile-hero", "revision": "v001", "title": "Four directions only"}))["approval_id"]
+        approval_id = self.ask(self.spec({"kind": "other", "id": "limited-profile-hero", "revision": "v001", "title": "Four directions only", "images": [{"path": self.picture()}]}))["approval_id"]
         done = self.lifecycle("register-asset", "--id", "hero", "--revision", "v001", "--bundle", "nowhere", "--source-mockup", "none:v001",
                               "--limited-profile-approval-id", approval_id)
         self.assertEqual(done.returncode, 1)
         self.assertNotIn("limited-profile-hero", done.stderr)  # the owner's decision was found and used; it is this bundle that does not exist
-        elsewhere = self.ask(self.spec({"kind": "other", "id": "limited-profile-villain", "revision": "v001", "title": "Villain"}))["approval_id"]
+        elsewhere = self.ask(self.spec({"kind": "other", "id": "limited-profile-villain", "revision": "v001", "title": "Villain", "images": [{"path": self.picture()}]}))["approval_id"]
         wrong = self.lifecycle("register-asset", "--id", "hero", "--revision", "v001", "--bundle", "nowhere", "--source-mockup", "none:v001", "--limited-profile-approval-id", elsewhere)
         self.assertEqual(wrong.returncode, 1)
         self.assertIn("limited-profile-hero", wrong.stderr)  # a decision about another asset is not this asset's approval
@@ -704,7 +724,7 @@ class VisualReviewCommandTests(CommandCase):
 
     def test_a_decision_for_another_asset_is_not_this_reviews_approval(self):
         packet = self.packet()
-        elsewhere = self.ask(self.spec({"kind": "other", "id": "visual-review-other_asset", "revision": "v002", "title": "Another"}))["approval_id"]
+        elsewhere = self.ask(self.spec({"kind": "other", "id": "visual-review-other_asset", "revision": "v002", "title": "Another", "images": [{"path": self.picture()}]}))["approval_id"]
         done = self.script("decide", "--game-root", self.root, "--packet", packet, "--approval-id", elsewhere)
         self.assertEqual(done.returncode, 1)
         self.assertIn("visual-review-test_workshop", done.stderr)

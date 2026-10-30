@@ -81,7 +81,10 @@ dialog .row{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-con
     if (typeof dialog.showModal === "function") { dialog.showModal(); } else { dialog.setAttribute("open", ""); }
   }
 
+  var pictures = [];
+
   function buildItem(item, index) {
+    pictures[index] = { total: 0, shown: 0, failed: false };
     var name = item.title || item.id;
     var meta = [item.kind, item.id].concat(item.revision ? [item.revision] : []).join(" · ");
     var card = el("section", { "class": "card", "aria-labelledby": "item-" + index });
@@ -97,7 +100,10 @@ dialog .row{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-con
         var src = base + "image/" + index + "/" + at;
         var caption = (image.caption || "Picture " + (at + 1)) + " (" + image.width + " × " + image.height + " px)";
         var alt = (image.caption || name) + ", picture " + (at + 1);
-        var thumb = el("img", { src: src, alt: alt, loading: "lazy" });
+        var thumb = el("img", { src: src, alt: alt });
+        pictures[index].total += 1;
+        thumb.addEventListener("load", function () { pictures[index].shown += 1; refresh(); });
+        thumb.addEventListener("error", function () { pictures[index].failed = true; refresh(); });
         var open = el("button", { type: "button", "aria-label": "Enlarge: " + alt }, [thumb]);
         open.addEventListener("click", function () { openZoom(src, caption, alt); });
         list.appendChild(el("li", {}, [el("figure", {}, [open, el("figcaption", { text: caption })])]));
@@ -127,21 +133,27 @@ dialog .row{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-con
   }
 
   function readiness() {
-    var decided = 0, missing = null;
+    var decided = 0, missing = null, unseen = null;
     request.items.forEach(function (item, index) {
       var choice = chosen(index);
       if (choice) { decided += 1; }
       if (choice && choice !== "approved" && !cards[index].comment.value.trim() && !missing) { missing = cards[index].name; }
+      if (choice === "approved" && pictures[index].shown < pictures[index].total && !unseen) { unseen = cards[index].name; }
     });
-    return { decided: decided, missing: missing, all: decided === request.items.length };
+    return { decided: decided, missing: missing, unseen: unseen, all: decided === request.items.length };
   }
 
   function refresh() {
     if (finished) { return; }
     var state = readiness();
     var left = request.items.length - state.decided;
-    byId("progress").textContent = state.all ? (state.missing ? "Say what should change for “" + state.missing + "”." : "Everything is decided. Press Send my decision.") : state.decided + " of " + request.items.length + " decided; " + left + " left.";
-    byId("send").disabled = !(state.all && !state.missing);
+    byId("progress").textContent = state.unseen ? "“" + state.unseen + "” can be approved only after its picture is shown" + (pictures[nameIndex(state.unseen)].failed ? ", and a picture could not be shown. Ask your agent to show the approval again." : ". Wait a moment for it to load.") : state.all ? (state.missing ? "Say what should change for “" + state.missing + "”." : "Everything is decided. Press Send my decision.") : state.decided + " of " + request.items.length + " decided; " + left + " left.";
+    byId("send").disabled = !(state.all && !state.missing && !state.unseen);
+  }
+
+  function nameIndex(name) {
+    for (var at = 0; at < cards.length; at += 1) { if (cards[at].name === name && pictures[at].shown < pictures[at].total) { return at; } }
+    return 0;
   }
 
   function lock() {
