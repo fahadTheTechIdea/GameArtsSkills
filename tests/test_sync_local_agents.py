@@ -512,7 +512,9 @@ class LegacyCompatibilityTests(unittest.TestCase):
             self.assertTrue((game / legacy.MASTER).is_file())  # the old updater installed the bridge as the master
             second = sync.sync(framework, game)
             self.assertEqual(second["conflicts"], [])
-            self.assertEqual(second["new"], ["GAME_ARTS_MASTER_STANDARD.md"])  # the real standard arrives
+            pages = sorted(f"scripts/{page.name}" for page in (framework / "scripts").iterdir() if page.suffix in (".html", ".css"))  # the file types the published updater does not copy
+            self.assertEqual(sorted(second["new"]), sorted(["GAME_ARTS_MASTER_STANDARD.md", *pages]))  # the real standard arrives, with the pages the owner uses
+            self.assertIn("scripts/gamearts_setup_form.html", pages)
             self.assertEqual(second["removed"], [legacy.MASTER])  # and the bridge a game received is cleaned up
             self.assertEqual(second["updated"], [])
             self.assertFalse((game / legacy.MASTER).exists())

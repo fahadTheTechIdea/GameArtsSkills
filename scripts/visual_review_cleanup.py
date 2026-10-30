@@ -2,10 +2,12 @@
 """Produce inspectable Game Arts extraction boards and bind a user decision to exact file hashes.
 
 prepare --cleanup cleanup.json --review-spec spec.json --output-dir review/
+request --game-root G --packet review/visual_review.packet.json            (the item to show in the approval form, gamearts_approval.py ask)
+decide  --game-root G --packet review/visual_review.packet.json --approval-id ID [--output review/decision.json]
 verify  --packet review/visual_review.packet.json --decision review/decision.json
 
 This DOES NOT visually recognize objects or independently attest a user message. An agent must display both boards,
-obtain real user approval, then write the decision. Approved original assets are never silently modified.
+obtain real user approval, then write the decision: `decide` writes it from the owner's decision in the approval form. Approved original assets are never silently modified.
 Review-spec contract: schemas/gamearts-review-spec.schema.json.
 """
 import argparse
@@ -18,6 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from PIL import Image, ImageChops, ImageDraw, ImageFont  # noqa: E402
 
+import gamearts_approval as approval  # noqa: E402
 import gamearts_common as common  # noqa: E402
 from validate_parent_cleanup import checked_report, mask_image  # noqa: E402
 
@@ -247,6 +250,47 @@ def verify(packet_file, decision_file):
             "engine_validation": "not_tested"}
 
 
+def _pending_packet(packet_file):
+    packet_file = Path(packet_file).resolve()
+    packet = common.read_json(packet_file)
+    if packet.get("type") != "gamearts-visual-acceptance" or packet.get("review_status") != "pending_user_visual_review":
+        raise ValueError("Invalid or modified review packet")
+    common.validate_schema(packet, "gamearts-review-packet")
+    return packet_file, packet
+
+
+def review_item_id(packet):
+    return f"visual-review-{packet['asset_id']}"
+
+
+def review_item(game_root, packet_file):
+    """What the owner is shown in the approval form for this review: both boards, what they are approving, and what this review did not assess."""
+    root = common.game_root(game_root)
+    packet_file, packet = _pending_packet(packet_file)
+    images = []
+    for field, caption in (("review_board", "Original, clean parent and removed parts side by side"), ("props_board", "Each removable part on its own")):
+        path = (packet_file.parent / packet[field]["path"]).resolve()
+        images.append({"path": common.safe_member(root, path.relative_to(root).as_posix(), "a review board").relative_to(root).as_posix(), "caption": caption})
+    facts = [{"label": "Parts approved", "value": ", ".join(packet["component_ids"])[:400] or "none"},
+             {"label": "Uncertain regions acknowledged", "value": ", ".join(packet["uncertain_region_ids"])[:400] or "none"},
+             {"label": "Not assessed", "value": "That the parts match the artist's intent (no object recognition is run); engine behaviour"}]
+    return {"kind": "other", "id": review_item_id(packet), "revision": packet["revision"], "title": f"Visual review of {packet['asset_id']} {packet['revision']}",
+            "facts": facts, "images": images}
+
+
+def decide(game_root, packet_file, approval_id, output=None):
+    """Write the review decision from the owner's decision in the approval form, then verify it like any other."""
+    root = common.game_root(game_root)
+    packet_file, packet = _pending_packet(packet_file)
+    words = approval.reference(root, approval_id, "other", review_item_id(packet), packet["revision"])
+    vote = {"asset_id": packet["asset_id"], "revision": packet["revision"], "packet_sha256": common.sha256_file(packet_file), "decision": "approved",
+            "reviewer_type": "user", "user_approval_reference": words, "component_ids_approved": packet["component_ids"],
+            "uncertainty_ids_acknowledged": packet["uncertain_region_ids"], "reviewed_inventory": True, "reviewed_silhouettes": True, "reviewed_clean_background": True}
+    target = Path(output) if output else packet_file.parent / "decision.json"
+    common.atomic_write_json(target, vote)
+    return verify(packet_file, target)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     actions = parser.add_subparsers(dest="command", required=True)
@@ -254,6 +298,15 @@ def main():
     first.add_argument("--cleanup", type=Path, required=True)
     first.add_argument("--review-spec", type=Path, required=True)
     first.add_argument("--output-dir", type=Path, required=True)
+    third = actions.add_parser("request")
+    third.add_argument("--game-root", type=Path, required=True)
+    third.add_argument("--packet", type=Path, required=True)
+    fourth = actions.add_parser("decide")
+    fourth.add_argument("--game-root", type=Path, required=True)
+    fourth.add_argument("--packet", type=Path, required=True)
+    fourth.add_argument("--approval-id", required=True, help="The approval form the owner decided in; see gamearts_approval.py ask")
+    fourth.add_argument("--output", type=Path, help="Where to write the decision (default: decision.json beside the packet)")
+    fourth.add_argument("--result", type=Path)
     second = actions.add_parser("verify")
     second.add_argument("--packet", type=Path, required=True)
     second.add_argument("--decision", type=Path, required=True)
@@ -262,8 +315,10 @@ def main():
     try:
         if args.command == "prepare":
             print("REVIEW PREPARED", prepare(args.cleanup, args.review_spec, args.output_dir))
+        elif args.command == "request":
+            print(json.dumps({"items": [review_item(args.game_root, args.packet)]}, indent=2))
         else:
-            result = verify(args.packet, args.decision)
+            result = decide(args.game_root, args.packet, args.approval_id, args.output) if args.command == "decide" else verify(args.packet, args.decision)
             if args.result:
                 common.atomic_write_json(args.result, result)
             print(json.dumps(result, indent=2))

@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Arts settings</title>
+<style nonce="{{nonce}}">
+{{base_css}}
+.steps{display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 1.1rem;padding:0;list-style:none}
+.steps button{font:inherit;font-size:.85rem;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--muted);padding:.15rem .7rem;cursor:pointer}
+.steps button[aria-current="step"]{border-color:var(--accent);color:var(--text);font-weight:600}
+.steps button.answered::before{content:"\2713\00a0";color:var(--ok)}
+.options{display:grid;gap:.6rem;margin:.6rem 0 0;padding:0;border:0}
+.option{display:grid;grid-template-columns:auto 1fr;gap:.2rem .7rem;align-items:start;border:1px solid var(--line);border-radius:10px;padding:.7rem .9rem;background:var(--bg);cursor:pointer}
+.option input{margin-top:.25rem;width:1.1rem;height:1.1rem;accent-color:var(--accent)}
+.option:has(input:checked){border-color:var(--accent);background:var(--panel);box-shadow:0 0 0 1px var(--accent)}
+.option .name{font-weight:600}
+.option .about{grid-column:2;color:var(--muted);font-size:.93rem}
+.badge{margin-left:.5rem;font-size:.75rem;font-weight:600;color:var(--wait);background:var(--wait-bg);border-radius:999px;padding:.05rem .55rem}
+.words{margin:.9rem 0 0}
+input[type=text]{width:100%;padding:.55rem .65rem;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font:inherit}
+.keep{margin:.7rem 0 0}
+.summary{margin:.6rem 0 1rem;padding-left:1.2rem}
+.summary li{margin:.2rem 0;overflow-wrap:anywhere}
+.version{color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Game Arts settings</p>
+  <h1 id="title">Loading…</h1>
+  <p class="lede" id="lede"></p>
+  <p class="notice">Your answers are saved as you go and used for every picture Game Arts makes for this game. Nothing is chosen for you: a setting that is already saved is only marked. You can come back and change any answer.</p>
+  <ol class="steps" id="steps" aria-label="Questions"></ol>
+  <div id="stage" aria-live="polite"></div>
+  <p class="problem" id="problem" role="alert" hidden></p>
+</main>
+<div class="bar">
+  <div class="inner">
+    <span class="status" id="progress" role="status"></span>
+    <button type="button" class="action" id="leave">Leave without saving</button>
+    <button type="button" class="action" id="back" disabled>Back</button>
+    <button type="button" class="action primary" id="next" disabled>Next</button>
+  </div>
+</div>
+<script nonce="{{nonce}}">
+(function () {
+  "use strict";
+  var base = location.pathname.replace(/\/?$/, "/");
+  var state = null;
+  var at = 0;
+  var summaryShown = false;
+  var finished = false;
+
+  function el(tag, props, kids) {
+    var node = document.createElement(tag);
+    Object.keys(props || {}).forEach(function (key) {
+      if (key === "text") { node.textContent = props[key]; } else if (key === "class") { node.className = props[key]; } else { node.setAttribute(key, props[key]); }
+    });
+    (kids || []).forEach(function (kid) { node.appendChild(kid); });
+    return node;
+  }
+  function byId(id) { return document.getElementById(id); }
+  function say(text) { var box = byId("problem"); box.textContent = text || ""; box.hidden = !text; }
+
+  function post(route, payload) {
+    return fetch(base + route, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload || {}), cache: "no-store" })
+      .then(function (response) { return response.json().then(function (body) { return { ok: response.ok, body: body }; }); });
+  }
+  function offline() { say("This page could not reach your agent. It may have stopped waiting; ask it to show the settings page again."); busy(false); }
+
+  function busy(on) {
+    ["next", "back", "leave", "confirm", "save"].forEach(function (id) { var node = byId(id); if (node) { node.disabled = on || finished; } });
+    if (!on) { refresh(); }
+  }
+
+  function current() { return state.questions[at]; }
+
+  function firstOpenFrom(start) {
+    for (var i = start; i < state.questions.length; i += 1) { if (!state.questions[i].answered) { return i; } }
+    for (var j = 0; j < start; j += 1) { if (!state.questions[j].answered) { return j; } }
+    return -1;
+  }
+
+  function renderSteps() {
+    var list = byId("steps");
+    list.replaceChildren();
+    state.questions.forEach(function (question, index) {
+      var button = el("button", { type: "button", "class": question.answered ? "answered" : "", text: question.header });
+      if (!summaryShown && index === at) { button.setAttribute("aria-current", "step"); }
+      button.addEventListener("click", function () { if (!finished) { summaryShown = false; at = index; render(); } });
+      list.appendChild(el("li", {}, [button]));
+    });
+  }
+
+  function chosenOption() {
+    var picked = document.querySelector('input[name="option"]:checked');
+    return picked ? picked.value : null;
+  }
+
+  function needsWords(question, value) { return question.needs_words.indexOf(value) !== -1; }
+
+  function renderQuestion() {
+    var question = current();
+    var stage = byId("stage");
+    stage.replaceChildren();
+    var card = el("section", { "class": "card", "aria-labelledby": "question-title" });
+    card.appendChild(el("header", {}, [el("h2", { id: "question-title", text: question.prompt }), el("span", { "class": "chip", text: "Question " + (at + 1) + " of " + state.questions.length })]));
+    var group = el("fieldset", { "class": "options" }, [el("legend", { "class": "hint", text: question.header })]);
+    var held = question.answered ? question.answered.value : null;
+    question.options.forEach(function (option, index) {
+      var input = el("input", { type: "radio", name: "option", value: option.value, id: "option-" + index });
+      if (option.value === held) { input.checked = true; }
+      input.addEventListener("change", function () { syncWords(); refresh(); });
+      var name = el("span", { "class": "name", text: option.label });
+      if (option.value === question.current) { name.appendChild(el("span", { "class": "badge", text: "Current setting" })); }
+      group.appendChild(el("label", { "class": "option", "for": "option-" + index }, [input, name, el("span", { "class": "about", text: option.description })]));
+    });
+    card.appendChild(group);
+    var words = el("div", { "class": "words", id: "words", hidden: "" }, [
+      el("label", { "class": "field", "for": "words-input", id: "words-label" }),
+      el("input", { type: "text", id: "words-input", maxlength: "400", autocomplete: "off" })]);
+    card.appendChild(words);
+    if (question.current && question.current !== held) {
+      var keep = el("p", { "class": "keep" }, [el("button", { type: "button", "class": "action", text: "Choose the current setting" })]);
+      keep.firstChild.addEventListener("click", function () {
+        var target = document.querySelector('input[name="option"][value="' + question.current.replace(/"/g, "") + '"]');
+        if (target) { target.checked = true; syncWords(); refresh(); }
+      });
+      card.appendChild(keep);
+    }
+    stage.appendChild(card);
+    byId("words-input").addEventListener("input", refresh);
+    syncWords(true);
+  }
+
+  function syncWords(initial) {
+    var question = current();
+    var value = chosenOption();
+    var box = byId("words");
+    var wanted = value !== null && needsWords(question, value);
+    box.hidden = !wanted;
+    if (!wanted) { return; }
+    var option = question.options.filter(function (item) { return item.value === value; })[0];
+    byId("words-label").textContent = option.label + ": in your own words";
+    var input = byId("words-input");
+    var saved = question.answered && question.answered.value === value ? (question.answered.text || "") : "";
+    if (initial || !input.value) { input.value = saved || (value === question.current && question.current_words ? question.current_words : ""); }
+  }
+
+  function renderSummary() {
+    var stage = byId("stage");
+    stage.replaceChildren();
+    var card = el("section", { "class": "card", "aria-labelledby": "summary-title" });
+    card.appendChild(el("header", {}, [el("h2", { id: "summary-title", text: "These are your settings" }), el("span", { "class": "chip", text: "Version " + state.version })]));
+    var list = el("ul", { "class": "summary" });
+    state.summary.forEach(function (line) { list.appendChild(el("li", { text: line })); });
+    card.appendChild(list);
+    card.appendChild(el("p", { "class": "version", text: "Save and confirm when these are right. Save without confirming if you want to look again first; your agent will ask you to confirm before it makes pictures." }));
+    var actions = el("div", { "class": "choices" }, [el("button", { type: "button", "class": "action primary", id: "confirm", text: "Save and confirm these settings" }),
+      el("button", { type: "button", "class": "action", id: "save", text: "Save, I will confirm later" })]);
+    card.appendChild(actions);
+    stage.appendChild(card);
+    byId("confirm").addEventListener("click", function () { finish("confirm"); });
+    byId("save").addEventListener("click", function () { finish("save"); });
+  }
+
+  function render() {
+    say("");
+    renderSteps();
+    if (summaryShown) { renderSummary(); } else { renderQuestion(); }
+    refresh();
+  }
+
+  function refresh() {
+    if (finished) { return; }
+    var next = byId("next"), back = byId("back");
+    byId("leave").disabled = false;
+    if (summaryShown) {
+      next.hidden = true;
+      back.disabled = false;
+      byId("progress").textContent = "Every question is answered.";
+      return;
+    }
+    next.hidden = false;
+    var question = current();
+    var value = chosenOption();
+    var words = byId("words-input") ? byId("words-input").value.trim() : "";
+    var ready = value !== null && (!needsWords(question, value) || words);
+    next.disabled = !ready;
+    back.disabled = at === 0;
+    var open = state.questions.filter(function (item) { return !item.answered; }).length;
+    byId("progress").textContent = value === null ? "Choose one." : (!ready ? "Write it in the box." : (open ? open + " question" + (open === 1 ? "" : "s") + " still to answer." : "Press Next to review."));
+  }
+
+  function answerCurrent() {
+    var question = current();
+    var value = chosenOption();
+    var words = byId("words-input").value.trim();
+    say("");
+    busy(true);
+    post("answer", { id: question.id, value: value, text: needsWords(question, value) ? words : undefined }).then(function (result) {
+      if (!result.ok) { say(result.body.error || "That answer was not accepted."); busy(false); return; }
+      state = result.body;
+      var index = state.questions.map(function (item) { return item.id; }).indexOf(question.id);
+      var after = firstOpenFrom(index + 1);
+      if (after === -1) { summaryShown = state.complete; at = Math.min(index, state.questions.length - 1); } else { at = after; }
+      busy(false);
+      render();
+    }).catch(offline);
+  }
+
+  function finish(route) {
+    say("");
+    busy(true);
+    post(route, {}).then(function (result) {
+      if (!result.ok) { say(result.body.error || "The settings were not saved."); busy(false); return; }
+      finished = true;
+      ["next", "back", "leave"].forEach(function (id) { byId(id).disabled = true; });
+      byId("progress").textContent = "";
+      byId("steps").replaceChildren();
+      byId("stage").replaceChildren(el("p", { "class": "done", text: route === "confirm"
+        ? "Saved and confirmed. Your agent can go on; you can close this page."
+        : "Saved. Your agent will ask you to confirm the settings before it makes pictures; you can close this page." }));
+    }).catch(offline);
+  }
+
+  byId("next").addEventListener("click", answerCurrent);
+  byId("back").addEventListener("click", function () {
+    if (summaryShown) { summaryShown = false; at = state.questions.length - 1; } else if (at > 0) { at -= 1; }
+    render();
+  });
+  byId("leave").addEventListener("click", function () {
+    say("");
+    busy(true);
+    post("leave", {}).then(function () {
+      finished = true;
+      ["next", "back", "leave"].forEach(function (id) { byId(id).disabled = true; });
+      byId("steps").replaceChildren();
+      byId("stage").replaceChildren(el("p", { "class": "done", text: "Left without finishing. The answers you gave are kept; nothing was confirmed. You can close this page." }));
+      byId("progress").textContent = "";
+    }).catch(offline);
+  });
+
+  fetch(base + "state.json", { cache: "no-store" })
+    .then(function (response) { if (!response.ok) { throw new Error("state"); } return response.json(); })
+    .then(function (loaded) {
+      state = loaded;
+      byId("title").textContent = state.has_settings ? "Change your game's art settings" : "Set up your game's art settings";
+      byId("lede").textContent = state.has_settings ? "Your saved settings are marked on each question. Choose again to keep or change them." : "A few questions, one at a time. Every picture Game Arts makes follows your answers.";
+      var open = firstOpenFrom(0);
+      summaryShown = open === -1 && state.complete;
+      at = open === -1 ? 0 : open;
+      render();
+    })
+    .catch(function () { byId("title").textContent = "This page could not load"; say("Ask your agent to show the settings page again."); });
+})();
+</script>
+</body>
+</html>

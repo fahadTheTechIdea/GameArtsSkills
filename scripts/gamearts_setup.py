@@ -63,10 +63,10 @@ ANIMATION = [
     ("transform_based", "Moving parts", "Cut-out pieces moved and rotated by the game."),
 ]
 IMAGE_TOOLS = [
-    ("built_in_image_gen", "My agent's own image tool", "Only if your coding agent has one (Codex's image_gen does)."),
-    ("cli_image_gen", "Codex's command-line image tool", "Needs an OpenAI API key."),
-    ("connected_tool", "A connected tool I name", "A connector or plugin you have set up; you will be asked its name."),
-    ("user_supplied", "I make the pictures myself", "You hand the pictures in; the agent never generates any."),
+    ("built_in_image_gen", "Built-in image tool (Codex)", "Pick this if you use Codex: its image generation, under your Codex sign-in and with no API key. An agent other than Codex runs your installed Codex to reach it, and an agent with an image tool of its own counts too."),
+    ("cli_image_gen", "Command-line image tool (API key)", "Not Codex's own image tool. Pick this only if you have an OpenAI API key: it calls the image service from a command and bills each picture to that key."),
+    ("connected_tool", "A tool I have connected", "A plugin or connector in your agent, such as a sprite-art service. You will be asked its name, and it may charge for each picture."),
+    ("user_supplied", "I make the pictures myself", "You hand the picture files in. Game Arts generates none, so no backup is asked for."),
 ]
 SCREENS = [("1280x720", "1280 x 720", "Small landscape screen."), ("1920x1080", "1920 x 1080", "Full-HD landscape."),
            ("1080x1920", "1080 x 1920", "Phone portrait."), ("2560x1440", "2560 x 1440", "Large landscape.")]
@@ -160,7 +160,7 @@ def question(name, answers):
     has_ground = kind in ("grid_world", "free_world", "layered_scene")
     if name == "project_name":
         return {"id": name, "header": "Name", "prompt": "What is your game called? It becomes the short name that starts every file Game Arts makes.",
-                "options": [{"value": "name", "label": "Type the name", "description": "Give it with --text; it is saved as a short lowercase name of letters, digits and hyphens."}]}
+                "options": [{"value": "name", "label": "Type the name", "description": "Type it in your own words; it is saved as a short lowercase name of letters, digits and hyphens (Sunny Farm becomes sunny-farm)."}]}
     if name == "world_kind":
         return {"id": name, "header": "World", "prompt": "What kind of world does your game have?", "options": _opts(WORLD_KINDS)}
     if kind is None:
@@ -194,7 +194,7 @@ def question(name, answers):
     if name == "animation":
         return {"id": name, "header": "Movement", "prompt": "How should movement be animated?", "options": _opts(ANIMATION)}
     if name == "image_generator":
-        return {"id": name, "header": "Images", "prompt": "Which image generator should Game Arts use for this game? It is used for every picture.",
+        return {"id": name, "header": "Images", "prompt": "Which image generator should Game Arts try first for this game? It is used for every picture. Next you can name backups, tried in your order when it is not available in a session.",
                 "options": _opts(IMAGE_TOOLS)}
     if name == "image_notes" and answers.get("image_generator", {}).get("value") not in (None, "user_supplied"):
         return {"id": name, "header": "Image note", "prompt": "Should every picture request to that image generator carry a note from you, such as a model name or a quality level?",
@@ -465,6 +465,22 @@ def show(root):
             "possible": [{"id": name, "appears": TRIGGERS[name]} for name in ORDER]}
 
 
+def form_state(root):
+    """Everything the settings page needs, from the same answers and questions the command line uses: each applicable question with its options, the owner's
+    answer if they gave one, and what an existing game's settings hold (marked for them to see, never counted as an answer)."""
+    root = common.game_root(root)
+    answers = load_answers(root)
+    held = _existing(root)
+    questions = []
+    for asked in applicable(answers):
+        name = asked["id"]
+        words = _held_words(root, name) if name in NOTE_QUESTIONS else (held or {}).get("project_id") if name == "project_name" else None
+        questions.append({**asked, "current": _current(root, name), "current_words": words, "answered": answers.get(name),
+                          "needs_words": [option["value"] for option in asked["options"] if _needs_text(name, option["value"])]})
+    return {"questions": questions, **status(root), "has_settings": held is not None, "settings_status": (held or {}).get("settings_status"),
+            "summary": summary(answers) if not unanswered(answers) else None}
+
+
 def next_question(root):
     answers = load_answers(root)
     open_questions = unanswered(answers)
@@ -502,7 +518,7 @@ def build_settings(answers, root, existing=None):
         import gamearts_palette as palette_tool
         source = Path(palette["text"])
         source = source if source.is_absolute() else Path(root) / source
-        palette_tool.extract(source, "main", Path(root) / palette_tool.PALETTE_DIR, 32, Path(root))
+        palette_tool.ensure(source, "main", Path(root) / palette_tool.PALETTE_DIR, 32, Path(root))
         art["palette_reference"] = (palette_tool.PALETTE_DIR / f"main{palette_tool.SUFFIX}").as_posix()
     else:
         art["palette_reference"] = "no fixed palette (the owner's choice)"
@@ -584,8 +600,8 @@ def summary(answers):
     lines = [f"{question(name, answers)['header']}: {_label(name, answers)}" for name in ORDER if name in answers]
     tool = answers["image_generator"]["value"]
     lines.append({"user_supplied": "Consequence: Game Arts generates no pictures; it prepares requests and imports the files you make.",
-                  "built_in_image_gen": "Consequence: every picture is made with your agent's own image tool; the agent never substitutes another.",
-                  "cli_image_gen": "Consequence: every picture is made with Codex's command-line image tool, which needs an OpenAI API key.",
+                  "built_in_image_gen": "Consequence: every picture is made with the built-in image tool (Codex's, under your Codex sign-in); the agent never substitutes another.",
+                  "cli_image_gen": "Consequence: every picture is made with the command-line image tool, which needs your OpenAI API key and bills each picture to it.",
                   "connected_tool": "Consequence: every picture is made with the connected tool you named, which may charge for each picture."}[tool])
     if "image_fallback" in answers:
         named = [tool for tool, _ in FALLBACKS if answers.get(tool, {}).get("value") not in (None, "none")]

@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts approval decision",
+  "description": "What the owner decided in the approval form, written by the framework's own form server and by nothing else. A command that takes --approval-id reads it instead of the owner's typed words.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "approval_id",
+    "request_sha256",
+    "decided_at_utc",
+    "via",
+    "outcome",
+    "items"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "approval_id": {
+      "type": "string",
+      "pattern": "^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$"
+    },
+    "request_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "The hash of the saved request file, so a request edited after the owner decided no longer matches."
+    },
+    "decided_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "via": {
+      "const": "approval_form"
+    },
+    "outcome": {
+      "enum": [
+        "decided",
+        "deferred"
+      ],
+      "description": "deferred: the owner chose to decide later; nothing in it approves anything."
+    },
+    "note": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "id",
+          "decision"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "mockups",
+              "assets",
+              "storyboard",
+              "settings",
+              "restore",
+              "other"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "approved",
+              "changes",
+              "rejected"
+            ]
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

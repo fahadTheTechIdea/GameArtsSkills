@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Arts approval</title>
+<style nonce="{{nonce}}">
+{{base_css}}
+.facts{display:grid;grid-template-columns:max-content 1fr;gap:.2rem 1rem;margin:.4rem 0 .8rem;font-size:.95rem}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}
+.pictures{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:.75rem;margin:.4rem 0 1rem;padding:0;list-style:none}
+.pictures figure{margin:0}
+.pictures button{display:block;width:100%;padding:0;border:1px solid var(--line);border-radius:8px;background:repeating-conic-gradient(var(--checker-a) 0% 25%,var(--checker-b) 0% 50%) 0 0/16px 16px;cursor:zoom-in;overflow:hidden}
+.pictures img{display:block;width:100%;height:12rem;object-fit:contain}
+.pictures figcaption{font-size:.85rem;color:var(--muted);margin-top:.25rem;overflow-wrap:anywhere}
+.choices label:has(input:checked).approved{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.choices label:has(input:checked).changes{border-color:var(--wait);background:var(--wait-bg);color:var(--wait)}
+.choices label:has(input:checked).rejected{border-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);max-width:min(96vw,80rem);padding:.75rem}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog img{display:block;max-width:100%;max-height:78vh;margin:0 auto;background:repeating-conic-gradient(var(--checker-a) 0% 25%,var(--checker-b) 0% 50%) 0 0/16px 16px}
+dialog img.sharp{image-rendering:pixelated}
+dialog .row{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-content:space-between;margin-top:.6rem}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
+@media (max-width:34rem){.facts{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Game Arts approval</p>
+  <h1 id="title">Loading…</h1>
+  <p class="lede" id="message"></p>
+  <p class="notice">Nothing is approved until you press <strong>Send my decision</strong>. Closing this page decides nothing. Pictures are shown exactly as they are saved in your game.</p>
+  <div id="items" aria-live="polite"></div>
+  <p class="problem" id="problem" role="alert" hidden></p>
+</main>
+<div class="bar">
+  <div class="inner">
+    <span class="status" id="progress" role="status"></span>
+    <button type="button" class="action" id="all" disabled>Approve everything shown</button>
+    <button type="button" class="action" id="later" disabled>Decide later</button>
+    <button type="button" class="action primary" id="send" disabled>Send my decision</button>
+  </div>
+</div>
+<dialog id="zoom" aria-label="Picture">
+  <img id="zoomed" alt="">
+  <div class="row">
+    <span id="zoomcaption"></span>
+    <span>
+      <button type="button" class="action" id="sharp" aria-pressed="false">Pixel-sharp</button>
+      <button type="button" class="action" id="closezoom">Close</button>
+    </span>
+  </div>
+</dialog>
+<script nonce="{{nonce}}">
+(function () {
+  "use strict";
+  var base = location.pathname.replace(/\/?$/, "/");
+  var CHOICES = [["approved", "Approve"], ["changes", "Needs changes"], ["rejected", "Reject"]];
+  var request = null;
+  var cards = [];
+  var finished = false;
+
+  function el(tag, props, kids) {
+    var node = document.createElement(tag);
+    Object.keys(props || {}).forEach(function (key) {
+      if (key === "text") { node.textContent = props[key]; } else if (key === "class") { node.className = props[key]; } else { node.setAttribute(key, props[key]); }
+    });
+    (kids || []).forEach(function (kid) { node.appendChild(kid); });
+    return node;
+  }
+  function byId(id) { return document.getElementById(id); }
+  function say(text) { var box = byId("problem"); box.textContent = text || ""; box.hidden = !text; }
+
+  function openZoom(src, caption, alt) {
+    var dialog = byId("zoom");
+    byId("zoomed").src = src;
+    byId("zoomed").alt = alt;
+    byId("zoomcaption").textContent = caption;
+    if (typeof dialog.showModal === "function") { dialog.showModal(); } else { dialog.setAttribute("open", ""); }
+  }
+
+  function buildItem(item, index) {
+    var name = item.title || item.id;
+    var meta = [item.kind, item.id].concat(item.revision ? [item.revision] : []).join(" · ");
+    var card = el("section", { "class": "card", "aria-labelledby": "item-" + index });
+    card.appendChild(el("header", {}, [el("h2", { id: "item-" + index, text: name }), el("span", { "class": "chip", text: meta })]));
+    if ((item.facts || []).length) {
+      var facts = el("dl", { "class": "facts" });
+      item.facts.forEach(function (fact) { facts.appendChild(el("dt", { text: fact.label })); facts.appendChild(el("dd", { text: fact.value })); });
+      card.appendChild(facts);
+    }
+    if ((item.images || []).length) {
+      var list = el("ul", { "class": "pictures" });
+      item.images.forEach(function (image, at) {
+        var src = base + "image/" + index + "/" + at;
+        var caption = (image.caption || "Picture " + (at + 1)) + " (" + image.width + " × " + image.height + " px)";
+        var alt = (image.caption || name) + ", picture " + (at + 1);
+        var thumb = el("img", { src: src, alt: alt, loading: "lazy" });
+        var open = el("button", { type: "button", "aria-label": "Enlarge: " + alt }, [thumb]);
+        open.addEventListener("click", function () { openZoom(src, caption, alt); });
+        list.appendChild(el("li", {}, [el("figure", {}, [open, el("figcaption", { text: caption })])]));
+      });
+      card.appendChild(list);
+    }
+    var group = el("fieldset", {}, [el("legend", { text: "Your decision" })]);
+    var row = el("div", { "class": "choices" });
+    CHOICES.forEach(function (choice) {
+      var input = el("input", { type: "radio", name: "decision-" + index, value: choice[0] });
+      input.addEventListener("change", refresh);
+      row.appendChild(el("label", { "class": choice[0] }, [input, el("span", { text: choice[1] })]));
+    });
+    group.appendChild(row);
+    card.appendChild(group);
+    var comment = el("textarea", { id: "comment-" + index, maxlength: "2000" });
+    comment.addEventListener("input", refresh);
+    card.appendChild(el("label", { "class": "field", "for": "comment-" + index }, [document.createTextNode("Your comment "), el("span", { "class": "hint", text: "(needed when you ask for changes or reject)" })]));
+    card.appendChild(comment);
+    cards.push({ card: card, comment: comment, name: name });
+    return card;
+  }
+
+  function chosen(index) {
+    var picked = document.querySelector('input[name="decision-' + index + '"]:checked');
+    return picked ? picked.value : null;
+  }
+
+  function readiness() {
+    var decided = 0, missing = null;
+    request.items.forEach(function (item, index) {
+      var choice = chosen(index);
+      if (choice) { decided += 1; }
+      if (choice && choice !== "approved" && !cards[index].comment.value.trim() && !missing) { missing = cards[index].name; }
+    });
+    return { decided: decided, missing: missing, all: decided === request.items.length };
+  }
+
+  function refresh() {
+    if (finished) { return; }
+    var state = readiness();
+    var left = request.items.length - state.decided;
+    byId("progress").textContent = state.all ? (state.missing ? "Say what should change for “" + state.missing + "”." : "Everything is decided. Press Send my decision.") : state.decided + " of " + request.items.length + " decided; " + left + " left.";
+    byId("send").disabled = !(state.all && !state.missing);
+  }
+
+  function lock() {
+    finished = true;
+    ["send", "later", "all"].forEach(function (id) { byId(id).disabled = true; });
+    Array.prototype.forEach.call(document.querySelectorAll("input,textarea"), function (node) { node.disabled = true; });
+  }
+
+  function send(payload) {
+    say("");
+    ["send", "later"].forEach(function (id) { byId(id).disabled = true; });
+    fetch(base + "decision", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), cache: "no-store" })
+      .then(function (response) { return response.json().then(function (body) { return { ok: response.ok, body: body }; }); })
+      .then(function (result) {
+        if (!result.ok) { say(result.body.error || "The decision was not accepted."); finished = false; byId("later").disabled = false; refresh(); return; }
+        lock();
+        byId("progress").textContent = "";
+        var done = el("p", { "class": "done", text: payload.outcome === "deferred" ? "Noted: nothing was approved. Tell your agent when you are ready to decide. You can close this page." : "Thank you. Your decision was sent to your agent. You can close this page." });
+        byId("items").replaceChildren(done);
+      })
+      .catch(function () { say("This page could not reach your agent. It may have stopped waiting; ask it to show the approval again."); finished = false; byId("later").disabled = false; refresh(); });
+  }
+
+  function collect(outcome) {
+    return { outcome: outcome, items: outcome === "decided" ? request.items.map(function (item, index) { return { index: index, decision: chosen(index), comment: cards[index].comment.value.trim() }; }) : [] };
+  }
+
+  byId("send").addEventListener("click", function () { send(collect("decided")); });
+  byId("later").addEventListener("click", function () { send(collect("deferred")); });
+  byId("all").addEventListener("click", function () {
+    request.items.forEach(function (item, index) { document.querySelector('input[name="decision-' + index + '"][value="approved"]').checked = true; });
+    refresh();
+  });
+  byId("closezoom").addEventListener("click", function () { byId("zoom").close(); });
+  byId("sharp").addEventListener("click", function () {
+    var on = byId("zoomed").classList.toggle("sharp");
+    byId("sharp").setAttribute("aria-pressed", on ? "true" : "false");
+  });
+
+  fetch(base + "request.json", { cache: "no-store" })
+    .then(function (response) { if (!response.ok) { throw new Error("no request"); } return response.json(); })
+    .then(function (body) {
+      request = body;
+      document.title = "Game Arts approval: " + body.title;
+      byId("title").textContent = body.title;
+      byId("message").textContent = body.message || "";
+      var holder = byId("items");
+      body.items.forEach(function (item, index) { holder.appendChild(buildItem(item, index)); });
+      ["all", "later"].forEach(function (id) { byId(id).disabled = false; });
+      refresh();
+    })
+    .catch(function () { byId("title").textContent = "This approval is no longer available"; say("Ask your agent to show the approval again."); });
+}());
+</script>
+</body>
+</html>

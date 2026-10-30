@@ -9,7 +9,8 @@ change is appended to its `changes` log, and editing an approved scene returns i
 
   gamearts_storyboard.py import   --game-root G --source FILE [--source FILE ...] [--title T]
   gamearts_storyboard.py write    --game-root G --from DRAFT.json --summary TEXT [--by agent|user]
-  gamearts_storyboard.py approve  --game-root G --scenes a,b,c --user-approval-ref REF
+  gamearts_storyboard.py approve  --game-root G --scenes a,b,c --user-approval-ref REF | --approval-id ID
+  gamearts_storyboard.py approval-request --game-root G --scenes a,b,c   (the items to show in the approval form, each with the revision approve checks)
   gamearts_storyboard.py reject   --game-root G --scenes a,b --reason TEXT
   gamearts_storyboard.py audit | next | status --game-root G
 
@@ -25,6 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import gamearts_approval as approval  # noqa: E402
 import gamearts_common as common  # noqa: E402
 
 MAX_SOURCE_BYTES = 50 * 1024 * 1024
@@ -64,6 +66,32 @@ def scene_hash(scene):
     """Hash of what the user approved: the scene's content fields only (not status, approval or private notes)."""
     content = {key: scene[key] for key in CONTENT_FIELDS if key in scene}
     return common.sha256_bytes(json.dumps(content, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
+
+
+def scene_revision(scene):
+    """The short name of a scene's content, so an approval form decision is for these exact words and not for a scene of the same id that was edited afterwards."""
+    return scene_hash(scene)[:12]
+
+
+def approval_items(root, scene_ids):
+    """The items to show the owner in the approval form (gamearts_approval.py ask) for these scenes: each carries the revision `approve --approval-id` checks.
+    A long field is shortened on the page only; the revision is of the whole scene."""
+    by_id = {s["id"]: s for s in load(root)["scenes"]}
+    items = []
+    for scene_id in scene_ids:
+        if scene_id not in by_id:
+            raise ValueError(f"Unknown scene: {scene_id}")
+        scene = by_id[scene_id]
+        facts = []
+        for key in ("summary", "beat", "location", "characters", "key_moments", "mood", "camera_notes"):
+            value = scene.get(key)
+            if isinstance(value, list):
+                value = ", ".join(str(part) for part in value)
+            if value:
+                text = str(value)
+                facts.append({"label": key.replace("_", " ").capitalize(), "value": text if len(text) <= 400 else text[:399] + "\u2026"})
+        items.append({"kind": "storyboard", "id": scene_id, "revision": scene_revision(scene), "title": scene.get("title") or scene_id, "facts": facts[:20]})
+    return items
 
 
 def _save(root, data, by, summary, approval_reference=None):
@@ -404,7 +432,7 @@ def scene_gate(root, scope, scene_id):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ops = parser.add_subparsers(dest="operation", required=True)
-    for name in ("import", "write", "approve", "reject", "adopt-external", "audit", "next", "status"):
+    for name in ("import", "write", "approve", "approval-request", "reject", "adopt-external", "audit", "next", "status"):
         sub = ops.add_parser(name)
         sub.add_argument("--game-root", type=Path, required=True)
         if name == "import":
@@ -415,10 +443,12 @@ def main():
             sub.add_argument("--summary", required=True)
             sub.add_argument("--by", choices=("agent", "user"), default="agent",
                              help="agent (default): you drafted it; user: you are writing the user's own requested edit")
-        if name in ("approve", "reject"):
+        if name in ("approve", "approval-request", "reject"):
             sub.add_argument("--scenes", required=True, help="comma-separated scene IDs (for approve: in playing order)")
         if name == "approve":
-            sub.add_argument("--user-approval-ref", required=True, help="Reference to the actual user approval message; never invent")
+            group = sub.add_mutually_exclusive_group(required=True)
+            group.add_argument("--user-approval-ref", help="Reference to the actual user approval message; never invent")
+            group.add_argument("--approval-id", help="The approval form the owner decided in: their decision on each of these scenes is used instead of typed words")
         if name == "adopt-external":
             sub.add_argument("--owner", required=True, help="Id of the tool that decided the scenes, for example storyboard-framework")
             sub.add_argument("--from", dest="document", type=Path, required=True, help="The owner's JSON: {title, scenes: [...], order?: [...], links?: [...]}")
@@ -432,7 +462,15 @@ def main():
         elif args.operation == "write":
             result = write(args.game_root, common.read_json(args.draft), args.by, args.summary)
         elif args.operation == "approve":
-            result = approve(args.game_root, [s for s in args.scenes.split(",") if s], args.user_approval_ref)
+            scenes = [s for s in args.scenes.split(",") if s]
+            if args.approval_id:
+                shown = {item["id"]: item["revision"] for item in approval_items(args.game_root, scenes)}
+                words = approval.references(args.game_root, args.approval_id, [("storyboard", scene, shown[scene]) for scene in scenes])
+            else:
+                words = args.user_approval_ref
+            result = approve(args.game_root, scenes, words)
+        elif args.operation == "approval-request":
+            result = {"items": approval_items(args.game_root, [s for s in args.scenes.split(",") if s])}
         elif args.operation == "adopt-external":
             result = adopt_external(args.game_root, args.owner, common.read_json(args.document), args.user_approval_ref)
         elif args.operation == "reject":

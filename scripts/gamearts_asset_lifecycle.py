@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import gamearts_approval as approval  # noqa: E402
 import gamearts_common as common  # noqa: E402
 import gamearts_presets as presets
 import gamearts_setup as setup_wizard  # noqa: E402
@@ -378,15 +379,16 @@ def auto_exports(game_root, item_id):
     return outcomes
 
 
-def approve_batch(game_root, kind, items, shown, user_approval_reference):
+def approve_batch(game_root, kind, items, shown, user_approval_reference, reference_for=None):
     """Approve a named list of exact revisions on one user reference.
 
     Each item goes through the ordinary single approval (`approve_mockup` or `approve_asset`), so each has its own gate, audit and rollback. An item that
     was not among those shown to the owner, is not waiting for approval, does not exist, or fails its gate is reported with the reason and left as it
-    was, and the rest go ahead. `items` and `shown` are lists of (id, revision). The result lists what was approved and what was not."""
+    was, and the rest go ahead. `items` and `shown` are lists of (id, revision). The result lists what was approved and what was not.
+    `reference_for(id, revision)` replaces the one reference with the owner's decision on each item (the approval form), and refuses an item they did not approve."""
     if kind not in ("mockups", "assets"):
         raise ValueError("A batch approves mockups or assets")
-    if not isinstance(user_approval_reference, str) or not user_approval_reference.strip():
+    if reference_for is None and (not isinstance(user_approval_reference, str) or not user_approval_reference.strip()):
         raise ValueError("A batch needs the owner's approval reference (their own words), never an invented one")
     if not items:
         raise ValueError("Name at least one item to approve")
@@ -400,13 +402,14 @@ def approve_batch(game_root, kind, items, shown, user_approval_reference):
             left.append({"item": label, "reason": "it was not among the items shown to the owner for this approval"})
             continue
         try:
+            reference = reference_for(item_id, revision) if reference_for else user_approval_reference
             if kind == "mockups":
-                approve_mockup(game_root, item_id, revision, user_approval_reference)
+                approve_mockup(game_root, item_id, revision, reference)
             else:
                 rows = _read(game_root, "assets")[4]
                 if not any(_id(r, "assets") == item_id and r.get("revision") == revision for r in rows if isinstance(r, dict)):
                     raise ValueError(f"no asset {item_id} with revision {revision} is registered")
-                approve_asset(game_root, item_id, user_approval_reference)
+                approve_asset(game_root, item_id, reference)
         except (ValueError, OSError) as exc:  # reported against this item; the others go ahead and this one stays as it was (the single path rolls back)
             left.append({"item": label, "reason": str(exc)})
             continue
@@ -1791,6 +1794,19 @@ def _pair(text):
     return mockup_id, revision
 
 
+def _owner_words(sub, flag, words_help, required=True, id_flag="--approval-id"):
+    """The owner's approval comes as their own words or as the decision they sent from the approval form (gamearts_approval.py ask): exactly one."""
+    group = sub.add_mutually_exclusive_group(required=required)
+    group.add_argument(flag, help=words_help)
+    group.add_argument(id_flag, dest="approval_id", help="The approval form the owner decided in: their decision on exactly this item is used instead of typed words")
+
+
+def _asset_revision(game_root, item_id):
+    """The revision an asset is registered at, so an approval form decision is matched to that revision and no other."""
+    rows = _read(game_root, "assets")[4]
+    return _record(rows, "assets", item_id).get("revision")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     ops = parser.add_subparsers(dest="operation", required=True)
@@ -1801,8 +1817,8 @@ def main():
         return sub
     op("check-settings")
     sub = op("confirm-settings")
-    sub.add_argument("--by", required=True, help="Who confirmed: the owner or an authorized role")
-    sub.add_argument("--user-confirmation-ref", required=True, help="The owner's own words confirming the settings; never invent")
+    sub.add_argument("--by", help="Who confirmed: the owner or an authorized role (the owner, with --approval-id)")
+    _owner_words(sub, "--user-confirmation-ref", "The owner's own words confirming the settings; never invent")
     sub.add_argument("--presented-version", required=True, help="The version printed by finish or check-settings, as shown to the owner")
     sub = op("select")
     sub.add_argument("--stage", choices=("approved", "generated"), required=True)
@@ -1816,7 +1832,7 @@ def main():
     sub.add_argument("--id", required=True)
     sub = op("approve")
     sub.add_argument("--id", required=True)
-    sub.add_argument("--user-approval-ref", required=True, help="Reference to the actual user approval message; never invent")
+    _owner_words(sub, "--user-approval-ref", "Reference to the actual user approval message; never invent")
     sub.add_argument("--visual-review", nargs=2, action="append", metavar=("PACKET", "DECISION"),
                      help="Bundle-relative visual-review packet and decision paths (repeatable); required for composite assets")
     sub = op("import-asset")
@@ -1832,15 +1848,15 @@ def main():
     sub.add_argument("--alpha-threshold", type=int, help="Turn each partly transparent pixel into art (at least this opaque, 1 to 255) or empty")
     sub.add_argument("--rights", default="user_supplied", choices=common.RIGHTS)
     sub.add_argument("--rights-notes", default="")
-    sub.add_argument("--user-approval-ref", required=True, help="The owner's own words that this art is theirs and approved as the reference; never invent")
+    _owner_words(sub, "--user-approval-ref", "The owner's own words that this art is theirs and approved as the reference; never invent")
     sub.add_argument("--anchor", action="store_true", help="Also import the picture as an approved style board and offer it as the style anchor")
     sub.add_argument("--extract-palette", metavar="NAME", help="Save the art's colours as a palette with this name")
     sub = op("approve-batch")
     sub.add_argument("--kind", choices=("mockups", "assets"), required=True)
     sub.add_argument("--item", type=_pair, action="append", required=True, metavar="ID:REVISION", help="An exact revision to approve (repeatable)")
-    sub.add_argument("--shown", type=_pair, action="append", required=True, metavar="ID:REVISION",
-                     help="An item the owner was actually shown (repeatable); an item not listed here is left unapproved")
-    sub.add_argument("--user-approval-ref", required=True, help="The owner's own approving words; never invent")
+    sub.add_argument("--shown", type=_pair, action="append", metavar="ID:REVISION",
+                     help="An item the owner was actually shown (repeatable); an item not listed here is left unapproved. Not used with --approval-id: the form records what was shown")
+    _owner_words(sub, "--user-approval-ref", "The owner's own approving words; never invent")
     sub = op("export-runtime")
     sub.add_argument("--id", required=True)
     sub.add_argument("--revision", help="Exact revision when the ID is shared")
@@ -1874,11 +1890,11 @@ def main():
     sub.add_argument("--rights-notes", default="")
     sub.add_argument("--storyboard-scene-id")
     sub.add_argument("--notes", default="")
-    sub.add_argument("--user-approval-ref", help="The user's own statement that this exact image is already approved; omit to leave it generated")
+    _owner_words(sub, "--user-approval-ref", "The user's own statement that this exact image is already approved; omit to leave it generated", required=False)
     sub = op("approve-mockup")
     sub.add_argument("--id", required=True)
     sub.add_argument("--revision", required=True)
-    sub.add_argument("--user-approval-ref", required=True, help="Reference to the actual user approval message; never invent")
+    _owner_words(sub, "--user-approval-ref", "Reference to the actual user approval message; never invent")
     sub = op("extract-scene")
     sub.add_argument("--id", required=True)
     sub.add_argument("--revision", required=True)
@@ -1909,7 +1925,7 @@ def main():
     sub.add_argument("--extra", type=Path, help="JSON file holding optional provenance / rights objects")
     sub.add_argument("--source-asset", type=_pair, action="append", metavar="ID:REVISION",
                      help="An approved asset this one is made from, as a palette variant names its base (repeatable)")
-    sub.add_argument("--limited-profile-ref", help="The owner's own words approving a bundle that faces only some of the game's directions")
+    _owner_words(sub, "--limited-profile-ref", "The owner's own words approving a bundle that faces only some of the game's directions", required=False, id_flag="--limited-profile-approval-id")
     op("reconcile")
     op("reconcile-assets")
     sub = op("revoke")
@@ -1922,31 +1938,42 @@ def main():
     sub.add_argument("--kind", choices=KINDS, required=True)
     sub.add_argument("--id", required=True)
     sub.add_argument("--revision", required=True)
-    sub.add_argument("--user-restore-ref", required=True, help="Reference to the user's explicit restore request; never invent")
+    _owner_words(sub, "--user-restore-ref", "Reference to the user's explicit restore request; never invent")
     args = parser.parse_args()
     try:
         name = args.operation
         if name == "check-settings":
             result = check_settings(args.game_root)
         elif name == "confirm-settings":
-            result = confirm_settings(args.game_root, args.by, args.user_confirmation_ref, args.presented_version)
+            words = args.user_confirmation_ref or approval.reference(args.game_root, args.approval_id, "settings", "project", args.presented_version)
+            result = confirm_settings(args.game_root, args.by or ("owner" if args.approval_id else None), words, args.presented_version)
         elif name == "select":
             result = select(args.game_root, args.kind, args.stage, args.id, args.revision, report=True)
         elif name == "list":
             result = list_records(args.game_root, args.kind, args.status)
         elif name == "approve":
             reviews = [{"packet": packet, "decision": decision} for packet, decision in args.visual_review] if args.visual_review else None
-            result = approve_asset(args.game_root, args.id, args.user_approval_ref, reviews)
+            words = args.user_approval_ref or approval.reference(args.game_root, args.approval_id, "assets", args.id, _asset_revision(args.game_root, args.id))
+            result = approve_asset(args.game_root, args.id, words, reviews)
             derived = auto_exports(args.game_root, args.id)
             if derived:
                 result["derived_exports"] = derived
         elif name == "import-asset":
             import gamearts_import_asset as importer
             layout = {"grid": args.grid} if args.grid else {"cell": args.cell} if args.cell else {"data": args.data}
-            result = importer.import_asset(args.game_root, args.source, args.id, args.revision, layout, args.rights, args.rights_notes, args.user_approval_ref,
+            words = args.user_approval_ref or approval.reference(args.game_root, args.approval_id, "other", f"import-asset-{args.id}", args.revision)
+            result = importer.import_asset(args.game_root, args.source, args.id, args.revision, layout, args.rights, args.rights_notes, words,
                                            args.duration_ms, tuple(args.pivot) if args.pivot else None, args.alpha_threshold, args.anchor, args.extract_palette)
         elif name == "approve-batch":
-            result = approve_batch(args.game_root, args.kind, args.item, args.shown, args.user_approval_ref)
+            if args.approval_id:
+                if args.shown:
+                    parser.error("--shown goes with the owner's words; with --approval-id the form records what the owner was shown")
+                result = approve_batch(args.game_root, args.kind, args.item, approval.shown(args.game_root, args.approval_id, args.kind), None,
+                                       lambda item_id, revision: approval.reference(args.game_root, args.approval_id, args.kind, item_id, revision))
+            elif not args.shown:
+                parser.error("--shown is required with the owner's words: name each item they were shown")
+            else:
+                result = approve_batch(args.game_root, args.kind, args.item, args.shown, args.user_approval_ref)
         elif name == "export-runtime":
             result = export_runtime(args.game_root, args.id, args.revision, args.replace)
         elif name == "register":
@@ -1956,10 +1983,12 @@ def main():
                                                args.prompt_file.read_text(encoding="utf-8"), args.tool_mode, args.tool_name,
                                                args.storyboard_scene_id, args.notes, args.model, args.use_fallback, args.fallback_reason)
         elif name == "import-mockup":
+            words = args.user_approval_ref or (approval.reference(args.game_root, args.approval_id, "other", f"import-mockup-{args.id}", args.revision) if args.approval_id else None)
             result = import_mockup(args.game_root, args.source, args.id, args.revision, args.scope, args.rights, args.rights_notes,
-                                   args.storyboard_scene_id, args.notes, args.user_approval_ref)
+                                   args.storyboard_scene_id, args.notes, words)
         elif name == "approve-mockup":
-            result = approve_mockup(args.game_root, args.id, args.revision, args.user_approval_ref)
+            words = args.user_approval_ref or approval.reference(args.game_root, args.approval_id, "mockups", args.id, args.revision)
+            result = approve_mockup(args.game_root, args.id, args.revision, words)
         elif name == "extract-scene":
             result = extract_scene(args.game_root, args.id, args.revision, args.masks_from)
         elif name == "detect-scene":
@@ -1981,13 +2010,15 @@ def main():
                       "artistic_fidelity": "not_assessed", "engine_validation": "not_assessed"}
         elif name == "register-asset":
             extra = common.read_json(args.extra) if args.extra else None
-            result = register_asset(args.game_root, args.id, args.revision, args.bundle, args.source_mockup, extra, args.source_asset, args.limited_profile_ref)
+            limited = args.limited_profile_ref or (approval.reference(args.game_root, args.approval_id, "other", f"limited-profile-{args.id}", args.revision) if args.approval_id else None)
+            result = register_asset(args.game_root, args.id, args.revision, args.bundle, args.source_mockup, extra, args.source_asset, limited)
         elif name == "reconcile":
             result = reconcile_mockups(args.game_root)
         elif name == "reconcile-assets":
             result = reconcile_assets(args.game_root)
         elif name == "restore":
-            result = restore(args.game_root, args.kind, args.id, args.revision, args.user_restore_ref)
+            words = args.user_restore_ref or approval.reference(args.game_root, args.approval_id, "restore", args.id, args.revision)
+            result = restore(args.game_root, args.kind, args.id, args.revision, words)
         else:
             result = revoke(args.game_root, args.kind, args.id, args.reason, args.revision, args.replaced_by)
         if name in MUTATING_OPERATIONS and isinstance(result, dict):

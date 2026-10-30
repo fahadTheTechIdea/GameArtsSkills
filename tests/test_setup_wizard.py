@@ -399,6 +399,24 @@ class ImageFallbackTests(GameCase):
         values = [o["value"] for o in asked["options"]]
         self.assertEqual(values, ["none", "cli_image_gen", "connected_tool"])
 
+    def test_the_choices_of_the_first_question_say_what_each_one_is_and_needs(self):
+        run(self.root, [("project_name", "name", "Demo Game"), ("world_kind", "grid_world", None), ("look", "pixel_mid", None), ("viewpoint", "oblique", None),
+                        ("tile_size", "32x32", None), ("directions", "dirs_4", None), ("animation", "hybrid", None)])
+        asked = wizard.next_question(self.root)["question"]
+        self.assertEqual(asked["id"], "image_generator")
+        label = {option["value"]: option["label"] for option in asked["options"]}
+        said = {option["value"]: option["description"] for option in asked["options"]}
+        self.assertEqual(len(set(label.values())), len(label))
+        self.assertIn("Codex", label["built_in_image_gen"])  # the owner's first choice is found by its name, not as "my agent's own tool", which means nothing in an agent that has none
+        self.assertIn("Codex", said["built_in_image_gen"])
+        self.assertIn("if you use Codex", said["built_in_image_gen"])  # an owner whose Codex is already connected is told which one is theirs
+        self.assertIn("other than Codex", said["built_in_image_gen"])  # and an agent that is not Codex is told it can still reach it
+        self.assertIn("Not Codex's own", said["cli_image_gen"])
+        self.assertIn("API key", label["cli_image_gen"])  # the command-line tool must not read as a second Codex: it is the one that needs a key
+        self.assertIn("name", said["connected_tool"])
+        self.assertIn("no backup", said["user_supplied"])
+        self.assertIn("backups", asked["prompt"])  # the first choice is the head of an ordered list
+
     def test_it_is_not_asked_when_the_owner_makes_the_pictures(self):
         self.after_generator("user_supplied")
         self.assertNotEqual(wizard.next_question(self.root)["question"]["id"], "image_fallback")
