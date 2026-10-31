@@ -33,6 +33,22 @@ def confirm(root, who, words):
     return life.confirm_settings(root, who, words, wizard.version(common.read_json(Path(root) / ".gamearts" / "project.json")["setup"]["answers"]))
 
 
+class PalettePictureTests(GameCase):
+    """The wizard writes the settings when its last answer is in and again when the owner confirms them; a palette taken from a picture must survive both."""
+
+    def test_settings_with_a_palette_taken_from_a_picture_can_be_written_again_and_confirmed(self):
+        from PIL import Image
+        Image.new("RGB", (4, 1), (200, 30, 30)).save(self.root / "colours.png")
+        for name, value, text in [a for a in ANSWERS if a[0] != "palette"] + [("palette", "picture", "colours.png")]:
+            wizard.answer(self.root, name, value, text, "the owner's own words")
+        wizard.finish(self.root)
+        palette_files = sorted(p.name for p in (self.root / ".gamearts" / "palette").iterdir())
+        wizard.finish(self.root)
+        self.assertEqual(sorted(p.name for p in (self.root / ".gamearts" / "palette").iterdir()), palette_files)
+        self.assertTrue(confirm(self.root, "owner", "yes")["owner_confirmed"])
+        self.assertEqual(self.saved()["art_style"]["palette_reference"], ".gamearts/palette/main.palette.json")
+
+
 class ConfirmTests(GameCase):
     def setUp(self):
         super().setUp()

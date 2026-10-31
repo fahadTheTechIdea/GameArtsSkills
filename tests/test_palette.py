@@ -100,6 +100,43 @@ class ExtractionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "already exists"):
             self.extract(image, max_colours=8)
 
+    def ensure(self, image, **kwargs):
+        return palette.ensure(image, name=kwargs.pop("name", "main"), output_dir=self.root / "out", **kwargs)
+
+    def test_ensure_makes_the_palette_when_there_is_none(self):
+        image = art(self.root / "a.png", [(10, 20, 30), (200, 100, 50)], rows=[9, 6])
+        result = self.ensure(image, max_colours=8)
+        self.assertEqual([c["hex"] for c in result["colours"]], ["#0A141E", "#C86432"])
+        self.assertTrue((self.root / "out" / "main.palette.json").is_file())
+        self.assertTrue((self.root / "out" / "main.gpl").is_file())
+
+    def test_ensure_returns_the_palette_the_same_picture_already_made_and_leaves_its_files_alone(self):
+        image = art(self.root / "a.png", [(10, 20, 30), (200, 100, 50)], rows=[9, 6])
+        first = self.extract(image, max_colours=8)
+        files = [self.root / "out" / "main.palette.json", self.root / "out" / "main.gpl"]
+        before = [f.read_bytes() for f in files]
+        self.assertEqual(self.ensure(image, max_colours=8), first)
+        self.assertEqual([f.read_bytes() for f in files], before)
+
+    def test_ensure_still_never_overwrites_a_palette_from_another_picture_or_with_another_limit(self):
+        image = art(self.root / "a.png", [(10, 20, 30), (200, 100, 50)], rows=[9, 6])
+        other = art(self.root / "b.png", [(1, 2, 3), (4, 5, 6)], rows=[9, 6])
+        self.extract(image, max_colours=8)
+        files = [self.root / "out" / "main.palette.json", self.root / "out" / "main.gpl"]
+        before = [f.read_bytes() for f in files]
+        with self.assertRaisesRegex(ValueError, "already exists"):
+            self.ensure(other, max_colours=8)
+        with self.assertRaisesRegex(ValueError, "already exists"):
+            self.ensure(image, max_colours=4)
+        self.assertEqual([f.read_bytes() for f in files], before)
+
+    def test_ensure_refuses_a_palette_that_is_missing_one_of_its_two_files(self):
+        image = art(self.root / "a.png", [(10, 20, 30)])
+        self.extract(image, max_colours=8)
+        (self.root / "out" / "main.gpl").unlink()
+        with self.assertRaisesRegex(ValueError, "already exists"):
+            self.ensure(image, max_colours=8)
+
     def test_a_picture_with_no_artwork_and_a_zero_limit_are_refused(self):
         blank = self.root / "blank.png"
         Image.new("RGBA", (8, 8), (255, 0, 255, 255)).save(blank)

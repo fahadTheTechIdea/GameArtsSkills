@@ -53,9 +53,9 @@ def _credits(settings, problem):
         return "The image generator is not chosen yet; who is billed for the pictures depends on that tool, so ask the owner which one to use before the first picture."
     tool = chosen["tool"]
     if tool == "built_in_image_gen":
-        return "The agent's own image tool: its pictures are covered by the agent's own plan or subscription, and this framework cannot see how much of it they use."
+        return "The built-in image tool (Codex's): its pictures are covered by the agent's own plan or subscription, and this framework cannot see how much of it they use."
     if tool == "cli_image_gen":
-        return "Codex's command-line image tool: each picture is billed to the account behind the OpenAI API key it uses, at that account's prices, which are not known here."
+        return "The command-line image tool: each picture is billed to the account behind the OpenAI API key it uses, at that account's prices, which are not known here."
     if tool == "connected_tool":
         name = chosen.get("tool_name", "the connected tool")
         return f"{name} is a connected tool and may charge credits for each picture. Its price is its own and is not known here, so ask it for a quote before the first picture."

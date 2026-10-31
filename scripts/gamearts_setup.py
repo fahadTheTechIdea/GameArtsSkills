@@ -81,8 +81,11 @@ LAYER_STACKS = {
           ("near_backdrop", [0.75, 0.4]), ("foreground", [1.2, 1])],
 }
 PALETTE = [("words", "Describe it in words", "For example: warm earth tones, at most 32 colours. You will be asked for the description."),
-           ("picture", "Use a palette picture", "A picture of your colours; you will be asked for its path and the colours are read from it."),
+           ("picture", "Use a palette picture", "A picture of your colours; you will be asked for its path (add ' as NAME' to name the palette) and the colours are read from it, "
+                                                "up to your look's own colour limit."),
            ("none", "No fixed palette", "Recorded as your choice, so it is never an oversight.")]
+DEFAULT_PALETTE_COLOURS = 32  # the most colours a palette picture yields when the look states no colour limit of its own
+DEFAULT_PALETTE_NAME = "main"  # the name of a palette taken from a picture when the owner names none; it is what earlier versions always used
 SOFT_EDGES = [("hard", "Keep the delivered edges hard", "Soft coverage is kept separately wherever your image tool can return true alpha, so nothing is lost silently."),
               ("matte", "Deliver a soft-edge companion", "A matte picture beside each sheet; needs an image tool that returns true alpha. The runtime export turns it into real soft alpha.")]
 SOFT_EDGE_RULES = {"hard": "Soft edges: delivered pictures keep hard edges; any soft coverage is kept separately and never claimed to be recovered from the key colour.",
@@ -296,18 +299,45 @@ def engine_slug(text):
     return slug
 
 
-def check_palette_picture(root, text):
-    """The palette picture the owner named must be there and be a picture, now, so the wizard never reports complete for a settings file that cannot be written."""
-    from PIL import Image
+def palette_limit(answers):
+    """The most colours a palette taken from a picture may hold: the chosen look's own colour limit (its `colour_count_max` check, so a
+    128-colour look gets a 128-colour palette), else DEFAULT_PALETTE_COLOURS for a look that states none or a look of the owner's own."""
+    look = (answers.get("look") or {}).get("value")
+    preset = _styles().get(look) if look and look != OTHER else None
+    cap = ((preset or {}).get("check_parameters") or {}).get("colour_count_max", {}).get("max_colours")
+    return cap or DEFAULT_PALETTE_COLOURS
+
+
+def _palette_source(root, text):
     source = Path(text.strip())
-    source = source if source.is_absolute() else Path(root) / source
+    return source if source.is_absolute() else Path(root) / source
+
+
+def palette_picture(root, text):
+    """(picture path as typed, palette name) from what the owner gave for a palette picture: `colours.png` (the palette is called main), or
+    `colours.png as spring` to name it. A path that is itself a file is never split, so a file name with ' as ' in it still works."""
+    whole = (text or "").strip()
+    path, separator, name = whole.rpartition(" as ")
+    if not separator or not name.strip() or _palette_source(root, whole).is_file():
+        return whole, DEFAULT_PALETTE_NAME
+    return path.strip(), name.strip()
+
+
+def check_palette_picture(root, text):
+    """The palette picture the owner named must be there and be a picture, now, so the wizard never reports complete for a settings file that cannot be written;
+    the name they gave it must be one a palette can have."""
+    from PIL import Image
+    path, name = palette_picture(root, text)
+    if not common.SLUG.fullmatch(name):
+        raise ValueError(f"the palette name {name!r} may use letters, digits, hyphens and underscores only (write the picture as 'path as name')")
+    source = _palette_source(root, path)
     if not source.is_file():
-        raise ValueError(f"the palette picture {text.strip()!r} is not a file; give its path (relative to the game folder or absolute)")
+        raise ValueError(f"the palette picture {path!r} is not a file; give its path (relative to the game folder or absolute)")
     try:
         with Image.open(source) as opened:
             opened.load()
     except (OSError, ValueError) as exc:
-        raise ValueError(f"the palette picture {text.strip()!r} cannot be read as a picture: {exc}") from exc
+        raise ValueError(f"the palette picture {path!r} cannot be read as a picture: {exc}") from exc
 
 
 def state_path(root):
@@ -328,11 +358,13 @@ def answer(root, name, value, text=None, said=None):
     if name == "palette" and value == "picture":
         check_palette_picture(root, text)
     same = (answers.get(name) or {}).get("value") == value and (answers.get(name) or {}).get("text") == ((text or "").strip() or None)
+    limit = {"max_colours": palette_limit(answers)} if name == "palette" and value == "picture" else {}  # the look's limit when the palette was picked, kept with the pick
     if same:  # choosing the same thing again changes no pick, so the questions that depend on it keep their answers; the owner's words are still recorded
         answers[name]["said"] = said.strip()
+        answers[name].update(limit)
         common.atomic_write_json(state_path(root), {"schema_version": "1.0", "answers": answers})
         return status(root)
-    answers[name] = {"value": value, "said": said.strip(), "answered_at": datetime.now(timezone.utc).isoformat(), **({"text": text.strip()} if text and text.strip() else {})}
+    answers[name] = {"value": value, "said": said.strip(), "answered_at": datetime.now(timezone.utc).isoformat(), **({"text": text.strip()} if text and text.strip() else {}), **limit}
     for dependent, needs in DEPENDS.items():
         if name in needs and dependent in answers and dependent != name:
             del answers[dependent]
@@ -516,10 +548,12 @@ def build_settings(answers, root, existing=None):
         art["palette_reference"] = palette["text"]
     elif palette["value"] == "picture":
         import gamearts_palette as palette_tool
-        source = Path(palette["text"])
-        source = source if source.is_absolute() else Path(root) / source
-        palette_tool.ensure(source, "main", Path(root) / palette_tool.PALETTE_DIR, 32, Path(root))
-        art["palette_reference"] = (palette_tool.PALETTE_DIR / f"main{palette_tool.SUFFIX}").as_posix()
+        path, name = palette_picture(root, palette["text"])
+        limit = palette.get("max_colours", DEFAULT_PALETTE_COLOURS)  # an answer given before the limit was kept with it was always 32
+        if "max_colours" in palette and limit > palette_limit(answers):
+            raise ValueError(f"the palette was taken up to {limit} colours, but the look now chosen allows {palette_limit(answers)}; answer the palette question again")
+        palette_tool.ensure(_palette_source(root, path), name, Path(root) / palette_tool.PALETTE_DIR, limit, Path(root))
+        art["palette_reference"] = (palette_tool.PALETTE_DIR / f"{name}{palette_tool.SUFFIX}").as_posix()
     else:
         art["palette_reference"] = "no fixed palette (the owner's choice)"
     for keep in ("anchor",):  # the style anchor is the owner's separate decision and survives a re-run

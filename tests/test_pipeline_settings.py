@@ -50,6 +50,11 @@ INDEPENDENT = {
     "remove_scene_objects": "infers a clean parent from one approved picture; the settings are not an input",
     "validate_blueprint": "checks a scene blueprint against its own contract",
     "sync_local_agents": "installs the framework into a game; it never reads or writes the game's art settings",
+    "slice_generated_strip": "cuts and measures one picture an image tool returned; the camera, the directions and the style were applied when its prompt was written by gamearts_direction_prompt",
+    "gamearts_candidates": "keeps and measures what an image tool returned, with the prompt that made it; it needs the game's project.json to exist, and the settings were applied when the prompt was written by gamearts_direction_prompt",
+    "gamearts_approval": "shows the owner the pictures of a request and takes their decision; the request file, not the settings, says what is asked",
+    "gamearts_local_page": "the local page server the approval form and the settings page run on; it serves a page and reads no game fact",
+    "gamearts_setup_form": "the settings wizard as a page; every question and answer goes through gamearts_setup, the one owner of the settings",
 }
 
 # Fields of project.json that no stage decides from, and why. The rest are in CONSUMERS.

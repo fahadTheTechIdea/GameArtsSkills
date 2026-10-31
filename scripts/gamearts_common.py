@@ -365,7 +365,7 @@ def load_rgba(path, label="image"):
     return image
 
 
-def _channel_distance(image):
+def key_distance(image):
     """Per-pixel Chebyshev distance from the exact key colour, as an 'L' image."""
     from PIL import Image, ImageChops
     rgb = image.convert("RGB")
@@ -375,12 +375,12 @@ def _channel_distance(image):
 
 def nonkey_mask(image):
     """'L' mask, 255 wherever a pixel is not exactly #FF00FF."""
-    return _channel_distance(image).point(lambda v: 255 if v else 0)
+    return key_distance(image).point(lambda v: 255 if v else 0)
 
 
 def near_key_mask(image, tolerance=NEAR_KEY_TOLERANCE):
     """'L' mask, 255 where a pixel is close to, but not exactly, the key colour (blend fringe or contamination)."""
-    return _channel_distance(image).point(lambda v, t=tolerance: 255 if 0 < v <= t else 0)
+    return key_distance(image).point(lambda v, t=tolerance: 255 if 0 < v <= t else 0)
 
 
 def diff_mask(a, b, tolerance=0):

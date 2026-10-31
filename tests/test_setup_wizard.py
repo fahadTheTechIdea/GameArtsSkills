@@ -360,6 +360,99 @@ class FinishTests(GameCase):
         self.assertNotIn("confirmed_at", saved)
 
 
+class PaletteFromPictureTests(GameCase):
+    """The palette picture route takes the look's own colour limit and a name the owner chooses (a 128-colour look could not be set up through it)."""
+
+    def picture(self, name, colours):
+        """A strip of `colours` distinct colours, saved as `name` in the game folder."""
+        from PIL import Image
+        strip = Image.new("RGB", (colours, 1))
+        for x in range(colours):
+            strip.putpixel((x, 0), ((x * 37) % 251, (x * 91) % 241, (x * 53) % 239))
+        strip.save(self.root / name)
+
+    def plan(self, look, palette_text):
+        plan = [("world_kind", "grid_world", None), ("look", look, None), ("viewpoint", "oblique", None), ("tile_size", "64x64", None), ("directions", "dirs_4", None)]
+        return plan + [(n, v, t) for n, v, t in COMMON if n != "palette"] + [("palette", "picture", palette_text)]
+
+    def saved_palette(self, name):
+        return common.read_json(self.root / ".gamearts" / "palette" / f"{name}.palette.json")
+
+    def test_the_limit_is_the_looks_own_colour_limit_else_thirty_two(self):
+        for look, expected in (("pixel_hd", 128), ("pixel_mid", 64), ("pixel_low", 32), ("ink_line", 16), ("minimal_silhouette", 8), ("painterly", 32)):
+            with self.subTest(look=look):
+                self.assertEqual(wizard.palette_limit({"look": {"value": look}}), expected)
+        self.assertEqual(wizard.palette_limit({"look": {"value": wizard.OTHER}}), 32)
+        self.assertEqual(wizard.palette_limit({}), 32)
+
+    def test_a_128_colour_look_keeps_all_128_colours_of_a_128_colour_picture_under_the_name_given(self):
+        self.picture("spring.png", 128)
+        run(self.root, self.plan("pixel_hd", "spring.png as oilfield-spring"))
+        wizard.finish(self.root)
+        held = self.saved_palette("oilfield-spring")
+        self.assertEqual((held["method"], held["max_colours"], len(held["colours"])), ("exact", 128, 128))
+        self.assertEqual(self.settings()["art_style"]["palette_reference"], ".gamearts/palette/oilfield-spring.palette.json")
+        self.assertFalse((self.root / ".gamearts" / "palette" / "main.palette.json").exists())
+
+    def test_a_picture_with_more_colours_than_the_look_allows_is_reduced_to_the_limit_not_to_thirty_two(self):
+        self.picture("many.png", 200)
+        run(self.root, self.plan("pixel_hd", "many.png"))
+        wizard.finish(self.root)
+        held = self.saved_palette("main")
+        self.assertEqual((held["method"], held["max_colours"], len(held["colours"])), ("median_cut", 128, 128))
+
+    def test_without_a_name_the_palette_is_still_called_main_and_a_look_without_a_limit_still_gets_thirty_two(self):
+        self.picture("many.png", 60)
+        plan = [("world_kind", "free_world", None), ("look", "painterly", None), ("soft_edges", "hard", None), ("viewpoint", "side", None), ("scale", "64", None),
+                ("directions", "dirs_2_side", None)]
+        run(self.root, plan + [(n, v, t) for n, v, t in COMMON if n != "palette"] + [("palette", "picture", "many.png")])
+        wizard.finish(self.root)
+        held = self.saved_palette("main")
+        self.assertEqual((held["max_colours"], len(held["colours"])), (32, 32))
+
+    def test_a_second_palette_can_be_taken_beside_the_first_by_giving_it_a_name(self):
+        self.picture("one.png", 20)
+        self.picture("two.png", 24)
+        run(self.root, self.plan("pixel_hd", "one.png"))
+        wizard.finish(self.root)
+        choose(self.root, "palette", "picture", "two.png")
+        with self.assertRaisesRegex(ValueError, "already exists"):
+            wizard.finish(self.root)  # both would be called main: the old behaviour, still refused rather than overwritten
+        choose(self.root, "palette", "picture", "two.png as second")
+        wizard.finish(self.root)
+        self.assertEqual(self.settings()["art_style"]["palette_reference"], ".gamearts/palette/second.palette.json")
+        self.assertEqual(len(self.saved_palette("main")["colours"]), 20)  # the first palette is untouched
+
+    def test_a_name_a_palette_cannot_have_is_refused_when_given(self):
+        self.picture("one.png", 4)
+        run(self.root, self.plan("pixel_hd", "one.png")[:5])
+        with self.assertRaisesRegex(ValueError, "palette name"):
+            choose(self.root, "palette", "picture", "one.png as not a name!")
+        self.assertNotIn("palette", wizard.load_answers(self.root))
+
+    def test_a_file_name_that_itself_contains_as_is_not_split(self):
+        self.picture("colours as drawn.png", 4)
+        self.assertEqual(wizard.palette_picture(self.root, "colours as drawn.png"), ("colours as drawn.png", "main"))
+        self.assertEqual(wizard.palette_picture(self.root, "colours as drawn.png as old"), ("colours as drawn.png", "old"))
+
+    def test_a_palette_taken_before_the_look_changed_to_a_smaller_one_is_refused_until_it_is_answered_again(self):
+        self.picture("big.png", 100)
+        run(self.root, self.plan("pixel_hd", "big.png"))
+        choose(self.root, "look", "pixel_low")
+        run(self.root, [("viewpoint", "oblique", None), ("tile_size", "64x64", None), ("directions", "dirs_4", None)])
+        with self.assertRaisesRegex(ValueError, "answer the palette question again"):
+            wizard.finish(self.root)
+
+    def test_an_answer_recorded_before_the_limit_was_kept_with_it_is_thirty_two_as_it_always_was(self):
+        self.picture("old.png", 60)
+        run(self.root, self.plan("pixel_hd", "old.png"))
+        answers = wizard.load_answers(self.root)
+        del answers["palette"]["max_colours"]
+        common.atomic_write_json(wizard.state_path(self.root), {"schema_version": "1.0", "answers": answers})
+        wizard.finish(self.root)
+        self.assertEqual(self.saved_palette("main")["max_colours"], 32)
+
+
 class ConfirmGateTests(GameCase):
     def test_settings_the_wizard_did_not_write_cannot_be_confirmed(self):
         kit.write_settings(self.root, drop=("confirmed_by", "confirmed_at"), settings_status="inferred")

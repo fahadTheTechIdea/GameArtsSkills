@@ -2417,3 +2417,22 @@ M398 caught  P15 Storyboard contract: a scene mockup row loses its scene id: tes
 M399 caught  P15 Storyboard contract: a mockup row loses its file field: test_lifecycle_operations.py fails (FAILED (failures=2, errors=42))
 caught 4, missed 0, stale 0 of 4
 # Result: 408 mutations, 408 caught (406 in the full run plus the two retargeted), 0 missed, 0 stale.
+M531 caught  soft-picture clean-up: the background tolerance is not measured from the border: test_snap_to_pixel_grid.py fails (FAILED (failures=1))
+M532 caught  soft-picture clean-up: a border that is not key-coloured is flooded anyway: test_snap_to_pixel_grid.py fails (FAILED (errors=1))
+M533 caught  soft-picture clean-up: the blend fringe is averaged into edge colours: test_snap_to_pixel_grid.py fails (FAILED (failures=2))
+M534 caught  soft-picture clean-up: an enclosed key-coloured gap stays art: test_snap_to_pixel_grid.py fails (FAILED (failures=3))
+M535 caught  soft-picture clean-up: specks of the soft background stretch the art box: test_snap_to_pixel_grid.py fails (FAILED (failures=6))
+M536 caught  soft-picture clean-up: a fringe still tinted at the maximum width is accepted: test_snap_to_pixel_grid.py fails (FAILED (errors=1))
+M537 caught  soft-picture clean-up: colours are not snapped to the palette: test_snap_to_pixel_grid.py fails (FAILED (failures=2))
+M538 caught  soft-picture clean-up: a palette colour near the key may be used for art: test_snap_to_pixel_grid.py fails (FAILED (failures=1))
+M539 caught  soft-picture clean-up: a size that would enlarge the art is accepted: test_snap_to_pixel_grid.py fails (FAILED (failures=1))
+M540 caught  soft-picture clean-up: no size and no grid is guessed at instead of refused: test_snap_to_pixel_grid.py fails (FAILED (failures=1, errors=1))
+M541 caught  soft-picture clean-up: an existing output is overwritten: test_snap_to_pixel_grid.py fails (FAILED (failures=3))
+M542 caught  soft-picture clean-up: a cell that is key-coloured art pixel by pixel becomes art: test_snap_to_pixel_grid.py fails (FAILED (failures=1))
+M543 caught  setup palette picture: the colour limit is not the look's own: test_setup_wizard.py fails (FAILED (failures=7))
+M544 caught  setup palette picture: the name the owner gave is ignored: test_setup_wizard.py fails (FAILED (errors=2))
+M545 caught  setup palette picture: the limit is not kept with the pick: test_setup_wizard.py fails (FAILED (failures=3, errors=1))
+M546 caught  setup palette picture: a palette taken under a larger look is kept after the look shrinks: test_setup_wizard.py fails (FAILED (failures=1))
+M547 caught  setup palette picture: an invalid palette name is accepted: test_setup_wizard.py fails (FAILED (failures=1))
+M548 caught  setup palette picture: a file name containing " as " is split: test_setup_wizard.py fails (FAILED (failures=1))  [first run MISSED: the test file name did not contain ' as '; the test was fixed and M548 re-run alone]
+# Result (2026-10-30, soft-picture clean-up and palette picture route): M531 to M548, 18 mutations, 18 caught (17 in the first run, M548 after its test was fixed), 0 stale.

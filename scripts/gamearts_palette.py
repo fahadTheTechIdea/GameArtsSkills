@@ -65,8 +65,10 @@ def lab_distance(first, second):
 
 
 def nearest(colour, colours):
-    """The palette colour closest to `colour` by perceived distance; the first one wins a tie."""
-    return min(colours, key=lambda candidate: lab_distance(colour, candidate))
+    """The palette colour closest to `colour` by perceived distance; the first one wins a tie. The squared distance orders colours exactly as the
+    distance does, and the colour's own L*a*b* is taken once, so a large palette against a painted picture's many colours stays fast."""
+    l, a, b = rgb_to_lab(tuple(colour))
+    return min(colours, key=lambda candidate: (lambda lab: (lab[0] - l) ** 2 + (lab[1] - a) ** 2 + (lab[2] - b) ** 2)(rgb_to_lab(tuple(candidate))))
 
 
 # ------------------------------------------------------------------------------------------------ extraction
@@ -152,6 +154,19 @@ def extract(image_path, name, output_dir, max_colours=32, root=None):
     common.atomic_write_json(json_path, record)
     common.atomic_write_bytes(gpl_path, ("\n".join(gimp) + "\n").encode("utf-8"))
     return record
+
+
+def ensure(image_path, name, output_dir, max_colours=32, root=None):
+    """`extract`, for a caller that can run more than once on the same answer (the settings are written when the last question is answered and again
+    when the owner confirms them). A palette this very picture already produced, with the same limit, is returned untouched; any other existing
+    palette is still refused, so a palette is never overwritten."""
+    json_path, gpl_path = Path(output_dir) / f"{name}{SUFFIX}", Path(output_dir) / f"{name}.gpl"
+    if json_path.is_file() and gpl_path.is_file():
+        held = common.read_json(json_path)
+        common.validate_schema(held, "gamearts-palette")
+        if held["name"] == name and held["max_colours"] == max_colours and held["source"]["sha256"] == common.sha256_file(image_path):
+            return held
+    return extract(image_path, name, output_dir, max_colours, root)
 
 
 # ------------------------------------------------------------------------------------------------ use
