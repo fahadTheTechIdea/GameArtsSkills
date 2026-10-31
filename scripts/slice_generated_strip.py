@@ -2,7 +2,7 @@
 """Cut one generated animation strip (or grid) into individual frames, measured, and write the job that build_sheet_atlas.py takes.
 
   python scripts/slice_generated_strip.py --source STRIP.png --frames 8 --out FOLDER --name hero_clap_e [--columns 8]
-         [--direction E --action clap] [--reference ONE_APPROVED_POSE.png] [--planted] [--tolerance 0.05]
+         [--direction E --action clap] [--reference ONE_APPROVED_POSE.png] [--planted] [--tolerance 0.05] [--neutral-ends] [--crown 30]
 
 An image tool returns every action as ONE picture holding all its figures. Cutting that into equal slices cuts through limbs, and eyeballing the
 cuts is how frames end up with a neighbour's hand in them. The cut here is measured, as the football project that gets this right does it:
@@ -17,7 +17,16 @@ cuts is how frames end up with a neighbour's hand in them. The cut here is measu
   height must not drift by more than the tolerance across the frames.
 The strip is either exact #FF00FF key (no transparent pixel) or true alpha (art where alpha > 153); alpha frames are written as alpha and the job
 sets soft_alpha. Frames are numbered in reading order. An existing output folder with files in it is never written into.
-Mechanical measurements only: whether the poses are the right ones, and the same figure, is the owner's judgement.
+- With --neutral-ends (an action that returns to the neutral pose) the first and last figure of every row must stand at the same height and on the
+  same baseline within the tolerance, and in a grid the neutral pose's height must agree across rows; widths that differ by more than 10% are
+  reported. The football project measured exactly this (neutral stature within about 2%) and found endpoints that were not identical copies.
+- With --crown PERCENT (a subject with a head: a human or an animal; not a vehicle, building, structure or plant) the widest run of art in the top PERCENT of every figure, its head width, must stay within
+  --crown-tolerance (10%) of the reference's, or of the first frame's: a posed height changes when the figure crouches or jumps, a head does not.
+- With --reference the strip is also compared with it as rough stand-ins for "the same figure": the mean colour of every figure, and, with --neutral-ends
+  (frame 0 is the neutral pose), the proportions and the top lighting of frame 0. A difference beyond the limit is a `match_flags` entry that sends the
+  picture to review; it never refuses a strip and never proves a match or a mismatch.
+Mechanical measurements only: whether the facing, the camera elevation and the figure are right is judged by a reviewer looking at the picture
+(gamearts_candidates.py review), and the owner approves.
 """
 import argparse
 import json
@@ -31,6 +40,11 @@ GUTTER_MIN_PX = 3         # a clear gutter is at least this wide
 SPARSE_GUTTER_MAX = 8     # specks in the emptiest column that are reported, not refused
 SEARCH_FRACTION = 0.2     # how far from the expected boundary to look, as a fraction of a cell
 BASELINE_DRIFT = 0.02
+WIDTH_REPORT = 0.10       # neutral endpoints whose widths differ by more than this are reported
+CROWN_TOLERANCE = 0.10
+COLOUR_FLAG = 0.12        # mean colour of the art farther than this share of the RGB range from the reference's: probably another figure or another palette
+SHAPE_FLAG = 0.25         # neutral figure whose proportions differ from the reference's by more than this share
+TOP_BAND = 0.25           # the top share of a figure read as its upper surface / head when comparing how it is lit
 SOLE_FRACTION = 0.15      # the bottom of the figure that holds the planted sole
 PADDING = 2
 MIN_KEY_FRACTION = 0.05   # an opaque strip must be at least this much exact key, or its background was not keyed
@@ -106,6 +120,54 @@ def root_x(mask, bounds):
     return left + (sole[0] + sole[2]) / 2.0
 
 
+def crown_width(mask, bounds, percent):
+    """The widest unbroken run of art in the top `percent` of the figure's box: its head width, which a crouch or a jump does not change."""
+    import re
+    left, top, right, bottom = bounds
+    rows = max(1, round((bottom - top) * percent / 100))
+    best = 0
+    for y in range(top, min(bottom, top + rows)):
+        data = mask.crop((left, y, right, y + 1)).tobytes()
+        best = max([best] + [len(run.group()) for run in re.finditer(b"\xff+", data)])
+    return best
+
+
+def _art_stats(picture, mask, bounds):
+    """(mean RGB, aspect, fill, top light) of one figure: its mean colour, width over height, share of its box that is art, and the brightness of its top band over its whole."""
+    from PIL import ImageStat
+    left, top, right, bottom = bounds
+    art = mask.crop(bounds)
+    rgb = picture.crop(bounds).convert("RGB")
+    mean = ImageStat.Stat(rgb, mask=art).mean
+    band = max(1, round((bottom - top) * TOP_BAND))
+    grey = rgb.convert("L")
+    whole = ImageStat.Stat(grey, mask=art).mean[0] or 1.0
+    upper_mask = art.crop((0, 0, right - left, band))
+    upper = ImageStat.Stat(grey.crop((0, 0, right - left, band)), mask=upper_mask).mean[0] if upper_mask.getbbox() else whole
+    ink = (art.histogram()[255]) / float(max(1, (right - left) * (bottom - top)))
+    return mean, (right - left) / float(bottom - top), ink, upper / whole
+
+
+def match_reference(figures, picture, mask, ref_image, ref_mask, ref_box, neutral_first):
+    """Rough, measured stand-ins for 'is this the same figure, lit and proportioned alike': the colour of every figure against the reference, and (when frame 0 is
+    the neutral pose) its proportions and top lighting. Returns (per-figure numbers, flags). A flag asks a reviewer to look; it never proves a mismatch or a match."""
+    ref_mean, ref_aspect, ref_fill, ref_light = _art_stats(ref_image, ref_mask, ref_box)
+    numbers, flags = [], []
+    for figure in figures:
+        mean = _art_stats(picture, mask, tuple(figure["bounds"]))[0]
+        distance = round(sum((a - b) ** 2 for a, b in zip(mean, ref_mean)) ** 0.5 / (3 * 255 * 255) ** 0.5, 4)
+        numbers.append({"index": figure["index"], "colour_distance": distance})
+        if distance > COLOUR_FLAG:
+            flags.append(f"frame {figure['index']}: the mean colour of the art is {distance:.0%} of the colour range from the reference's, so this may be another figure or another palette")
+    if neutral_first:
+        _, aspect, fill, light = _art_stats(picture, mask, tuple(figures[0]["bounds"]))
+        numbers[0].update({"aspect": round(aspect, 3), "reference_aspect": round(ref_aspect, 3), "fill": round(fill, 3), "reference_fill": round(ref_fill, 3), "top_light": round(light, 3), "reference_top_light": round(ref_light, 3)})
+        for label, got, wanted in (("width over height", aspect, ref_aspect), ("share of its box that is art", fill, ref_fill), ("brightness of its top band over the whole", light, ref_light)):
+            if abs(got - wanted) / wanted > SHAPE_FLAG:
+                flags.append(f"frame 0: the {label} is {got:.2f} against {wanted:.2f} in the reference, more than {SHAPE_FLAG:.0%} apart, so the proportions or the camera angle may differ")
+    return numbers, flags
+
+
 def single_scale(heights, reference_height, tolerance):
     """The one scale that brings every figure within `tolerance` of the reference's height, as (lower, upper); lower > upper means none does."""
     lower = max(reference_height * (1 - tolerance) / height for height in heights)
@@ -113,7 +175,7 @@ def single_scale(heights, reference_height, tolerance):
     return lower, upper
 
 
-def slice_strip(source, frames, columns=None, reference=None, planted=False, tolerance=0.05):
+def slice_strip(source, frames, columns=None, reference=None, planted=False, tolerance=0.05, neutral_ends=False, crown=None, crown_tolerance=CROWN_TOLERANCE):
     """The measurements and the cut figures of one strip: {frames: [...], warnings: [...], scale, alpha, images}. Raises ValueError, naming the measurement, when the strip is not safe to cut."""
     from PIL import Image
     if frames < 1:
@@ -141,11 +203,15 @@ def slice_strip(source, frames, columns=None, reference=None, planted=False, tol
             raise ValueError(f"frame {number}: the figure touches the picture's edge, so the tool clipped it; ask for the strip again with more empty space around the figures")
         figures.append({"index": number, "cell": [x0, y0, x1, y1], "bounds": list(bounds), "root_x": root_x(mask, bounds), "size": [bounds[2] - bounds[0], bounds[3] - bounds[1]]})
     heights = [figure["size"][1] for figure in figures]
+    if crown is not None and not 5 <= crown <= 60:
+        raise ValueError("--crown must be a percentage from 5 to 60 of the figure's height")
     scale = None
+    ref_box = ref_image = None
     if reference:
         with Image.open(reference) as opened:
             ref_image = opened.convert("RGBA")
-        ref_box = ink_mask(ref_image)[0].getbbox()
+        ref_mask = ink_mask(ref_image)[0]
+        ref_box = ref_mask.getbbox()
         if ref_box is None:
             raise ValueError("the reference picture holds no artwork")
         lower, upper = single_scale(heights, ref_box[3] - ref_box[1], tolerance)
@@ -153,6 +219,28 @@ def slice_strip(source, frames, columns=None, reference=None, planted=False, tol
             raise ValueError(f"no single scale brings every frame within {tolerance:.0%} of the reference's height ({lower:.3f} needed at least, {upper:.3f} at most); "
                              "the figure changes size across the strip, and frames are not rescaled one by one")
         scale = round((lower + upper) / 2, 4)
+    if crown is not None:
+        for figure in figures:
+            figure["crown"] = crown_width(mask, figure["bounds"], crown)
+        wanted = crown_width(ref_mask, ref_box, crown) if ref_box else figures[0]["crown"]
+        for figure in figures:
+            if abs(figure["crown"] - wanted) / wanted > crown_tolerance:
+                raise ValueError(f"frame {figure['index']}: the head (crown) is {figure['crown']} px wide against {wanted} px {'in the reference' if ref_box else 'in frame 0'}, more than {crown_tolerance:.0%} apart; "
+                                 "the figure's head changed size, so this is not the same figure at one scale")
+    if neutral_ends:
+        for row in range(rows):
+            first, last = figures[row * columns], figures[row * columns + columns - 1]
+            label = f"row {row + 1}" if rows > 1 else "the strip"
+            if abs(first["size"][1] - last["size"][1]) / first["size"][1] > tolerance:
+                raise ValueError(f"{label}: the first and last figures are asked to be the same neutral pose, but are {first['size'][1]} and {last['size'][1]} px tall (more than {tolerance:.0%} apart)")
+            if abs(first["bounds"][3] - last["bounds"][3]) / first["size"][1] > BASELINE_DRIFT:
+                raise ValueError(f"{label}: the first and last figures stand on different baselines ({first['bounds'][3]} and {last['bounds'][3]})")
+            if abs(first["size"][0] - last["size"][0]) / first["size"][0] > WIDTH_REPORT:
+                warnings.append(f"{label}: the first and last figures differ in width ({first['size'][0]} and {last['size'][0]} px), so they are not identical copies of the neutral pose")
+        if rows > 1:
+            neutral = [figures[row * columns]["size"][1] for row in range(rows)]
+            if (max(neutral) - min(neutral)) / min(neutral) > tolerance:
+                raise ValueError(f"the neutral pose is {min(neutral)} to {max(neutral)} px tall across the rows (more than {tolerance:.0%} apart): the rows are not drawn at one scale")
     if planted:
         feet = [figure["bounds"][3] for figure in figures]
         stand = sorted(heights)[len(heights) // 2]
@@ -161,7 +249,10 @@ def slice_strip(source, frames, columns=None, reference=None, planted=False, tol
                 raise ValueError(f"frame {figure['index']}: the planted feet move {abs(foot - feet[0])} px from frame 0 (limit {BASELINE_DRIFT:.0%} of the figure's height)")
             if abs(figure["size"][1] - heights[0]) / heights[0] > tolerance:
                 raise ValueError(f"frame {figure['index']}: the figure's height changes by more than {tolerance:.0%} from frame 0")
-    return {"frames": figures, "warnings": warnings, "scale": scale, "alpha": alpha, "mask": mask, "picture": picture}
+    match = flags = None
+    if reference:
+        match, flags = match_reference(figures, picture, mask, ref_image, ref_mask, ref_box, neutral_ends)
+    return {"frames": figures, "warnings": warnings, "scale": scale, "alpha": alpha, "mask": mask, "picture": picture, "match": match, "match_flags": flags}
 
 
 def write_frames(result, out, name, direction=None, action=None):
@@ -204,23 +295,35 @@ def main(argv=None):
     parser.add_argument("--source", type=Path, required=True, help="The strip or grid the image tool returned (exact #FF00FF key, or true alpha)")
     parser.add_argument("--frames", type=int, required=True, help="How many figures the picture holds")
     parser.add_argument("--columns", type=int, help="Figures per row (default: all in one row)")
-    parser.add_argument("--out", type=Path, required=True, help="A new folder for the frames and the job")
-    parser.add_argument("--name", required=True, help="The sheet's name; frames are NAME_00.png, NAME_01.png ...")
+    parser.add_argument("--out", type=Path, help="A new folder for the frames and the job (not needed with --check-only)")
+    parser.add_argument("--name", help="The sheet's name; frames are NAME_00.png, NAME_01.png ... (not needed with --check-only)")
+    parser.add_argument("--check-only", action="store_true", help="Measure the picture and report; write nothing. Run it on every generated picture as soon as the tool returns it, before showing it to anyone")
     parser.add_argument("--direction")
     parser.add_argument("--action")
     parser.add_argument("--reference", type=Path, help="One approved pose of the same figure, to measure the scale")
     parser.add_argument("--planted", action="store_true", help="The action keeps its feet down: check the baseline and the height")
     parser.add_argument("--tolerance", type=float, default=0.05)
+    parser.add_argument("--neutral-ends", action="store_true", help="The action returns to the neutral pose: the first and last figure of every row must match, and the rows must agree")
+    parser.add_argument("--crown", type=int, help="Measure the head: the widest run of art in the top PERCENT of every figure must stay the same width")
+    parser.add_argument("--crown-tolerance", type=float, default=CROWN_TOLERANCE)
     args = parser.parse_args(argv)
+    if not args.check_only and not (args.out and args.name):
+        parser.error("--out and --name are needed unless --check-only")
     try:
-        result = slice_strip(args.source, args.frames, args.columns, args.reference, args.planted, args.tolerance)
+        result = slice_strip(args.source, args.frames, args.columns, args.reference, args.planted, args.tolerance, args.neutral_ends, args.crown, args.crown_tolerance)
+        if args.check_only:
+            print(json.dumps({"status": "checked", "frames": len(result["frames"]), "alpha": result["alpha"], "scale": result["scale"], "warnings": result["warnings"],
+                              "match": result["match"], "match_flags": result["match_flags"],
+                              "measured": [{key: f[key] for key in ("index", "size", "root_x", "crown") if key in f} for f in result["frames"]],
+                              "not_assessed": ["whether the poses are the right ones", "whether every frame is the same figure", "whether each figure shows its facing: compare it with the turnaround"]}, indent=2))
+            return 0
         job, frame_size = write_frames(result, args.out, args.name, args.direction, args.action)
     except (ValueError, OSError) as exc:
         print(f"BLOCKED: {exc}", file=sys.stderr)
         return 1
     report = {"status": "cut", "frames": len(job["frames"]), "frame_size": frame_size, "pivot": job["frames"][0]["pivot"], "alpha": result["alpha"], "scale": result["scale"],
-              "warnings": result["warnings"], "job": (args.out / f"{args.name}.job.json").as_posix(),
-              "measured": [{"index": f["index"], "size": f["size"], "root_x": f["root_x"]} for f in result["frames"]],
+              "warnings": result["warnings"], "match": result["match"], "match_flags": result["match_flags"], "job": (args.out / f"{args.name}.job.json").as_posix(),
+              "measured": [{key: f[key] for key in ("index", "size", "root_x", "crown") if key in f} for f in result["frames"]],
               "not_assessed": ["whether the poses are the right ones", "whether every frame is the same figure"]}
     print(json.dumps(report, indent=2))
     return 0

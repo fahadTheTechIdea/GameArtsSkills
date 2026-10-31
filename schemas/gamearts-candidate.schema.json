@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game Arts generated sprite candidate",
+  "description": "One picture an image tool returned for a strip, grid, turnaround or edit, kept unchanged with the prompt that made it, the pictures it was given, what was measured and why it was kept or rejected.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "candidate_id",
+    "group",
+    "revision",
+    "status",
+    "file",
+    "sha256",
+    "original_name",
+    "original_sha256",
+    "width",
+    "height",
+    "prompt",
+    "generated_with",
+    "check",
+    "created_at_utc"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "candidate_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*-v[0-9]{3}$" },
+    "group": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["generated", "selected", "rejected", "superseded"] },
+    "facing": { "type": "string", "pattern": "^[A-Z]{1,2}$" },
+    "action": { "type": "string", "minLength": 1 },
+    "file": { "type": "string", "minLength": 1 },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "original_name": { "type": "string", "minLength": 1 },
+    "original_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "width": { "type": "integer", "minimum": 1 },
+    "height": { "type": "integer", "minimum": 1 },
+    "transparent_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+    "exact_key_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+    "prompt": { "type": "string", "minLength": 1 },
+    "prompt_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "generated_with": { "type": "string", "minLength": 1 },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["role", "path", "sha256"],
+        "additionalProperties": false,
+        "properties": {
+          "role": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "check": {
+      "type": "object",
+      "required": ["status", "parameters"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "enum": ["passed", "refused"] },
+        "parameters": { "type": "object" },
+        "measured": { "type": "array" },
+        "scale": { "type": ["number", "null"] },
+        "match": { "type": ["array", "null"] },
+        "match_flags": { "type": ["array", "null"], "items": { "type": "string" } },
+        "warnings": { "type": "array", "items": { "type": "string" } },
+        "refusal": { "type": "string" }
+      }
+    },
+    "rejection": {
+      "type": "object",
+      "required": ["reason", "by", "at_utc"],
+      "additionalProperties": false,
+      "properties": {
+        "reason": { "type": "string", "minLength": 1 },
+        "by": { "enum": ["automatic check", "judgement", "review"] },
+        "at_utc": { "type": "string" }
+      }
+    },
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reviewer", "at_utc", "candidate_sha256", "compared_with", "findings", "overall"],
+        "additionalProperties": false,
+        "properties": {
+          "reviewer": { "enum": ["agent", "owner"] },
+          "at_utc": { "type": "string" },
+          "candidate_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "compared_with": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["role", "path", "sha256"],
+              "additionalProperties": false,
+              "properties": {
+                "role": { "type": "string", "minLength": 1 },
+                "path": { "type": "string", "minLength": 1 },
+                "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+              }
+            }
+          },
+          "findings": {
+            "type": "object",
+            "required": ["facing", "elevation", "identity", "motion"],
+            "additionalProperties": {
+              "type": "object",
+              "required": ["verdict", "reason"],
+              "additionalProperties": false,
+              "properties": {
+                "verdict": { "enum": ["pass", "fail", "not_applicable"] },
+                "reason": { "type": "string", "minLength": 1 }
+              }
+            },
+            "propertyNames": { "enum": ["facing", "elevation", "identity", "motion"] }
+          },
+          "flags_explained": { "type": "string" },
+          "overall": { "enum": ["pass", "fail"] }
+        }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "required": ["note", "at_utc"],
+      "additionalProperties": false,
+      "properties": {
+        "note": { "type": "string" },
+        "at_utc": { "type": "string" },
+        "superseded_by": { "type": "string" }
+      }
+    },
+    "created_at_utc": { "type": "string" }
+  }
+}

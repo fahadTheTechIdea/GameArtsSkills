@@ -192,5 +192,147 @@ class MeasuredScaleTests(Case):
         self.blocked(self.cut(growing, 4, "--planted", out="out3"), "frame 3: the figure's height changes")
 
 
+class NeutralAndHeadTests(Case):
+    """What the football project measures besides the scale: the neutral pose at both ends, one neutral across rows, and the head, which a crouch does not change."""
+
+    def person(self, draw, x, head=30, foot=90, body_height=60, body_width=20):
+        draw.rectangle((x, foot - body_height + 1, x + body_width, foot), fill=BODY)
+        draw.rectangle((x + (body_width - head) // 2, foot - body_height - 19, x + (body_width + head) // 2, foot - body_height), fill=SKIN)
+
+    def heads(self, spec, size=(400, 100), name="heads.png"):
+        """spec: [(x, head, foot, body_height)] one figure each."""
+        image = Image.new("RGBA", size, KEY)
+        draw = ImageDraw.Draw(image)
+        for x, head, foot, body_height in spec:
+            self.person(draw, x, head, foot, body_height)
+        path = self.dir / name
+        image.save(path)
+        return path
+
+    def test_neutral_ends_that_match_pass_and_report_nothing(self):
+        result = self.cut(self.strip([20, 120, 220, 320]), 4, "--neutral-ends")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["warnings"], [])
+
+    def test_a_last_figure_that_is_not_the_neutral_height_is_refused(self):
+        self.blocked(self.cut(self.strip([20, 120, 220, 320], heights={3: 40}), 4, "--neutral-ends"), "the strip: the first and last figures are asked to be the same neutral pose, but are 80 and 60 px tall")
+
+    def test_a_last_figure_on_another_baseline_is_refused(self):
+        self.blocked(self.cut(self.strip([20, 120, 220, 320], feet={3: 98}, size=(400, 120)), 4, "--neutral-ends"), "the first and last figures stand on different baselines")
+
+    def test_ends_that_differ_in_width_are_reported_not_called_identical(self):
+        result = self.cut(self.strip([20, 120, 220, 320], arms={3: (40, 10, 30, 8)}, size=(420, 100)), 4, "--neutral-ends")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(any("not identical copies of the neutral pose" in w for w in json.loads(result.stdout)["warnings"]))
+
+    def test_rows_of_a_grid_must_agree_on_the_neutral_pose(self):
+        spec = [(20, 30, 90, 60), (120, 30, 90, 60), (20, 30, 230, 80), (120, 30, 230, 80)]
+        self.blocked(self.cut(self.heads(spec, (240, 260)), 4, "--columns", "2", "--neutral-ends"), "the neutral pose is 80 to 100 px tall across the rows")
+        even = [(20, 30, 90, 60), (120, 30, 90, 60), (20, 30, 230, 60), (120, 30, 230, 60)]
+        self.assertEqual(self.cut(self.heads(even, (240, 260), "even.png"), 4, "--columns", "2", "--neutral-ends", out="out2").returncode, 0)
+
+    def test_a_head_that_stays_the_same_width_passes_even_when_the_pose_height_changes(self):
+        crouching = [(20, 30, 90, 60), (120, 30, 90, 40), (220, 30, 90, 30), (320, 30, 90, 60)]  # the posed height differs, the head does not
+        result = self.cut(self.heads(crouching), 4, "--crown", "30")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual({m["crown"] for m in json.loads(result.stdout)["measured"]}, {31})
+        self.blocked(self.cut(self.heads(crouching, name="h2.png"), 4, "--planted", out="out2"), "the figure's height changes")  # the height check alone would refuse the same strip
+
+    def test_a_head_that_changes_size_is_refused_naming_the_frame(self):
+        grown = [(20, 30, 90, 60), (120, 30, 90, 60), (220, 38, 90, 60), (320, 30, 90, 60)]
+        self.blocked(self.cut(self.heads(grown), 4, "--crown", "30"), r"frame 2: the head \(crown\) is 39 px wide against 31 px in frame 0")
+
+    def test_the_head_is_measured_against_the_reference_when_one_is_given(self):
+        reference = self.dir / "ref.png"
+        image = Image.new("RGBA", (60, 100), KEY)
+        self.person(ImageDraw.Draw(image), 10, 40, 90, 60)
+        image.save(reference)
+        steady = self.heads([(20, 30, 90, 60)] * 1 + [(120, 30, 90, 60), (220, 30, 90, 60), (320, 30, 90, 60)])
+        self.blocked(self.cut(steady, 4, "--crown", "30", "--reference", reference), "in the reference")
+
+    def test_the_crown_share_must_be_a_sensible_percentage(self):
+        self.blocked(self.cut(self.strip([20, 120, 220, 320]), 4, "--crown", "2"), "--crown must be a percentage from 5 to 60")
+
+
+class CheckOnlyTests(Case):
+    """The measurements run on every generated picture as soon as it comes back, without writing anything."""
+
+    def check(self, path, frames, *extra):
+        return run("slice_generated_strip.py", "--source", path, "--frames", frames, "--check-only", *extra)
+
+    def test_a_check_reports_every_measurement_and_writes_nothing(self):
+        source = self.strip([20, 120, 220, 320])
+        before = source.read_bytes()
+        result = self.check(source, 4, "--neutral-ends", "--crown", "30")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual((report["status"], report["frames"], report["warnings"]), ("checked", 4, []))
+        self.assertEqual([m["size"] for m in report["measured"]], [[41, 80]] * 4)
+        self.assertTrue(all("crown" in m for m in report["measured"]))
+        self.assertIn("whether each figure shows its facing: compare it with the turnaround", report["not_assessed"])
+        self.assertEqual(sorted(path.name for path in self.dir.iterdir()), ["strip.png"])  # nothing was written beside the picture
+        self.assertEqual(source.read_bytes(), before)
+
+    def test_a_check_refuses_what_a_cut_would_refuse(self):
+        self.blocked(self.check(self.strip([0, 120, 220, 320]), 4), "touches the picture's edge")
+        self.blocked(self.check(self.strip([20, 120, 220, 320], heights={3: 40}, name="short.png"), 4, "--neutral-ends"), "the first and last figures are asked to be the same neutral pose")
+
+    def test_a_cut_still_needs_an_output_folder_and_a_name(self):
+        result = run("slice_generated_strip.py", "--source", self.strip([20, 120, 220, 320]), "--frames", 4)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--out and --name are needed unless --check-only", result.stderr)
+
+
+class MatchTests(Case):
+    """Rough measured stand-ins for 'the same figure': they flag a likely difference for a reviewer and never refuse or approve a strip."""
+
+    def reference(self, body=BODY, head=SKIN, wide=0, name="ref.png"):
+        image = Image.new("RGBA", (120, 120), KEY)
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((30 - wide, 40, 70 + wide, 100), fill=body)
+        draw.rectangle((40, 20, 60, 40), fill=head)
+        path = self.dir / name
+        image.save(path)
+        return path
+
+    def report(self, reference, *extra):
+        result = run("slice_generated_strip.py", "--source", self.strip([20, 120, 220, 320]), "--frames", 4, "--check-only", "--reference", reference, *extra)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def test_the_same_figure_raises_no_flag_and_reports_its_numbers(self):
+        report = self.report(self.reference(), "--neutral-ends")
+        self.assertEqual(report["match_flags"], [])
+        self.assertTrue(all(item["colour_distance"] < 0.01 for item in report["match"]), report["match"])
+        self.assertAlmostEqual(report["match"][0]["aspect"], report["match"][0]["reference_aspect"], delta=0.05)
+
+    def test_another_colour_is_flagged_on_every_frame_without_refusing_the_strip(self):
+        report = self.report(self.reference(body=(200, 40, 40, 255)))
+        self.assertEqual(len(report["match_flags"]), 4)
+        self.assertRegex(report["match_flags"][0], r"frame 0: the mean colour of the art is \d+% of the colour range from the reference's")
+        self.assertEqual(report["status"], "checked")
+
+    def test_the_proportions_and_the_top_lighting_of_the_neutral_frame_are_compared(self):
+        wide = self.report(self.reference(wide=25), "--neutral-ends")["match_flags"]
+        self.assertTrue(any("frame 0: the width over height is" in flag for flag in wide), wide)
+        dark_head = self.report(self.reference(head=(10, 10, 10, 255)), "--neutral-ends")["match_flags"]
+        self.assertTrue(any("brightness of its top band over the whole" in flag for flag in dark_head), dark_head)
+        self.assertFalse(any("frame 0: the width" in flag for flag in self.report(self.reference(head=(10, 10, 10, 255)), "--neutral-ends")["match_flags"]))
+
+    def test_the_proportions_are_compared_only_when_the_first_frame_is_the_neutral_pose(self):
+        flags = self.report(self.reference(wide=25))["match_flags"]
+        self.assertFalse(any("frame 0: the width" in flag for flag in flags), flags)
+
+    def test_without_a_reference_nothing_is_compared(self):
+        result = run("slice_generated_strip.py", "--source", self.strip([20, 120, 220, 320]), "--frames", 4, "--check-only")
+        report = json.loads(result.stdout)
+        self.assertEqual((report["match"], report["match_flags"]), (None, None))
+
+    def test_a_cut_reports_the_flags_too(self):
+        result = self.cut(self.strip([20, 120, 220, 320]), 4, "--reference", self.reference(body=(200, 40, 40, 255)))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(json.loads(result.stdout)["match_flags"]), 4)
+
+
 if __name__ == "__main__":
     unittest.main()
